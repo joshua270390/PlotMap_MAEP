@@ -21,7 +21,7 @@ export default function Dashboard() {
   }, []);
   const [pin, setPin] = useState('');
   const [loggedIn, setLoggedIn] = useState(false);
-  const [page, setPage] = useState('bookings');
+  const [page, setPage] = useState(() => window.location.pathname.replace(/\\/+$/, '') === '/plot_lists' ? 'plots' : 'bookings');
   const [bookings, setBookings] = useState([]);
   const [plots, setPlots] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -147,12 +147,12 @@ export default function Dashboard() {
           <span><strong>Mary Ann</strong><small>Elite Properties</small></span>
         </a>
         <p className="sidebar-label">MANAGEMENT</p>
-        <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => setPage('bookings')}>
+        <a className={'nav-item' + (page === 'bookings' ? ' active' : '')} href="/bookings">
           <span className="nav-icon">▤</span> Bookings
-        </button>
-        <button className={'nav-item' + (page === 'plots' ? ' active' : '')} onClick={() => setPage('plots')}>
+        </a>
+        <a className={'nav-item' + (page === 'plots' ? ' active' : '')} href="/plot_lists">
           <span className="nav-icon">▦</span> Plot lists
-        </button>
+        </a>
         <div className="sidebar-bottom">
           <span className="online-dot" /> Connected to admin session
           <button className="signout-btn" onClick={() => { setLoggedIn(false); setPin(''); setBookings([]); setPlots([]); setError(''); setNotice(''); }}>Sign out</button>
@@ -165,7 +165,7 @@ export default function Dashboard() {
           <div className="topbar-actions">
             <span className="topbar-avatar">MA</span>
             <div className="admin-label"><strong>Administrator</strong><small>Mary Ann Elite Properties</small></div>
-            <button className="refresh-btn" onClick={() => loadData(page, pin)} disabled={loading} title="Refresh data">↻</button>
+            <button className="refresh-btn" onClick={() => page === 'bookings' ? loadData('bookings', pin) : setPlotSearch('')} disabled={loading} title="Refresh data">↻</button>
           </div>
         </header>
 
@@ -226,14 +226,9 @@ export default function Dashboard() {
               {(!plotSearch.trim() || 'mary ann elite properties madurai tamil nadu interactive plot layout'.includes(plotSearch.trim().toLowerCase())) ? (
                 <div className="project-cards">
                   <a className="project-list-card" href="https://plot-map-maep-xipa.vercel.app/" target="_blank" rel="noopener noreferrer" aria-label="Open Mary Ann Elite Properties interactive plot map">
-                    <div className="project-card-visual" aria-hidden="true">
-                      <div className="project-visual-top"><span className="project-visual-mark">MA</span><span className="project-visual-tag">PLOT LAYOUT</span></div>
-                      <div className="project-mini-map">
-                        <div className="mini-road mini-road-horizontal" /><div className="mini-road mini-road-vertical" />
-                        {Array.from({ length: 20 }, (_, index) => <span className="mini-plot" key={index}>{index + 1}</span>)}
-                        <span className="mini-park">GREEN SPACE</span>
-                      </div>
-                      <div className="project-visual-bottom"><span><i className="project-dot dot-available" /> Available</span><span><i className="project-dot dot-reserved" /> Reserved</span><span><i className="project-dot dot-sold" /> Sold</span></div>
+                    <div className="project-card-visual" aria-label="Preview of the interactive plot map">
+                      <iframe className="project-map-preview" src="/" title="Mary Ann Elite Properties plot map preview" loading="lazy" tabIndex="-1" aria-hidden="true" />
+                      <div className="project-preview-overlay" aria-hidden="true"><span className="project-visual-mark">MA</span><span className="project-visual-tag">INTERACTIVE PLOT MAP</span></div>
                     </div>
                     <div className="project-card-content">
                       <div className="project-card-heading"><div><span className="project-card-kicker">MARY ANN ELITE PROPERTIES</span><h2>Mary Ann Elite Properties</h2></div><span className="project-card-arrow" aria-hidden="true">↗</span></div>

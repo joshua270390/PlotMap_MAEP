@@ -42,7 +42,42 @@ function PlotEditor({ id, ax, setAd }) {
   );
 }
 
-function DmEditor({ k, ax, setAd, onGone }) {
+function StatusEditor({ id, ax, status, setStatus, pin }) {
+  const [value, setValue] = useState(({ a: 'Available', r: 'Reserved', b: 'Booked', s: 'Sold' })[status[id] || 'a']);
+  const [m, setM] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    setBusy(true); setM(null);
+    try {
+      const response = await fetch('/api/plot-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
+        body: JSON.stringify({ plot_number: ax.lbl(id), status: value }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.error || 'Could not update plot status.');
+      const code = ({ Available: 'a', Reserved: 'r', Booked: 'b', Sold: 's' })[value];
+      setStatus(old => ({ ...old, [id]: code }));
+      setM({ t: 'Status saved to Supabase.', ok: true });
+    } catch (e) {
+      setM({ t: e.message || 'Could not update plot status.' });
+    } finally { setBusy(false); }
+  };
+  return (
+    <>
+      <div className="sec">Availability status</div>
+      <label><span>Plot status</span>
+        <select value={value} onChange={e => setValue(e.target.value)}>
+          <option>Available</option><option>Reserved</option><option>Booked</option><option>Sold</option>
+        </select>
+      </label>
+      <div className="arow"><button className="pri" type="button" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save status'}</button></div>
+      <p className={'hint' + (m ? (m.ok ? ' ok' : ' err') : '')}>{m && m.t}</p>
+    </>
+  );
+}
+
+function DmEditor({ k, ax, setAd, onGone })
   const d = ax.dmList().find(x => x.k === k);
   const [f, setF] = useState({ t: d.t, x: String(d.x), y: String(d.y), r: String(d.r) });
   const [m, setM] = useState(null);
@@ -67,15 +102,15 @@ function DmEditor({ k, ax, setAd, onGone }) {
   );
 }
 
-export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addMode, setAddMode, clearSel }) {
-  const [pin, setPin] = useState(''), [pm, setPm] = useState(''), [note, setNote] = useState(null), [rst, setRst] = useState(false);
+export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addMode, setAddMode, clearSel, status, setStatus }) {
+  const [pin, setPin] = useState(''), [authPin, setAuthPin] = useState(''), [pm, setPm] = useState(''), [note, setNote] = useState(null), [rst, setRst] = useState(false);
   const [rate, setRate] = useState(ax.ad.rate || '');
   const file = useRef(null), rt = useRef(0);
 
   if (panel === 'off') return <button id="admbtn" className="fl" type="button" onClick={() => setPanel('lock')}>Admin</button>;
 
-  const unlock = () => { if (pin === PIN) { setPm(''); setPin(''); setPanel('tools'); } else setPm('Wrong PIN.'); };
-  const exit = () => { setPanel('off'); setPin(''); setPm(''); setNote(null); clearSel(); };
+  const unlock = () => { if (pin === PIN) { setPm(''); setAuthPin(pin); setPin(''); setPanel('tools'); } else setPm('Wrong PIN.'); };
+  const exit = () => { setPanel('off'); setPin(''); setAuthPin(''); setPm(''); setNote(null); clearSel(); };
   const exportEdits = () => {
     const b = new Blob([JSON.stringify({ admin: ax.ad, status: {} }, null, 1)], { type: 'application/json' }), a = document.createElement('a');
     a.href = URL.createObjectURL(b); a.download = 'velavan-plot-edits.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1500);
@@ -119,7 +154,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
             <div className="sec">Selected</div>
             <div className="card">
               {addMode ? <p className="hint">Click on the map where the new dimension label should go.</p>
-                : sel != null ? <PlotEditor key={sel} id={sel} ax={ax} setAd={setAd} />
+                : sel != null ? <><PlotEditor key={sel} id={sel} ax={ax} setAd={setAd} /><StatusEditor key={'status-' + sel} id={sel} ax={ax} status={status} setStatus={setStatus} pin={authPin} /></>
                 : selD && ax.dmList().some(d => d.k === selD) ? <DmEditor key={selD} k={selD} ax={ax} setAd={setAd} onGone={clearSel} />
                 : <p className="hint">Click a plot or a dimension label on the map to edit it.</p>}
             </div>

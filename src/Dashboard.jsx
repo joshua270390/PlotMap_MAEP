@@ -30,6 +30,7 @@ export default function Dashboard() {
   const [edit, setEdit] = useState(null);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
+  const [plotSearch, setPlotSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
 
   const plotById = useMemo(() => new Map(plots.map(plot => [String(plot.id), plot])), [plots]);
@@ -70,8 +71,9 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    if (loggedIn) loadData(page, pin);
-    // Reload when the user switches sidebar pages or signs in.
+    // The Plot lists page is intentionally a static design for now.
+    // Only the Bookings page loads live records from the API.
+    if (loggedIn && page === 'bookings') loadData('bookings', pin);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, loggedIn]);
 
@@ -215,23 +217,36 @@ export default function Dashboard() {
               </section>
             </>
           ) : (
-            <>
-              <div className="page-intro"><div><h2>Plot lists</h2><p>Live plot inventory and current availability from Supabase.</p></div><div className="record-count"><strong>{plots.length}</strong><span>Total plots</span></div></div>
-              <section className="table-card">
-                {loading ? <div className="table-state">Loading plots from Supabase…</div> : <div className="table-scroll"><table className="data-table">
-                  <thead><tr><th>Plot ID</th><th>Unit Number</th><th>Area (sq.ft.)</th><th>Facing</th><th>Status</th></tr></thead>
-                  <tbody>{plots.map(plot => <tr key={plot.id}>
-                    <td className="id-cell">#{plot.id}</td>
-                    <td><span className="unit-pill">{field(plot, 'plot_number', 'unit_number') || '—'}</span></td>
-                    <td>{field(plot, 'area_sqft', 'area') || '—'}</td>
-                    <td>{field(plot, 'facing') || '—'}</td>
-                    <td><span className={'status-badge status-' + normalizedStatus(plot.status).toLowerCase()}>{statusLabel(plot.status)}</span></td>
-                  </tr>)}
-                  {!plots.length && <tr><td colSpan="5" className="empty-cell">No plots found in Supabase.</td></tr>}</tbody>
-                </table></div>}
-                <div className="table-footer">Showing {plots.length} plots</div>
-              </section>
-            </>
+            <section className="project-list-view" aria-label="Project list">
+              <label className="project-filter-box">
+                <span aria-hidden="true">⌕</span>
+                <input type="search" value={plotSearch} onChange={e => setPlotSearch(e.target.value)} placeholder="Search projects..." aria-label="Filter projects" />
+                <span className="filter-caption">FILTER</span>
+              </label>
+              {(!plotSearch.trim() || 'mary ann elite properties madurai tamil nadu interactive plot layout'.includes(plotSearch.trim().toLowerCase())) ? (
+                <div className="project-cards">
+                  <a className="project-list-card" href="https://plot-map-maep-xipa.vercel.app/" target="_blank" rel="noopener noreferrer" aria-label="Open Mary Ann Elite Properties interactive plot map">
+                    <div className="project-card-visual" aria-hidden="true">
+                      <div className="project-visual-top"><span className="project-visual-mark">MA</span><span className="project-visual-tag">PLOT LAYOUT</span></div>
+                      <div className="project-mini-map">
+                        <div className="mini-road mini-road-horizontal" /><div className="mini-road mini-road-vertical" />
+                        {Array.from({ length: 20 }, (_, index) => <span className="mini-plot" key={index}>{index + 1}</span>)}
+                        <span className="mini-park">GREEN SPACE</span>
+                      </div>
+                      <div className="project-visual-bottom"><span><i className="project-dot dot-available" /> Available</span><span><i className="project-dot dot-reserved" /> Reserved</span><span><i className="project-dot dot-sold" /> Sold</span></div>
+                    </div>
+                    <div className="project-card-content">
+                      <div className="project-card-heading"><div><span className="project-card-kicker">MARY ANN ELITE PROPERTIES</span><h2>Mary Ann Elite Properties</h2></div><span className="project-card-arrow" aria-hidden="true">↗</span></div>
+                      <p className="project-card-location"><span aria-hidden="true">⌖</span> Madurai, Tamil Nadu</p>
+                      <p className="project-card-description">Explore the interactive plot layout and view plot details.</p>
+                      <div className="project-card-footer"><span className="project-type"><span aria-hidden="true">▦</span> Interactive Plot Layout</span><span className="project-view-link">View project <span aria-hidden="true">→</span></span></div>
+                    </div>
+                  </a>
+                </div>
+              ) : (
+                <div className="project-filter-empty"><span aria-hidden="true">⌕</span><strong>No projects found</strong><p>Try another project name or location.</p></div>
+              )}
+            </section>
           )}
         </section>
       </main>

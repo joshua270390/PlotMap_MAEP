@@ -14,7 +14,9 @@ function config() {
   return {
     pin: process.env.ADMIN_PIN || '',
     url: (process.env.SUPABASE_URL || '').replace(/\/+$/, ''),
-    key: (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim(),
+    // Prefer the server-only service-role key; fall back to the same key used by the public map APIs.
+    // When the fallback is an anon/publishable key, Supabase RLS still applies.
+    key: (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim(),
     projectId: String(parseInt(process.env.PROJECT_ID || '1', 10)),
     bookingsTable: process.env.BOOKINGS_TABLE || 'bookings',
     plotsTable: process.env.PLOTS_TABLE || 'plots',
@@ -23,7 +25,9 @@ function config() {
 
 async function db(cfg, method, table, query, body) {
   const url = cfg.url + '/rest/v1/' + encodeURIComponent(table) + (query ? '?' + query : '');
-  const headers = { apikey: cfg.key, Authorization: 'Bearer ' + cfg.key, Accept: 'application/json' };
+  const headers = { apikey: cfg.key, Accept: 'application/json' };
+  // JWT keys (legacy anon/service_role) belong in Authorization. New sb_publishable keys do not.
+  if (cfg.key.startsWith('eyJ')) headers.Authorization = 'Bearer ' + cfg.key;
   if (body !== undefined) {
     headers['Content-Type'] = 'application/json';
     headers.Prefer = 'return=representation';
@@ -57,8 +61,8 @@ export default async function handler(req, res) {
   }
   if (!authorized(req, cfg)) return out(res, 401, { ok: false, error: 'Admin authentication failed. Please log in again.' });
   if (!cfg.url || !cfg.key) {
-    console.error('[admin-data] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.');
-    return out(res, 500, { ok: false, error: 'Dashboard database access is not configured on the server.' });
+    console.error('[admin-data] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY/SUPABASE_KEY.');
+    return out(res, 500, { ok: false, error: 'Dashboard database access is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (recommended), or SUPABASE_KEY with suitable RLS permissions.' });
   }
 
   if (req.method === 'GET') {

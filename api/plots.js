@@ -3,7 +3,7 @@
 import { SUPABASE_URL, SUPABASE_KEY, PROJECT_ID, PLOTS, BOOKINGS } from './_supabase.js';
 
 async function readTable(table, query) {
-  const url = SUPABASE_URL.replace(/\\/+$/, '') + '/rest/v1/' + encodeURIComponent(table) + '?' + query;
+  const url = SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1/' + encodeURIComponent(table) + '?' + query;
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_KEY).trim();
   const headers = { apikey: key, Authorization: 'Bearer ' + key, Accept: 'application/json' };
   let response;

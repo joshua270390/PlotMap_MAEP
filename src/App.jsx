@@ -7,7 +7,7 @@ import { toStatus } from './plots.js';
 import { addDm, loadAd, makeApi, saveAd } from './adminData.js';
 
 export default function App() {
-  const [status, setStatus] = useState({});          // plot id -> 'a' | 'b' | 's' (from Supabase)
+  const [status, setStatus] = useState({});          // a=Available, r=Reserved, b=Booked, s=Sold (from Supabase)
   const [filt, setFilt] = useState(null);
   const [sel, setSel] = useState(null);              // selected plot (highlight / admin editor)
   const [selD, setSelD] = useState(null);            // selected dimension label (admin)
@@ -56,7 +56,7 @@ export default function App() {
     <>
       <PlotMap ref={mapRef} ax={ax} status={status} filt={filt} setFilt={setFilt} sel={sel} selD={selD} setSel={setSel}
         onTap={onTap} admin={admin} addMode={addMode}>
-        <AdminPanel panel={panel} setPanel={setPanel} ax={ax} setAd={setAd} sel={sel} selD={selD}
+        <AdminPanel panel={panel} setPanel={setPanel} ax={ax} setAd={setAd} sel={sel} selD={selD} status={status} setStatus={setStatus}
           addMode={addMode} setAddMode={setAddMode} clearSel={clearSel} />
       </PlotMap>
       {unit != null && (

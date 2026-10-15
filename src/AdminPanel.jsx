@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import { PIN } from './config.js';
 import { AD0, delDm, revertPlot, setDm, setPlot } from './adminData.js';
 import { AREAS, POS, cents } from './plots.js';
 
@@ -103,13 +102,27 @@ function DmEditor({ k, ax, setAd, onGone }) {
 }
 
 export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addMode, setAddMode, clearSel, status, setStatus }) {
-  const [pin, setPin] = useState(''), [authPin, setAuthPin] = useState(''), [pm, setPm] = useState(''), [note, setNote] = useState(null), [rst, setRst] = useState(false);
+  const [pin, setPin] = useState(''), [authPin, setAuthPin] = useState(''), [pm, setPm] = useState(''), [note, setNote] = useState(null), [rst, setRst] = useState(false), [authBusy, setAuthBusy] = useState(false);
   const [rate, setRate] = useState(ax.ad.rate || '');
   const file = useRef(null), rt = useRef(0);
 
   if (panel === 'off') return <button id="admbtn" className="fl" type="button" onClick={() => setPanel('lock')}>Admin</button>;
 
-  const unlock = () => { if (pin === PIN) { setPm(''); setAuthPin(pin); setPin(''); setPanel('tools'); } else setPm('Wrong PIN.'); };
+  const unlock = async () => {
+    if (authBusy || !pin) return;
+    setAuthBusy(true); setPm('');
+    try {
+      const response = await fetch('/api/admin-auth', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.error || 'Wrong PIN.');
+      setAuthPin(pin); setPin(''); setPanel('tools');
+    } catch (error) {
+      setPm(error.message || 'Admin authentication failed.');
+    } finally { setAuthBusy(false); }
+  };
   const exit = () => { setPanel('off'); setPin(''); setAuthPin(''); setPm(''); setNote(null); clearSel(); };
   const exportEdits = () => {
     const b = new Blob([JSON.stringify({ admin: ax.ad, status: {} }, null, 1)], { type: 'application/json' }), a = document.createElement('a');
@@ -146,7 +159,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
             <div className="lk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg></div>
             <p className="lt2">Enter your PIN to edit the plot map</p>
             <label><span>Admin PIN</span><input autoFocus type="password" inputMode="numeric" autoComplete="off" placeholder="PIN" value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => e.key === 'Enter' && unlock()} /></label>
-            <div className="arow"><button className="pri" type="button" onClick={unlock}>Unlock</button></div>
+            <div className="arow"><button className="pri" type="button" disabled={authBusy} onClick={unlock}>{authBusy ? 'Checking…' : 'Unlock'}</button></div>
             <p className="hint" style={{ color: 'var(--sd)' }}>{pm}</p>
           </div>
         ) : (

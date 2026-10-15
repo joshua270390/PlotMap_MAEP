@@ -85,13 +85,27 @@ export default async function handler(req, res) {
     }
     if (view !== 'bookings') return out(res, 400, { ok: false, error: 'Unknown dashboard view.' });
     const q = new URLSearchParams({ select: '*', project_id: 'eq.' + cfg.projectId, limit: '2000', order: 'id.desc' });
-    const [bookings, plots] = await Promise.all([
-      db(cfg, 'GET', cfg.bookingsTable, q.toString()),
-      db(cfg, 'GET', cfg.plotsTable, new URLSearchParams({ select: 'id,plot_number,status', project_id: 'eq.' + cfg.projectId, limit: '2000' }).toString()),
-    ]);
-    if (!bookings.ok || !plots.ok) {
-      console.error('[admin-data] Booking fetch failed:', bookings.error, plots.error);
-      return out(res, 502, { ok: false, error: 'Could not fetch bookings from Supabase. Check table access and column settings.' });
+    const bookings = await db(cfg, 'GET', cfg.bookingsTable, q.toString());
+    if (!bookings.ok) {
+      console.error('[admin-data] Booking fetch failed:', bookings.status, bookings.error);
+      return out(res, 502, {
+        ok: false,
+        error: 'Supabase bookings query failed (' + bookings.status + '): ' + bookings.error,
+      });
+    }
+
+    // Bookings are the primary dashboard data. A plot-table schema/permission issue
+    // must not prevent existing customer bookings from appearing.
+    const plotsQuery = new URLSearchParams({ select: 'id,plot_number', project_id: 'eq.' + cfg.projectId, limit: '2000' });
+    const plots = await db(cfg, 'GET', cfg.plotsTable, plotsQuery.toString());
+    if (!plots.ok) {
+      console.error('[admin-data] Plot lookup failed while loading bookings:', plots.status, plots.error);
+      return out(res, 200, {
+        ok: true,
+        bookings: bookings.data || [],
+        plots: [],
+        warning: 'Bookings loaded. Plot unit numbers could not be loaded (' + plots.status + '): ' + plots.error,
+      });
     }
     return out(res, 200, { ok: true, bookings: bookings.data || [], plots: plots.data || [] });
   }

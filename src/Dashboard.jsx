@@ -34,6 +34,34 @@ export default function Dashboard() {
   const [plotSearch, setPlotSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
 
+  // Restore the admin session after a refresh in the same browser tab.
+  useEffect(() => {
+    const savedPin = window.sessionStorage.getItem('maep_admin_pin');
+    if (!savedPin) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch('/api/admin-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin: savedPin }),
+          cache: 'no-store',
+        });
+        const data = await response.json().catch(() => ({}));
+        if (cancelled) return;
+        if (response.ok && data.ok) {
+          setPin(savedPin);
+          setLoggedIn(true);
+        } else {
+          window.sessionStorage.removeItem('maep_admin_pin');
+        }
+      } catch {
+        if (!cancelled) setError('Could not verify the saved admin session. Please sign in again.');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const plotById = useMemo(() => new Map(plots.map(plot => [String(plot.id), plot])), [plots]);
 
   async function loadData(view = page, currentPin = pin) {
@@ -66,6 +94,7 @@ export default function Dashboard() {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Admin login failed.');
+      window.sessionStorage.setItem('maep_admin_pin', pin);
       setLoggedIn(true); setNotice('Welcome to the admin dashboard.');
       await loadData('bookings', pin);
     } catch (e) { setError(e.message || 'Could not sign in.'); }
@@ -157,7 +186,7 @@ export default function Dashboard() {
         </button>
         <div className="sidebar-bottom">
           <span className="online-dot" /> Connected to admin session
-          <button className="signout-btn" onClick={() => { setLoggedIn(false); setPin(''); setBookings([]); setPlots([]); setError(''); setNotice(''); }}>Sign out</button>
+          <button className="signout-btn" onClick={() => { window.sessionStorage.removeItem('maep_admin_pin'); setLoggedIn(false); setPin(''); setBookings([]); setPlots([]); setError(''); setNotice(''); }}>Sign out</button>
         </div>
       </aside>
 

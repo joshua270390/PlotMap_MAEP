@@ -21,7 +21,7 @@ export default function Dashboard() {
   }, []);
   const [pin, setPin] = useState('');
   const [loggedIn, setLoggedIn] = useState(false);
-  const [page, setPage] = useState(() => window.location.pathname === '/plot_lists' ? 'plots' : 'bookings');
+  const [page, setPage] = useState(() => window.location.pathname.replace(/\/+$/, '') === '/plot_lists' ? 'plots' : 'bookings');
   const [bookings, setBookings] = useState([]);
   const [plots, setPlots] = useState([]);
   const [loading, setLoading] = useState(false);

@@ -263,3 +263,13 @@ svg[data-z="1"] text.dm{font-size:30px}
 svg[data-z="2"] text.dm{font-size:22px}
 svg.adm[data-z] text.dm{font-size:22px}
 .mh .cts a svg{position:static;width:15px;height:15px;flex:none}
+
+
+/* Current map display: uniform plot fill; Reserved is a legend-only status until admin status management is added. */
+:root{--reserved:#f28c28}
+path.p,path.p.a,path.p.b,path.p.s,path.p.pm{fill:var(--plot);fill-opacity:1}
+path.p.dim,path.p.a.dim,path.p.a.pm.dim{fill:var(--plot);fill-opacity:1}
+text.n,text.n.a,text.n.b,text.n.s,text.n.pm{fill:#1b2433;stroke:var(--plot)}
+.legend .status-chip{cursor:default;pointer-events:none}
+.legend .status-chip:hover{background:transparent}
+@media (max-width:820px){.legend .lrow{flex-wrap:wrap;justify-content:flex-start}.legend .status-chip{padding:6px 8px;gap:5px}.legend .status-chip .c{margin-left:2px}}

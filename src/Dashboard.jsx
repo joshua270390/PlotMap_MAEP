@@ -148,12 +148,12 @@ export default function Dashboard() {
           <span><strong>Mary Ann</strong><small>Elite Properties</small></span>
         </a>
         <p className="sidebar-label">MANAGEMENT</p>
-        <a className={'nav-item' + (page === 'bookings' ? ' active' : '')} href="/bookings">
+        <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); }}>
           <span className="nav-icon">▤</span> Bookings
-        </a>
-        <a className={'nav-item' + (page === 'plots' ? ' active' : '')} href="/plot_lists">
+        </button>
+        <button className={'nav-item' + (page === 'plots' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/plot_lists'); setPage('plots'); }}>
           <span className="nav-icon">▦</span> Plot lists
-        </a>
+        </button>
         <div className="sidebar-bottom">
           <span className="online-dot" /> Connected to admin session
           <button className="signout-btn" onClick={() => { setLoggedIn(false); setPin(''); setBookings([]); setPlots([]); setError(''); setNotice(''); }}>Sign out</button>

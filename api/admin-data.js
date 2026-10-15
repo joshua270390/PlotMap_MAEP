@@ -65,12 +65,23 @@ export default async function handler(req, res) {
     const view = String(req.query?.view || 'bookings');
     if (view === 'plots') {
       const q = new URLSearchParams({ select: '*', project_id: 'eq.' + cfg.projectId, limit: '2000' });
-      const result = await db(cfg, 'GET', cfg.plotsTable, q.toString());
-      if (!result.ok) {
-        console.error('[admin-data] Plot list fetch failed:', result.status, result.error);
+      const bq = new URLSearchParams({ select: 'id,plot_id,status', project_id: 'eq.' + cfg.projectId, order: 'id.desc', limit: '2000' });
+      const [result, bookings] = await Promise.all([
+        db(cfg, 'GET', cfg.plotsTable, q.toString()),
+        db(cfg, 'GET', cfg.bookingsTable, bq.toString()),
+      ]);
+      if (!result.ok || !bookings.ok) {
+        console.error('[admin-data] Plot list fetch failed:', result.error, bookings.error);
         return out(res, 502, { ok: false, error: 'Could not fetch plot list from Supabase.' });
       }
-      return out(res, 200, { ok: true, plots: result.data || [] });
+      const statusByPlot = new Map();
+      for (const booking of bookings.data || []) {
+        const plotId = String(booking.plot_id);
+        if (statusByPlot.has(plotId)) continue;
+        statusByPlot.set(plotId, allowedStatuses.has(String(booking.status)) ? String(booking.status) : 'Available');
+      }
+      const plots = (result.data || []).map(plot => ({ ...plot, status: statusByPlot.get(String(plot.id)) || 'Available' }));
+      return out(res, 200, { ok: true, plots });
     }
     if (view !== 'bookings') return out(res, 400, { ok: false, error: 'Unknown dashboard view.' });
     const q = new URLSearchParams({ select: '*', project_id: 'eq.' + cfg.projectId, limit: '2000', order: 'id.desc' });

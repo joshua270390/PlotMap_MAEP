@@ -15,6 +15,10 @@ const field = (row, ...keys) => {
 };
 
 export default function Dashboard() {
+  useEffect(() => {
+    document.body.classList.add('dashboard-mode');
+    return () => document.body.classList.remove('dashboard-mode');
+  }, []);
   const [pin, setPin] = useState('');
   const [loggedIn, setLoggedIn] = useState(false);
   const [page, setPage] = useState('bookings');

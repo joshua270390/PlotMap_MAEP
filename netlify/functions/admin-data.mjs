@@ -16,10 +16,28 @@ function config() {
   };
 }
 
+function keyDiagnostics(cfg) {
+  try {
+    const parts = cfg.key.split(".");
+    const claims = parts.length === 3
+      ? JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"))
+      : {};
+    return {
+      supabaseHost: new URL(cfg.url).host,
+      jwtRole: claims.role || "missing",
+      jwtAudience: claims.aud || "missing",
+      jwtIssuer: claims.iss || "missing",
+      keyPrefix: cfg.key.slice(0, 3),
+      keyLength: cfg.key.length,
+    };
+  } catch {
+    return { supabaseHost: "unavailable", jwtRole: "unreadable", keyPrefix: cfg.key.slice(0, 3), keyLength: cfg.key.length };
+  }
+}
+
 async function db(cfg, method, table, query = "", body) {
   const url = cfg.url + "/rest/v1/" + encodeURIComponent(table) + (query ? "?" + query : "");
-  const headers = { apikey: cfg.key, Accept: "application/json" };
-  if (cfg.key.startsWith("eyJ")) headers.Authorization = "Bearer " + cfg.key;
+  const headers = { apikey: cfg.key, Authorization: "Bearer " + cfg.key, Accept: "application/json" };
   if (body !== undefined) {
     headers["Content-Type"] = "application/json";
     headers.Prefer = method === "PATCH" ? "return=representation" : "return=minimal";
@@ -65,7 +83,7 @@ export default async function handler(request) {
         db(cfg, "GET", cfg.bookingsTable, bq.toString()),
       ]);
       if (!result.ok || !bookings.ok) {
-        console.error("[admin-data] Plot list fetch failed:", result.error, bookings.error);
+        console.error("[admin-data] Plot list fetch failed:", result.status, result.error, bookings.status, bookings.error, JSON.stringify(keyDiagnostics(cfg)));
         return json({ ok: false, error: "Could not fetch plot list from Supabase." }, 502);
       }
       const statusByPlot = new Map();
@@ -80,7 +98,7 @@ export default async function handler(request) {
     const q = new URLSearchParams({ select: "*", project_id: "eq." + cfg.projectId, limit: "2000", order: "id.desc" });
     const bookings = await db(cfg, "GET", cfg.bookingsTable, q.toString());
     if (!bookings.ok) {
-      console.error("[admin-data] Booking fetch failed:", bookings.status, bookings.error);
+      console.error("[admin-data] Booking fetch failed:", bookings.status, bookings.error, JSON.stringify(keyDiagnostics(cfg)));
       return json({ ok: false, error: "Supabase bookings query failed (" + bookings.status + "): " + bookings.error }, 502);
     }
     const plotsQuery = new URLSearchParams({ select: "id,plot_number", project_id: "eq." + cfg.projectId, limit: "2000" });

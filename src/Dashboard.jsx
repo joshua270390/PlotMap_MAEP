@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import './Dashboard.css';
+import { P, G } from './data.js';
 
 const STATUSES = [
   { value: 'Available', label: 'Availability' },
@@ -228,33 +229,25 @@ export default function Dashboard() {
                 <div className="project-cards">
                   <a className="project-list-card" href="https://plot-map-maep-xipa.vercel.app/" target="_blank" rel="noopener noreferrer" aria-label="Open Mary Ann Elite Properties interactive plot map">
                     <div className="project-card-visual" aria-label="Static preview of the interactive plot map">
-                      <svg className="project-map-static" viewBox="0 0 480 220" role="img" aria-label="Illustrated plot layout with numbered plots and roads">
-                        <rect width="480" height="220" rx="12" fill="#e9f0e9" />
-                        <path d="M12 110 H468 M245 12 V208" stroke="#c4cbd0" strokeWidth="23" />
-                        <path d="M12 110 H468 M245 12 V208" stroke="#ffffff" strokeWidth="2" strokeDasharray="8 7" opacity=".9" />
-                        <g fill="#d8e9dc" stroke="#8fb49a" strokeWidth="1.5">
-                          <rect x="18" y="20" width="44" height="34" rx="2"/><rect x="68" y="20" width="44" height="34" rx="2"/><rect x="118" y="20" width="44" height="34" rx="2"/><rect x="168" y="20" width="44" height="34" rx="2"/>
-                          <rect x="18" y="62" width="44" height="34" rx="2"/><rect x="68" y="62" width="44" height="34" rx="2"/><rect x="118" y="62" width="44" height="34" rx="2"/><rect x="168" y="62" width="44" height="34" rx="2"/>
-                          <rect x="18" y="124" width="44" height="34" rx="2"/><rect x="68" y="124" width="44" height="34" rx="2"/><rect x="118" y="124" width="44" height="34" rx="2"/><rect x="168" y="124" width="44" height="34" rx="2"/>
-                          <rect x="18" y="166" width="44" height="34" rx="2"/><rect x="68" y="166" width="44" height="34" rx="2"/><rect x="118" y="166" width="44" height="34" rx="2"/><rect x="168" y="166" width="44" height="34" rx="2"/>
+                      <svg className="project-map-static" viewBox="0 0 4400 3400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Static thumbnail of the actual plot map layout">
+                        <rect width="4400" height="3400" fill="#e8e4dc" />
+                        <g fill="#363e4c">
+                          {G.base.map((d, i) => <path key={'road-' + i} d={d} />)}
                         </g>
-                        <g fill="#e4eaf3" stroke="#9aafc7" strokeWidth="1.5">
-                          <rect x="268" y="20" width="44" height="34" rx="2"/><rect x="318" y="20" width="44" height="34" rx="2"/><rect x="368" y="20" width="44" height="34" rx="2"/><rect x="418" y="20" width="44" height="34" rx="2"/>
-                          <rect x="268" y="62" width="44" height="34" rx="2"/><rect x="318" y="62" width="44" height="34" rx="2"/><rect x="368" y="62" width="44" height="34" rx="2"/><rect x="418" y="62" width="44" height="34" rx="2"/>
-                          <rect x="268" y="124" width="44" height="34" rx="2"/><rect x="318" y="124" width="44" height="34" rx="2"/><rect x="368" y="124" width="44" height="34" rx="2"/><rect x="418" y="124" width="44" height="34" rx="2"/>
-                          <rect x="268" y="166" width="44" height="34" rx="2"/><rect x="318" y="166" width="44" height="34" rx="2"/><rect x="368" y="166" width="44" height="34" rx="2"/><rect x="418" y="166" width="44" height="34" rx="2"/>
+                        <g fill="#cdd3c3">
+                          {G.park.map((d, i) => <path key={'park-' + i} d={d} />)}
                         </g>
-                        <g fill="#416951" fontSize="10" fontWeight="700" textAnchor="middle">
-                          <text x="40" y="41">01</text><text x="90" y="41">02</text><text x="140" y="41">03</text><text x="190" y="41">04</text>
-                          <text x="40" y="83">05</text><text x="90" y="83">06</text><text x="140" y="83">07</text><text x="190" y="83">08</text>
-                          <text x="40" y="145">09</text><text x="90" y="145">10</text><text x="140" y="145">11</text><text x="190" y="145">12</text>
-                          <text x="40" y="187">13</text><text x="90" y="187">14</text><text x="140" y="187">15</text><text x="190" y="187">16</text>
+                        <g fill="#ded6c6">
+                          {G.misc.map((d, i) => <path key={'misc-' + i} d={d} />)}
                         </g>
-                        <g fill="#526b86" fontSize="10" fontWeight="700" textAnchor="middle">
-                          <text x="290" y="41">17</text><text x="340" y="41">18</text><text x="390" y="41">19</text><text x="440" y="41">20</text>
-                          <text x="290" y="83">21</text><text x="340" y="83">22</text><text x="390" y="83">23</text><text x="440" y="83">24</text>
-                          <text x="290" y="145">25</text><text x="340" y="145">26</text><text x="390" y="145">27</text><text x="440" y="145">28</text>
-                          <text x="290" y="187">29</text><text x="340" y="187">30</text><text x="390" y="187">31</text><text x="440" y="187">32</text>
+                        <g fill="none" stroke="#e9e4d6" strokeWidth="6" strokeDasharray="34 26">
+                          {G.dash.map((d, i) => <path key={'road-mark-' + i} d={d} />)}
+                        </g>
+                        <g stroke="#aab0ba" strokeWidth="8" strokeLinejoin="round">
+                          {P.map(([id, x, y, points, area, pm]) => <polygon key={id} points={points} fill={pm ? '#dcdfe5' : '#ffffff'} />)}
+                        </g>
+                        <g fill="#1b2433" stroke="#ffffff" strokeWidth="10" paintOrder="stroke" fontSize="44" fontWeight="700" textAnchor="middle" dominantBaseline="central">
+                          {P.map(([id, x, y]) => <text key={'number-' + id} x={x} y={y}>{id}</text>)}
                         </g>
                       </svg>
                       <div className="project-preview-overlay" aria-hidden="true"><span className="project-visual-mark">MA</span><span className="project-visual-tag">INTERACTIVE PLOT MAP</span></div>

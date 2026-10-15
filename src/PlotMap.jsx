@@ -1,0 +1,221 @@
+import { forwardRef, memo, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { P, G, LB } from './data.js';
+import { LAYOUT, PROJECT } from './config.js';
+import { NAMES, PM, cents, inr } from './plots.js';
+
+const TREE = `<symbol id="tr1" viewBox="0 0 100 120"><ellipse cx="50" cy="111" rx="30" ry="7" fill="rgba(0,0,0,.24)"/><path class="tk" d="M44 112 L47 66 L53 66 L56 112Z"/><path class="tk" d="M50 88 L36 72 L40 70 L50 80Z"/><circle class="g1" cx="50" cy="46" r="34"/><circle class="g1" cx="25" cy="62" r="22"/><circle class="g1" cx="75" cy="62" r="22"/><circle class="g2" cx="48" cy="42" r="28"/><circle class="g2" cx="28" cy="57" r="16"/><circle class="g2" cx="72" cy="57" r="16"/><circle class="g3" cx="40" cy="32" r="13"/><circle class="g3" cx="63" cy="44" r="9"/><circle class="g3" cx="25" cy="52" r="7"/></symbol>`;
+
+// Static drawing: never re-renders.
+const Ground = memo(() => (
+  <>
+    {G.base.map((d, i) => <path key={'b' + i} d={d} className="rd" />)}
+    {G.park.map((d, i) => <path key={'p' + i} d={d} className="pk" />)}
+    {G.misc.map((d, i) => <path key={'m' + i} d={d} className="ms" />)}
+    {G.dash.map((d, i) => <path key={'d' + i} d={d} className="dash" />)}
+  </>
+));
+const Trees = memo(() => {
+  const uses = useMemo(() => [...G.trees].sort((a, b) => a[1] - b[1]).map(([x, y, r], i) => {
+    const h = Math.abs(Math.round(x * 3 + y * 5)) % 5, w = r * 2.9 * (0.94 + h * 0.03), hh = w * 1.2;
+    return <use key={i} href="#tr1" x={x - w / 2} y={y - hh * 0.62} width={w} height={hh} />;
+  }), []);
+  return <><defs dangerouslySetInnerHTML={{ __html: TREE }} /><g className="trees">{uses}</g></>;
+});
+const Dims = memo(() => LB.map(([s, x, y, r], i) => (
+  <text key={i} className="r" transform={`translate(${x} ${y}) rotate(${r}) translate(0 -17)`}>{s}</text>
+)));
+
+const Measures = memo(({ ax, selD }) => ax.dmList().map(d => (
+  <text key={d.k} data-dm={d.k} className={'dm' + (selD === d.k ? ' dsel' : '')} transform={`translate(${d.x} ${d.y}) rotate(${d.r})`}>{d.t}</text>
+)));
+
+const Plots = memo(({ status, filt, sel, ax }) => (
+  <>
+    {P.map(([id, , , pt]) => {
+      const v = status[id] || 'a';
+      return (
+        <path key={id} data-id={id} d={'M' + pt.replace(/ /g, 'L') + 'Z'}
+          className={'p ' + v + (PM[id] ? ' pm' : '') + (filt && filt !== v ? ' dim' : '') + (filt === v ? ' hit' : '') + (sel === id ? ' sel' : '')}>
+          <title>Plot {ax.lbl(id)}</title>
+        </path>
+      );
+    })}
+  </>
+));
+const PlotNumbers = memo(({ status, filt, ax }) => (
+  <>
+    {P.map(([id]) => {
+      const v = status[id] || 'a', [x, y] = ax.posOf(id);
+      return <text key={id} x={x} y={y} className={'n ' + v + (PM[id] ? ' pm' : '') + (filt && filt !== v ? ' dimt' : '')}>{ax.lbl(id)}</text>;
+    })}
+  </>
+));
+
+const Tooltip = forwardRef(({ status, vpRef, ax }, ref) => {
+  const [t, setT] = useState(null);
+  const el = useRef(null);
+  useImperativeHandle(ref, () => ({ show: (id, cx, cy) => setT({ id, cx, cy }), hide: () => setT(null) }), []);
+  useLayoutEffect(() => {
+    if (!t || !el.current) return;
+    const r = vpRef.current.getBoundingClientRect(), w = el.current.offsetWidth, h = el.current.offsetHeight;
+    let x = t.cx - r.left - w / 2, y = t.cy - r.top - h - 18;
+    if (y < 8) y = t.cy - r.top + 22;
+    x = Math.max(8, Math.min(r.width - w - 8, x));
+    el.current.style.transform = `translate(${x}px,${y}px)`;
+  });
+  const s = t ? status[t.id] || 'a' : 'a', a = t ? ax.areaOf(t.id) : 0, [c, rem] = cents(a);
+  return (
+    <div id="tip" role="tooltip" hidden={!t} ref={el}>
+      {t && <>
+        <div className="chips"><span className="ch u">Unit: {ax.lbl(t.id)}</span><span className={'ch ' + s}>Status: {NAMES[s]}</span></div>
+        <div className="ar"><b>{a} Sq.ft.</b><span> &middot; {c} cent {rem} sqft <small>approx.</small></span></div>
+        {ax.rate > 0 && <><hr /><div className="pr"><i>Actual Price</i><b>{inr(a * ax.rate)}</b></div></>}
+      </>}
+    </div>
+  );
+});
+
+const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, setSel, onTap, ax, admin, addMode, children }, ref) {
+  const vpRef = useRef(null), stageRef = useRef(null), ovRef = useRef(null), topRef = useRef(null), tipRef = useRef(null), qRef = useRef(null);
+  const view = useRef({}), cb = useRef({});
+  const [msg, setMsg] = useState('');
+  cb.current = { onTap, ax, admin };
+
+  useImperativeHandle(ref, () => ({ focusOn: id => view.current.focusOn(id) }), []);
+
+  useEffect(() => {
+    const vp = vpRef.current, stage = stageRef.current, ov = ovRef.current, v = view.current;
+    Object.assign(v, { s: 0.2, tx: 0, ty: 0, fitS: 0.2, z: null });
+    const hideTip = () => tipRef.current && tipRef.current.hide();
+    const apply = () => {
+      stage.style.transform = `translate(${v.tx}px,${v.ty}px) scale(${v.s})`;
+      ov.classList.toggle('zm', v.s > v.fitS * 1.6);
+      const z = v.s < 0.25 ? '1' : v.s < 0.5 ? '2' : '3';
+      if (z !== v.z) { v.z = z; ov.setAttribute('data-z', z); }
+    };
+    const go = anim => { if (anim) { stage.classList.add('anim'); setTimeout(() => stage.classList.remove('anim'), 420); } apply(); };
+    v.fit = anim => {
+      const r = vp.getBoundingClientRect(), tp = topRef.current, th = Math.round(tp.offsetTop + tp.offsetHeight + 12), bx = 369, by = 160, bw = 2501, bh = 3012;
+      vp.style.setProperty('--th', th + 'px');
+      v.fitS = Math.min(r.width / bw, (r.height - th) / bh) * 0.98; v.s = v.fitS;
+      v.tx = (r.width - bw * v.s) / 2 - bx * v.s; v.ty = th + (r.height - th - bh * v.s) / 2 - by * v.s; go(anim);
+    };
+    v.zoomAt = (cx, cy, f, anim) => {
+      const ns = Math.min(1.6, Math.max(v.fitS * 0.8, v.s * f));
+      v.tx = cx - (cx - v.tx) * ns / v.s; v.ty = cy - (cy - v.ty) * ns / v.s; v.s = ns; go(anim);
+    };
+    v.focusOn = id => {
+      const r = vp.getBoundingClientRect(), q = cb.current.ax.posOf(id);
+      v.s = Math.max(v.s, Math.min(1.2, v.fitS * 4)); v.tx = r.width / 2 - q[0] * v.s; v.ty = r.height * 0.4 - q[1] * v.s; go(true);
+    };
+    v.fit(false);
+
+    const skip = '.zoom,.top,.legend,.apn,#admbtn';
+    const ptr = new Map(); let moved = 0, tgt = null, tgtD = null, pd = 0;
+    const onWheel = e => {
+      if (e.target.closest(skip)) return;
+      e.preventDefault(); hideTip();
+      const r = vp.getBoundingClientRect(); v.zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * 0.0015));
+    };
+    const onDown = e => {
+      if (e.target.closest(skip)) return;
+      vp.setPointerCapture(e.pointerId); ptr.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (ptr.size === 1) { moved = 0; tgt = e.target.closest('[data-id]'); tgtD = e.target.closest('[data-dm]'); }
+      else { const a = [...ptr.values()]; pd = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); moved = 99; }
+    };
+    const onMove = e => {
+      const p = ptr.get(e.pointerId);
+      if (!p) {
+        if (e.pointerType !== 'mouse' || ptr.size || cb.current.admin) return;
+        const t = e.target.closest('[data-id]');
+        if (t) tipRef.current.show(+t.dataset.id, e.clientX, e.clientY); else hideTip();
+        return;
+      }
+      const r = vp.getBoundingClientRect();
+      if (ptr.size === 1) {
+        if (moved > 6) hideTip();
+        const dx = e.clientX - p.x, dy = e.clientY - p.y; moved += Math.abs(dx) + Math.abs(dy); v.tx += dx; v.ty += dy; apply();
+      } else if (ptr.size === 2) {
+        const o = [...ptr.entries()].find(([k]) => k !== e.pointerId)[1], d = Math.hypot(e.clientX - o.x, e.clientY - o.y);
+        if (pd) v.zoomAt((e.clientX + o.x) / 2 - r.left, (e.clientY + o.y) / 2 - r.top, d / pd);
+        pd = d;
+      }
+      p.x = e.clientX; p.y = e.clientY;
+    };
+    const onUp = e => {
+      const was = ptr.size; ptr.delete(e.pointerId);
+      if (was === 1 && moved < 6 && e.type === 'pointerup') {
+        hideTip();
+        const r = vp.getBoundingClientRect();
+        cb.current.onTap({ id: tgt ? +tgt.dataset.id : null, dm: tgtD ? tgtD.dataset.dm : null, x: (e.clientX - r.left - v.tx) / v.s, y: (e.clientY - r.top - v.ty) / v.s });
+      }
+    };
+    const onKey = e => { if (e.key === '/' && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); qRef.current.focus(); } };
+    const onResize = () => v.fit(false);
+    vp.addEventListener('wheel', onWheel, { passive: false });
+    vp.addEventListener('pointerdown', onDown); vp.addEventListener('pointermove', onMove);
+    vp.addEventListener('pointerup', onUp); vp.addEventListener('pointercancel', onUp); vp.addEventListener('pointerleave', hideTip);
+    addEventListener('resize', onResize); addEventListener('keydown', onKey);
+    return () => {
+      vp.removeEventListener('wheel', onWheel); vp.removeEventListener('pointerdown', onDown); vp.removeEventListener('pointermove', onMove);
+      vp.removeEventListener('pointerup', onUp); vp.removeEventListener('pointercancel', onUp); vp.removeEventListener('pointerleave', hideTip);
+      removeEventListener('resize', onResize); removeEventListener('keydown', onKey);
+    };
+  }, []);
+
+  useEffect(() => { ovRef.current.classList.toggle('adm', !!admin); }, [admin]);
+  useEffect(() => { vpRef.current.classList.toggle('addm', !!addMode); }, [addMode]);
+
+  const n = { a: 0, b: 0, s: 0 };
+  P.forEach(([id]) => { n[status[id] || 'a']++; });
+  const center = f => { const r = vpRef.current.getBoundingClientRect(); view.current.zoomAt(r.width / 2, r.height / 2, f, true); };
+  const search = e => {
+    if (e.key !== 'Enter') return;
+    const val = e.target.value.trim(), fid = ax.findId(val), hit = fid != null ? [fid] : null;
+    if (!hit) { setMsg('Plot ' + (val || '?') + ' is not on this layout. Try a number from the drawing.'); return; }
+    const id = hit[0]; setMsg(''); setSel(id); view.current.focusOn(id);
+    setTimeout(() => { const r = vpRef.current.getBoundingClientRect(); tipRef.current.show(id, r.left + r.width / 2, r.top + r.height * 0.4); }, 450);
+  };
+  const chips = [['a', 'var(--av)'], ['b', 'var(--bk)'], ['s', 'var(--sd)']];
+
+  return (
+    <main id="vp" ref={vpRef}>
+      <div className="top" ref={topRef}>
+        <div className="brand fl">
+          <span className="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5" /><rect x="13" y="3" width="8" height="5" rx="1.5" /><rect x="13" y="10" width="8" height="11" rx="1.5" /><rect x="3" y="13" width="8" height="8" rx="1.5" /></svg></span>
+          <div><b>{PROJECT}</b><span className="sub" id="sub">{LAYOUT}, {P.length} plots</span></div>
+        </div>
+        <div className="legend fl" title="Hover a plot for a quick look. Click it for details and booking enquiry.">
+          <div className="lrow">
+            {chips.map(([k, col]) => (
+              <button key={k} className="chip" aria-pressed={filt === k} onClick={() => setFilt(filt === k ? null : k)}>
+                <i style={{ background: col }} /><span className="l">{NAMES[k]}</span><span className="c">{n[k]}</span>
+              </button>
+            ))}
+          </div>
+          <div className="bar">{['a', 'b', 's'].map(k => <i key={k} className={'b' + k} style={{ width: (n[k] / P.length) * 100 + '%' }} />)}</div>
+        </div>
+        <div className="sw">
+          <label className="search fl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+            <input id="q" ref={qRef} type="search" inputMode="numeric" placeholder="Search plot number" aria-label="Search plot number" onKeyDown={search} onChange={() => setMsg('')} />
+          </label>
+          <p id="msg" role="alert">{msg}</p>
+        </div>
+      </div>
+      <div id="stage" ref={stageRef}>
+        <svg id="ov" ref={ovRef} viewBox="0 0 4400 3400">
+          <Ground /><Plots status={status} filt={filt} sel={sel} ax={ax} /><Trees /><PlotNumbers status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims />
+        </svg>
+      </div>
+      <div className="zoom fl">
+        <button id="zi" aria-label="Zoom in" onClick={() => center(1.5)}>+</button>
+        <button id="zo" aria-label="Zoom out" onClick={() => center(1 / 1.5)}>&minus;</button>
+        <button id="zf" aria-label="Fit to screen" style={{ fontSize: 13 }} onClick={() => view.current.fit(true)}>Fit</button>
+      </div>
+      <Tooltip ref={tipRef} status={status} vpRef={vpRef} ax={ax} />
+      {children}
+    </main>
+  );
+});
+export default PlotMap;

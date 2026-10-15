@@ -170,8 +170,8 @@ export default function Dashboard() {
         </header>
 
         <section className="dashboard-content">
-          {error && <div className="alert alert-error" role="alert">{error}</div>}
-          {notice && <div className="alert alert-success" role="status">{notice}</div>}
+          {page === 'bookings' && error && <div className="alert alert-error" role="alert">{error}</div>}
+          {page === 'bookings' && notice && <div className="alert alert-success" role="status">{notice}</div>}
 
           {page === 'bookings' ? (
             <>

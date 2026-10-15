@@ -1,2 +1,3 @@
 /api/admin-auth  /.netlify/functions/admin-auth  200
+/api/admin-data  /.netlify/functions/admin-data  200
 /*  /index.html  200

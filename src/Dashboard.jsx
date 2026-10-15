@@ -47,6 +47,7 @@ export default function Dashboard() {
       if (view === 'bookings') {
         setBookings(data.bookings || []);
         setPlots(data.plots || []);
+        if (data.warning) setNotice(data.warning);
       } else {
         setPlots(data.plots || []);
       }

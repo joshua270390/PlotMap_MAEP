@@ -166,7 +166,7 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
   useEffect(() => { ovRef.current.classList.toggle('adm', !!admin); }, [admin]);
   useEffect(() => { vpRef.current.classList.toggle('addm', !!addMode); }, [addMode]);
 
-  const n = { a: 0, b: 0, s: 0 };
+  const n = { a: 0, r: 0, b: 0, s: 0 };
   P.forEach(([id]) => { n[status[id] || 'a']++; });
   const center = f => { const r = vpRef.current.getBoundingClientRect(); view.current.zoomAt(r.width / 2, r.height / 2, f, true); };
   const search = e => {
@@ -188,7 +188,7 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
         <div className="legend fl" title="Hover a plot for a quick look. Click it for details and booking enquiry.">
           <div className="lrow">
             <div className="chip status-chip"><i style={{ background: 'var(--av)' }} /><span className="l">Availability</span><span className="c">{n.a}</span></div>
-            <div className="chip status-chip"><i style={{ background: 'var(--reserved)' }} /><span className="l">Reserved</span><span className="c">0</span></div>
+            <div className="chip status-chip"><i style={{ background: 'var(--reserved)' }} /><span className="l">Reserved</span><span className="c">{n.r}</span></div>
             <div className="chip status-chip"><i style={{ background: 'var(--bk)' }} /><span className="l">Booked</span><span className="c">{n.b}</span></div>
             <div className="chip status-chip"><i style={{ background: 'var(--sd)' }} /><span className="l">Sold</span><span className="c">{n.s}</span></div>
           </div>

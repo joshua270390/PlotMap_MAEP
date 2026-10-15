@@ -77,7 +77,7 @@ function StatusEditor({ id, ax, status, setStatus, pin }) {
   );
 }
 
-function DmEditor({ k, ax, setAd, onGone })
+function DmEditor({ k, ax, setAd, onGone }) {
   const d = ax.dmList().find(x => x.k === k);
   const [f, setF] = useState({ t: d.t, x: String(d.x), y: String(d.y), r: String(d.r) });
   const [m, setM] = useState(null);

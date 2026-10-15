@@ -227,8 +227,36 @@ export default function Dashboard() {
               {(!plotSearch.trim() || 'mary ann elite properties madurai tamil nadu interactive plot layout'.includes(plotSearch.trim().toLowerCase())) ? (
                 <div className="project-cards">
                   <a className="project-list-card" href="https://plot-map-maep-xipa.vercel.app/" target="_blank" rel="noopener noreferrer" aria-label="Open Mary Ann Elite Properties interactive plot map">
-                    <div className="project-card-visual" aria-label="Preview of the interactive plot map">
-                      <iframe className="project-map-preview" src="/" title="Mary Ann Elite Properties plot map preview" loading="lazy" tabIndex="-1" aria-hidden="true" />
+                    <div className="project-card-visual" aria-label="Static preview of the interactive plot map">
+                      <svg className="project-map-static" viewBox="0 0 480 220" role="img" aria-label="Illustrated plot layout with numbered plots and roads">
+                        <rect width="480" height="220" rx="12" fill="#e9f0e9" />
+                        <path d="M12 110 H468 M245 12 V208" stroke="#c4cbd0" strokeWidth="23" />
+                        <path d="M12 110 H468 M245 12 V208" stroke="#ffffff" strokeWidth="2" strokeDasharray="8 7" opacity=".9" />
+                        <g fill="#d8e9dc" stroke="#8fb49a" strokeWidth="1.5">
+                          <rect x="18" y="20" width="44" height="34" rx="2"/><rect x="68" y="20" width="44" height="34" rx="2"/><rect x="118" y="20" width="44" height="34" rx="2"/><rect x="168" y="20" width="44" height="34" rx="2"/>
+                          <rect x="18" y="62" width="44" height="34" rx="2"/><rect x="68" y="62" width="44" height="34" rx="2"/><rect x="118" y="62" width="44" height="34" rx="2"/><rect x="168" y="62" width="44" height="34" rx="2"/>
+                          <rect x="18" y="124" width="44" height="34" rx="2"/><rect x="68" y="124" width="44" height="34" rx="2"/><rect x="118" y="124" width="44" height="34" rx="2"/><rect x="168" y="124" width="44" height="34" rx="2"/>
+                          <rect x="18" y="166" width="44" height="34" rx="2"/><rect x="68" y="166" width="44" height="34" rx="2"/><rect x="118" y="166" width="44" height="34" rx="2"/><rect x="168" y="166" width="44" height="34" rx="2"/>
+                        </g>
+                        <g fill="#e4eaf3" stroke="#9aafc7" strokeWidth="1.5">
+                          <rect x="268" y="20" width="44" height="34" rx="2"/><rect x="318" y="20" width="44" height="34" rx="2"/><rect x="368" y="20" width="44" height="34" rx="2"/><rect x="418" y="20" width="44" height="34" rx="2"/>
+                          <rect x="268" y="62" width="44" height="34" rx="2"/><rect x="318" y="62" width="44" height="34" rx="2"/><rect x="368" y="62" width="44" height="34" rx="2"/><rect x="418" y="62" width="44" height="34" rx="2"/>
+                          <rect x="268" y="124" width="44" height="34" rx="2"/><rect x="318" y="124" width="44" height="34" rx="2"/><rect x="368" y="124" width="44" height="34" rx="2"/><rect x="418" y="124" width="44" height="34" rx="2"/>
+                          <rect x="268" y="166" width="44" height="34" rx="2"/><rect x="318" y="166" width="44" height="34" rx="2"/><rect x="368" y="166" width="44" height="34" rx="2"/><rect x="418" y="166" width="44" height="34" rx="2"/>
+                        </g>
+                        <g fill="#416951" fontSize="10" fontWeight="700" textAnchor="middle">
+                          <text x="40" y="41">01</text><text x="90" y="41">02</text><text x="140" y="41">03</text><text x="190" y="41">04</text>
+                          <text x="40" y="83">05</text><text x="90" y="83">06</text><text x="140" y="83">07</text><text x="190" y="83">08</text>
+                          <text x="40" y="145">09</text><text x="90" y="145">10</text><text x="140" y="145">11</text><text x="190" y="145">12</text>
+                          <text x="40" y="187">13</text><text x="90" y="187">14</text><text x="140" y="187">15</text><text x="190" y="187">16</text>
+                        </g>
+                        <g fill="#526b86" fontSize="10" fontWeight="700" textAnchor="middle">
+                          <text x="290" y="41">17</text><text x="340" y="41">18</text><text x="390" y="41">19</text><text x="440" y="41">20</text>
+                          <text x="290" y="83">21</text><text x="340" y="83">22</text><text x="390" y="83">23</text><text x="440" y="83">24</text>
+                          <text x="290" y="145">25</text><text x="340" y="145">26</text><text x="390" y="145">27</text><text x="440" y="145">28</text>
+                          <text x="290" y="187">29</text><text x="340" y="187">30</text><text x="390" y="187">31</text><text x="440" y="187">32</text>
+                        </g>
+                      </svg>
                       <div className="project-preview-overlay" aria-hidden="true"><span className="project-visual-mark">MA</span><span className="project-visual-tag">INTERACTIVE PLOT MAP</span></div>
                     </div>
                     <div className="project-card-content">

@@ -4,7 +4,9 @@ import App from './App.jsx';
 import Dashboard from './Dashboard.jsx';
 import './style.css';
 
-const isDashboard = window.location.pathname.replace(/\/+$/, '') === '/dashboard';
+const dashboardPaths = ['/dashboard', '/bookings', '/plot_lists'];
+const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
+const isDashboard = dashboardPaths.includes(currentPath);
 createRoot(document.getElementById('root')).render(
   <StrictMode>{isDashboard ? <Dashboard /> : <App />}</StrictMode>
 );

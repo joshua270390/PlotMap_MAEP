@@ -35,7 +35,7 @@ const Plots = memo(({ status, filt, sel, ax }) => (
       const v = status[id] || 'a';
       return (
         <path key={id} data-id={id} d={'M' + pt.replace(/ /g, 'L') + 'Z'}
-          className={'p ' + v + (PM[id] ? ' pm' : '') + (filt && filt !== v ? ' dim' : '') + (filt === v ? ' hit' : '') + (sel === id ? ' sel' : '')}>
+          className={'p' + (sel === id ? ' sel' : '')}>
           <title>Plot {ax.lbl(id)}</title>
         </path>
       );
@@ -46,7 +46,7 @@ const PlotNumbers = memo(({ status, filt, ax }) => (
   <>
     {P.map(([id]) => {
       const v = status[id] || 'a', [x, y] = ax.posOf(id);
-      return <text key={id} x={x} y={y} className={'n ' + v + (PM[id] ? ' pm' : '') + (filt && filt !== v ? ' dimt' : '')}>{ax.lbl(id)}</text>;
+      return <text key={id} x={x} y={y} className="n">{ax.lbl(id)}</text>;
     })}
   </>
 ));
@@ -187,13 +187,11 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
         </div>
         <div className="legend fl" title="Hover a plot for a quick look. Click it for details and booking enquiry.">
           <div className="lrow">
-            {chips.map(([k, col]) => (
-              <button key={k} className="chip" aria-pressed={filt === k} onClick={() => setFilt(filt === k ? null : k)}>
-                <i style={{ background: col }} /><span className="l">{NAMES[k]}</span><span className="c">{n[k]}</span>
-              </button>
-            ))}
+            <div className="chip status-chip"><i style={{ background: 'var(--av)' }} /><span className="l">Availability</span><span className="c">{n.a}</span></div>
+            <div className="chip status-chip"><i style={{ background: 'var(--reserved)' }} /><span className="l">Reserved</span><span className="c">0</span></div>
+            <div className="chip status-chip"><i style={{ background: 'var(--bk)' }} /><span className="l">Booked</span><span className="c">{n.b}</span></div>
+            <div className="chip status-chip"><i style={{ background: 'var(--sd)' }} /><span className="l">Sold</span><span className="c">{n.s}</span></div>
           </div>
-          <div className="bar">{['a', 'b', 's'].map(k => <i key={k} className={'b' + k} style={{ width: (n[k] / P.length) * 100 + '%' }} />)}</div>
         </div>
         <div className="sw">
           <label className="search fl">

@@ -239,7 +239,7 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
       </div>
       <div id="stage" ref={stageRef}>
         <svg id="ov" ref={ovRef} viewBox="0 0 4400 3400">
-          <Ground /><Plots status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} />{admin && <EnquiryPins enquiries={adminEnquiries} ax={ax} />}<Trees /><PlotNumbers status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims /><image href="/mary-ann-sidebar-logo.svg" x="1160" y="250" width="360" height="100" preserveAspectRatio="xMinYMid meet" opacity="0.82" pointerEvents="none" />
+          <Ground /><Plots status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} />{admin && <EnquiryPins enquiries={adminEnquiries} ax={ax} />}<Trees /><PlotNumbers status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims /><image href="/mary-ann-sidebar-logo.svg" x="640" y="1225" width="720" height="192" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />
         </svg>
       </div>
       <div className="zoom fl">

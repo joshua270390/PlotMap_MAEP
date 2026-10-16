@@ -304,3 +304,13 @@ text.n.s{fill:#fff;stroke:var(--sd);stroke-width:5px;paint-order:stroke}
 .inventory-progress{padding:17px 20px 19px;margin:0 0 28px;border:1px solid #e4eaf1;border-radius:15px;background:#fff}.inventory-progress>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;color:#52667c;font-size:12px}.inventory-progress strong{color:#203852;font-size:12px}.inventory-track{height:8px;border-radius:99px;overflow:hidden;background:#edf1f6}.inventory-track i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#2b8b6d,#e2b765,#b4313f);transition:width .25s ease}
 @media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:640px){.dashboard-welcome{align-items:flex-start;padding:21px 18px;flex-direction:column}.dashboard-welcome h2{font-size:21px}.inventory-total{display:flex;align-items:center;justify-content:space-between;width:100%;gap:12px}.inventory-total strong{margin:0}.kpi-grid{gap:10px}.kpi-card{padding:15px;border-radius:14px}.kpi-icon{width:36px;height:36px;margin-bottom:13px}.kpi-card>strong{font-size:27px}.kpi-card>small{font-size:10px}.inventory-progress{padding:15px}}
+
+/* Requested plot inventory status colors: Availability retains the existing unit color. */
+:root{--reserved:#f28c28;--bk:#d99a1c;--sd:#b4313f}
+path.p.r{fill:#f28c28;fill-opacity:.95}
+path.p.b{fill:#d99a1c;fill-opacity:.95}
+path.p.s{fill:#b4313f;fill-opacity:.95}
+.enquiry-map-pin{cursor:help;pointer-events:visiblePainted;filter:drop-shadow(0 5px 6px rgba(20,30,45,.3))}
+.enquiry-map-pin path:first-of-type{fill:#1f4778;stroke:#fff;stroke-width:5;vector-effect:non-scaling-stroke}
+.enquiry-map-pin circle{fill:#fff;stroke:#1f4778;stroke-width:4;vector-effect:non-scaling-stroke}
+.enquiry-map-pin .enquiry-pin-spark{fill:none;stroke:#1f4778;stroke-width:2.8;stroke-linecap:round;vector-effect:non-scaling-stroke}

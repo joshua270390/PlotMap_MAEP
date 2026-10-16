@@ -192,7 +192,7 @@ export default function Dashboard() {
     <div className="dashboard-shell">
       <aside className="dashboard-sidebar">
         <a className="dashboard-brand" href="/dashboard" aria-label="Mary Ann dashboard home">
-          <img className="dashboard-brand-logo" src="/mary-ann-sidebar-logo.svg" alt="Mary Ann Elite Properties" />
+          <img className="dashboard-brand-logo" src="/mary-ann-sidebar-white-logo.svg" alt="Mary Ann Elite Properties" />
         </a>
         <button className={'nav-item' + (page === 'dashboard' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/dashboard'); setPage('dashboard'); }}><span className="nav-icon">▦</span> Dashboard</button>
         <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); }}>

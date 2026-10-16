@@ -28,7 +28,7 @@ export function UnitModal({ id, ax, status, onClose, onEnquire, onViewMap }) {
           <div className="ul"><small id="u_no_l">UNIT NUMBER</small><b>{lb}</b></div>
           <div className={'sb ' + sv}>
             <h3><i /><span>{NAMES[sv]}</span></h3>
-            {sv === 'a'
+            {sv === 'a' || sv === 'r'
               ? <div><button className="mbtn" type="button" onClick={onEnquire}>Booking enquiry</button></div>
               : <p>{sv === 'b' ? 'This plot is currently booked.' : 'This plot has been sold.'}</p>}
           </div>

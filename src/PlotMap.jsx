@@ -227,8 +227,8 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
       </div>
       <div id="stage" ref={stageRef}>
         <svg id="ov" ref={ovRef} viewBox="0 0 4400 3400">
-          <Ground /><Plots status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} />{admin && <EnquiryPins enquiries={adminEnquiries} ax={ax} />}<Trees /><PlotNumbers status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims /><image href="/mary-ann-sidebar-logo.svg" x="2050" y="260" width="720" height="192" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />
-          <g className="map-compass" transform="translate(2750 210)" aria-label="North compass">
+          <Ground /><Plots status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} />{admin && <EnquiryPins enquiries={adminEnquiries} ax={ax} />}<Trees /><PlotNumbers status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims /><image href="/mary-ann-sidebar-logo.svg" x="1950" y="260" width="720" height="192" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />
+          <g className="map-compass" transform="translate(2710 190) scale(1.3)" aria-label="North compass">
             <title>North compass</title>
             <text x="50" y="11" className="compass-direction">N</text>
             <text x="91" y="55" className="compass-direction">E</text>

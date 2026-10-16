@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 100" role="img" aria-labelledby="title">
+  <title id="title">Mary Ann Elite Properties</title>
+  <g fill="#4b4b4b" font-family="Arial, Helvetica, sans-serif">
+    <text x="4" y="43" font-size="39" font-weight="700" letter-spacing="1.1" textLength="286" lengthAdjust="spacingAndGlyphs">MARY ANN</text>
+    <text x="4" y="77" font-size="19" font-weight="500" letter-spacing="3.1" textLength="286" lengthAdjust="spacingAndGlyphs">ELITE PROPERTIES</text>
+  </g>
+  <path d="M4 49H290 M4 84H290" fill="none" stroke="#f39a24" stroke-width="2.2"/>
+</svg>

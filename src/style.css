@@ -304,7 +304,3 @@ text.n.s{fill:#fff;stroke:var(--sd);stroke-width:5px;paint-order:stroke}
 .inventory-progress{padding:17px 20px 19px;margin:0 0 28px;border:1px solid #e4eaf1;border-radius:15px;background:#fff}.inventory-progress>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;color:#52667c;font-size:12px}.inventory-progress strong{color:#203852;font-size:12px}.inventory-track{height:8px;border-radius:99px;overflow:hidden;background:#edf1f6}.inventory-track i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#2b8b6d,#e2b765,#b4313f);transition:width .25s ease}
 @media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:640px){.dashboard-welcome{align-items:flex-start;padding:21px 18px;flex-direction:column}.dashboard-welcome h2{font-size:21px}.inventory-total{display:flex;align-items:center;justify-content:space-between;width:100%;gap:12px}.inventory-total strong{margin:0}.kpi-grid{gap:10px}.kpi-card{padding:15px;border-radius:14px}.kpi-icon{width:36px;height:36px;margin-bottom:13px}.kpi-card>strong{font-size:27px}.kpi-card>small{font-size:10px}.inventory-progress{padding:15px}}
-
-/* Company logo beside project title in the map header */
-.maep-map-logo{display:block;width:126px;max-width:100%;height:auto;max-height:42px;object-fit:contain;flex:none}
-@media(max-width:600px){.maep-map-logo{width:112px;max-height:36px}}

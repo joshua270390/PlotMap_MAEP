@@ -208,3 +208,14 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 .kpi-content small{display:block;margin-top:8px;color:#8794a5;font-size:11px;line-height:1.35}
 .kpi-watermark{display:none!important}
 @media(max-width:640px){.kpi-card{gap:13px;min-height:120px;padding:16px 12px}.kpi-icon,.kpi-icon svg{width:40px;height:40px;flex-basis:40px}.kpi-label{font-size:12px;margin-bottom:6px}.kpi-card> .kpi-content>strong{font-size:34px}.kpi-content small{font-size:10px;margin-top:6px}}
+
+
+/* Strong, clearly visible horizontal KPI icon and content alignment */
+.kpi-grid .kpi-card{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:22px!important;text-align:left!important}
+.kpi-grid .kpi-card>.kpi-icon{position:relative!important;inset:auto!important;display:grid!important;place-items:center!important;flex:0 0 58px!important;width:58px!important;height:58px!important;min-width:58px!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;opacity:1!important;visibility:visible!important;z-index:1!important}
+.kpi-grid .kpi-card>.kpi-icon svg{display:block!important;width:58px!important;height:58px!important;min-width:58px!important;max-width:none!important;fill:none!important;stroke:currentColor!important;stroke-width:2.1!important;stroke-linecap:round!important;stroke-linejoin:round!important;opacity:1!important;visibility:visible!important}
+.kpi-grid .kpi-card>.kpi-content{position:relative;display:flex!important;flex:1 1 auto!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;min-width:0;margin:0!important;text-align:left!important}
+.kpi-grid .kpi-card .kpi-label{display:block!important;margin:0 0 7px!important;font-size:15px!important;line-height:1.35!important}
+.kpi-grid .kpi-card>.kpi-content>strong{display:block!important;margin:0!important;font-size:42px!important;line-height:1.05!important}
+.kpi-grid .kpi-card>.kpi-content>small{display:block!important;margin:8px 0 0!important}
+@media(max-width:640px){.kpi-grid .kpi-card{gap:12px!important;padding:16px 12px!important}.kpi-grid .kpi-card>.kpi-icon,.kpi-grid .kpi-card>.kpi-icon svg{width:48px!important;height:48px!important;min-width:48px!important;flex-basis:48px!important}.kpi-grid .kpi-card .kpi-label{font-size:12px!important}.kpi-grid .kpi-card>.kpi-content>strong{font-size:32px!important}}

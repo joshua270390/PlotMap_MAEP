@@ -35,18 +35,39 @@ const Plots = memo(({ status, filt, sel, ax }) => (
       const v = status[id] || 'a';
       return (
         <path key={id} data-id={id} d={'M' + pt.replace(/ /g, 'L') + 'Z'}
-          className={'p' + (sel === id ? ' sel' : '')}>
+          className={'p ' + v + (sel === id ? ' sel' : '')}>
           <title>Plot {ax.lbl(id)}</title>
         </path>
       );
     })}
   </>
 ));
+const EnquiryPins = memo(({ enquiries, ax }) => {
+  const pins = enquiries.map(item => {
+    const id = ax.findId(item.plotNumber);
+    if (id == null) return null;
+    const plot = P.find(row => row[0] === id);
+    if (!plot) return null;
+    const points = plot[3].split(' ').map(pair => pair.split(',').map(Number));
+    const x = Math.max(...points.map(p => p[0])) - 24;
+    const y = Math.min(...points.map(p => p[1])) + 30;
+    const names = (item.names || []).filter(Boolean);
+    if (!names.length) return null;
+    return <g key={String(item.plotNumber)} data-enquiry-pin="true" className="enquiry-map-pin" transform={`translate(${x} ${y})`}>
+      <title>{`Enquiry for Unit ${item.plotNumber}: ${names.join(', ')}`}</title>
+      <path d="M0 -38 C-21 -38 -31 -24 -31 -9 C-31 8 0 31 0 31 C0 31 31 8 31 -9 C31 -24 21 -38 0 -38Z" />
+      <circle cx="0" cy="-10" r="10" />
+      <path className="enquiry-pin-spark" d="M-4 -10h8M0 -14v8" />
+    </g>;
+  });
+  return <g className="admin-enquiry-pins" aria-label="Customer enquiry pins">{pins}</g>;
+});
+
 const PlotNumbers = memo(({ status, filt, ax }) => (
   <>
     {P.map(([id]) => {
       const v = status[id] || 'a', [x, y] = ax.posOf(id);
-      return <text key={id} x={x} y={y} className="n">{ax.lbl(id)}</text>;
+      return <text key={id} x={x} y={y} className={'n ' + v}>{ax.lbl(id)}</text>;
     })}
   </>
 ));
@@ -75,7 +96,7 @@ const Tooltip = forwardRef(({ status, vpRef, ax }, ref) => {
   );
 });
 
-const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, setSel, onTap, ax, admin, addMode, children }, ref) {
+const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, setSel, onTap, ax, admin, addMode, adminEnquiries = [], children }, ref) {
   const vpRef = useRef(null), stageRef = useRef(null), ovRef = useRef(null), topRef = useRef(null), tipRef = useRef(null), qRef = useRef(null);
   const view = useRef({}), cb = useRef({});
   const [msg, setMsg] = useState('');
@@ -118,7 +139,7 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
       const r = vp.getBoundingClientRect(); v.zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * 0.0015));
     };
     const onDown = e => {
-      if (e.target.closest(skip)) return;
+      if (e.target.closest(skip) || e.target.closest('[data-enquiry-pin]')) return;
       vp.setPointerCapture(e.pointerId); ptr.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (ptr.size === 1) { moved = 0; tgt = e.target.closest('[data-id]'); tgtD = e.target.closest('[data-dm]'); }
       else { const a = [...ptr.values()]; pd = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); moved = 99; }
@@ -203,7 +224,7 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
       </div>
       <div id="stage" ref={stageRef}>
         <svg id="ov" ref={ovRef} viewBox="0 0 4400 3400">
-          <Ground /><Plots status={status} filt={filt} sel={sel} ax={ax} /><Trees /><PlotNumbers status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims />
+          <Ground /><Plots status={status} filt={filt} sel={sel} ax={ax} />{admin && <EnquiryPins enquiries={adminEnquiries} ax={ax} />}<Trees /><PlotNumbers status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims />
         </svg>
       </div>
       <div className="zoom fl">

@@ -364,6 +364,7 @@ export default function Dashboard() {
           <label>Customer Name<input value={edit.customer_name} onChange={e => setEdit(s => ({ ...s, customer_name: e.target.value }))} required maxLength={120} /></label>
           <label>Phone Number<input value={edit.phone} onChange={e => setEdit(s => ({ ...s, phone: e.target.value }))} required maxLength={25} /></label>
           <label>Unit Number<select value={edit.plot_id} onChange={e => setEdit(s => ({ ...s, plot_id: e.target.value }))} required>
+            <option value="" disabled>Select a unit</option>
             {plots.map(plot => <option key={plot.id} value={String(plot.id)}>{field(plot, 'plot_number', 'unit_number')} (Plot ID: {plot.id})</option>)}
           </select></label>
           <label>Status<select value={edit.status} onChange={e => setEdit(s => ({ ...s, status: e.target.value }))}>{STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></label>

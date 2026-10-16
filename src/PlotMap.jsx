@@ -203,6 +203,7 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
   return (
     <main id="vp" ref={vpRef}>
       <div className="top" ref={topRef}>
+        <button type="button" className="map-back-button" onClick={() => { if (window.history.length > 1 && document.referrer && new URL(document.referrer).origin === window.location.origin) window.history.back(); else window.location.assign("/dashboard"); }} aria-label="Go back to previous page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6M9 12h11" /></svg><span>Back</span></button>
         <div className="brand fl" aria-label={COMPANY}>
           <div className="brand-copy">
             <b>{PROJECT}</b>

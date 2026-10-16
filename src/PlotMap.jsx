@@ -227,7 +227,7 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
       </div>
       <div id="stage" ref={stageRef}>
         <svg id="ov" ref={ovRef} viewBox="0 0 4400 3400">
-          <Ground /><Plots status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} />{admin && <EnquiryPins enquiries={adminEnquiries} ax={ax} />}<Trees /><PlotNumbers status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims /><image href="/mary-ann-sidebar-logo.svg" x="470" y="240" width="720" height="192" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />
+          <Ground /><Plots status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} />{admin && <EnquiryPins enquiries={adminEnquiries} ax={ax} />}<Trees /><PlotNumbers status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims /><image href="/mary-ann-sidebar-logo.svg" x="470" y="340" width="720" height="192" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />
           <g className="map-compass" transform="translate(2660 180) scale(1.9)" aria-label="North compass">
             <title>North compass</title>
             <text x="50" y="11" className="compass-direction">N</text>

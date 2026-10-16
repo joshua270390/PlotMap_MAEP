@@ -322,3 +322,19 @@ path.p.s{fill:#b4313f;fill-opacity:.95}
 .top .legend .chip .c{color:#fff!important}
 .top .legend .chip i{border:2px solid #fff!important;box-sizing:border-box}
 .top .legend .chip[data-status="a"] i,.top .legend .chip.available i{background:#fff!important}
+
+
+/* Header refinements: restore the brand/project block and make inventory dots 2px larger. */
+.top .brand{display:flex;align-items:center;gap:10px;padding:7px 14px 7px 7px;min-width:230px;background:rgba(255,253,249,.96);color:#1b2433;border:1px solid rgba(27,36,51,.12);border-radius:12px;box-shadow:0 5px 18px rgba(15,35,28,.12)}
+.top .brand-logo{display:block;width:54px;height:40px;object-fit:contain;flex:none}
+.top .brand-copy{min-width:0}
+.top .brand-copy b{display:block;font:800 15px/1.15 "Bricolage Grotesque",system-ui,sans-serif;color:#1b2433}
+.top .brand-copy .sub{display:block;margin:3px 0 0;color:#667085;font-size:11px;line-height:1.25}
+.top .legend .chip i{width:14px!important;height:14px!important;border:2px solid #fff!important;box-sizing:border-box!important;flex:none}
+.top .legend .chip:first-child i{background:#fff!important}
+.top .legend .chip:nth-child(2) i{background:#f28c28!important}
+.top .legend .chip:nth-child(3) i{background:#d99a1c!important}
+.top .legend .chip:nth-child(4) i{background:#b4313f!important}
+@media(max-width:600px){.top .brand{min-width:0;flex:1 1 100%}.top .brand-logo{width:46px;height:34px}.top .brand-copy b{font-size:14px}}
+/* Low-opacity company watermark sits on the map's upper-left, beside the road. */
+#vp::before{content:"";position:absolute;z-index:1;left:18px;top:92px;width:180px;height:62px;background:url('/mary-ann-sidebar-logo.svg') center/contain no-repeat;opacity:.16;pointer-events:none;filter:grayscale(.12)}

@@ -229,3 +229,8 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 .kpi-grid .kpi-booked>.kpi-icon{background:#e8efff!important;color:#4e82d5!important}
 .kpi-grid .kpi-sold>.kpi-icon{background:#ffeaed!important;color:#dd6572!important}
 @media(max-width:640px){.kpi-grid .kpi-card>.kpi-icon{flex:0 0 47px!important;width:47px!important;height:47px!important;min-width:47px!important;border-radius:10px!important}.kpi-grid .kpi-card>.kpi-icon svg{width:27px!important;height:27px!important;min-width:27px!important;max-width:27px!important}}
+
+
+/* Final centering fix: pin each KPI SVG to the exact center of its square tile */
+.kpi-grid .kpi-card>.kpi-icon{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;align-self:center!important;line-height:0!important;overflow:hidden!important;box-sizing:border-box!important}
+.kpi-grid .kpi-card>.kpi-icon svg{position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;display:block!important;flex:none!important;margin:0!important;padding:0!important;}

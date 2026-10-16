@@ -202,18 +202,6 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
 
   return (
     <main id="vp" ref={vpRef}>
-      <div className="map-compass" aria-label="North compass" title="North">
-        <svg viewBox="0 0 100 100" role="img" aria-hidden="true">
-          <text x="50" y="11" className="compass-direction">N</text>
-          <text x="91" y="55" className="compass-direction">E</text>
-          <text x="50" y="98" className="compass-direction">S</text>
-          <text x="9" y="55" className="compass-direction">W</text>
-          <circle cx="50" cy="54" r="30" className="compass-ring" />
-          <path d="M50 26 L60 56 L50 50 L40 56 Z" className="compass-north" />
-          <path d="M50 82 L40 52 L50 58 L60 52 Z" className="compass-south" />
-          <circle cx="50" cy="54" r="3.5" className="compass-center" />
-        </svg>
-      </div>
       <div className="top" ref={topRef}>
         <div className="brand fl" aria-label={COMPANY}>
           <div className="brand-copy">
@@ -239,7 +227,18 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
       </div>
       <div id="stage" ref={stageRef}>
         <svg id="ov" ref={ovRef} viewBox="0 0 4400 3400">
-          <Ground /><Plots status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} />{admin && <EnquiryPins enquiries={adminEnquiries} ax={ax} />}<Trees /><PlotNumbers status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims /><image href="/mary-ann-sidebar-logo.svg" x="640" y="1225" width="720" height="192" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />
+          <Ground /><Plots status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} />{admin && <EnquiryPins enquiries={adminEnquiries} ax={ax} />}<Trees /><PlotNumbers status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims /><image href="/mary-ann-sidebar-logo.svg" x="2050" y="260" width="720" height="192" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />
+          <g className="map-compass-svg" transform="translate(2750 210)" aria-label="North compass">
+            <title>North compass</title>
+            <text x="50" y="11" className="compass-direction">N</text>
+            <text x="91" y="55" className="compass-direction">E</text>
+            <text x="50" y="98" className="compass-direction">S</text>
+            <text x="9" y="55" className="compass-direction">W</text>
+            <circle cx="50" cy="54" r="30" className="compass-ring" />
+            <path d="M50 26 L60 56 L50 50 L40 56 Z" className="compass-north" />
+            <path d="M50 82 L40 52 L50 58 L60 52 Z" className="compass-south" />
+            <circle cx="50" cy="54" r="3.5" className="compass-center" />
+          </g>
         </svg>
       </div>
       <div className="zoom fl">

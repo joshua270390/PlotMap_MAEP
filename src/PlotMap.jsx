@@ -204,7 +204,7 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
     <main id="vp" ref={vpRef}>
       <div className="top" ref={topRef}>
         <div className="brand fl">
-          <img className="maep-map-logo" src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" />
+
           <div><b>{PROJECT}</b><span className="sub" id="sub">{LAYOUT}, {P.length} plots</span></div>
         </div>
         <div className="legend fl" title="Hover a plot for a quick look. Click it for details and booking enquiry.">

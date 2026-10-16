@@ -107,7 +107,12 @@ export default async function handler(request) {
       console.error("[admin-data] Plot lookup failed:", plots.status, plots.error);
       return json({ ok: true, bookings: bookings.data || [], plots: [], warning: "Bookings loaded, but plot unit numbers could not be loaded (" + plots.status + "): " + plots.error });
     }
-    return json({ ok: true, bookings: bookings.data || [], plots: plots.data || [] });
+    const statusByPlot = new Map();
+    for (const booking of bookings.data || []) {
+      const plotKey = String(booking.plot_id);
+      if (!statusByPlot.has(plotKey)) statusByPlot.set(plotKey, allowedStatuses.has(String(booking.status)) ? String(booking.status) : "Available");
+    }
+    return json({ ok: true, bookings: bookings.data || [], plots: (plots.data || []).map(plot => ({ ...plot, status: statusByPlot.get(String(plot.id)) || "Available" })) });
   }
 
   let body;

@@ -67,7 +67,7 @@ function StatusEditor({ id, ax, status, setStatus, pin }) {
       <div className="sec">Availability status</div>
       <label><span>Plot status</span>
         <select value={value} onChange={e => setValue(e.target.value)}>
-          <option>Available</option><option>Reserved</option><option>Booked</option><option>Sold</option>
+          <option value="Available">Availability</option><option value="Reserved">Reserved</option><option value="Booked">Booked</option><option value="Sold">Sold</option>
         </select>
       </label>
       <div className="arow"><button className="pri" type="button" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save status'}</button></div>

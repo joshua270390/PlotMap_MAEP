@@ -49,11 +49,12 @@ const EnquiryPins = memo(({ enquiries, ax }) => {
     const plot = P.find(row => row[0] === id);
     if (!plot) return null;
     const points = plot[3].split(' ').map(pair => pair.split(',').map(Number));
-    const x = Math.max(...points.map(p => p[0])) - 24;
-    const y = Math.min(...points.map(p => p[1])) + 30;
+    const topRight = points.reduce((best, point) => point[0] - point[1] > best[0] - best[1] ? point : best, points[0]);
+    const x = topRight[0] - 8;
+    const y = topRight[1] + 30;
     const names = (item.names || []).filter(Boolean);
     if (!names.length) return null;
-    return <g key={String(item.plotNumber)} data-enquiry-pin="true" className="enquiry-map-pin" transform={`translate(${x} ${y})`}>
+    return <g key={String(item.plotNumber)} data-enquiry-pin="true" className="enquiry-map-pin" transform={`translate(${x} ${y}) rotate(16)`}>
       <title>{`Enquiry for Unit ${item.plotNumber}: ${names.join(', ')}`}</title>
       <path d="M0 -38 C-21 -38 -31 -24 -31 -9 C-31 8 0 31 0 31 C0 31 31 8 31 -9 C31 -24 21 -38 0 -38Z" />
       <circle cx="0" cy="-10" r="10" />

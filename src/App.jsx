@@ -71,7 +71,11 @@ export default function App() {
       else clearSel();
       return;
     }
-    if (id == null) setSel(null); else { setSel(id); setUnit(id); }
+    if (id == null) { setSel(null); return; }
+    setSel(id);
+    const plotStatus = status[id] || 'a';
+    setUnit(id);
+    setForm(plotStatus === 'a' || plotStatus === 'r');
   };
 
   return (
@@ -81,11 +85,11 @@ export default function App() {
         <AdminPanel panel={panel} setPanel={setPanel} ax={ax} setAd={setAd} sel={sel} selD={selD} status={status} setStatus={setStatus}
           addMode={addMode} setAddMode={setAddMode} clearSel={clearSel} onAdminAuth={loadAdminEnquiries} onAdminExit={() => setAdminEnquiries([])} />
       </PlotMap>
-      {unit != null && (
+      {unit != null && !form && (
         <UnitModal id={unit} ax={ax} status={status[unit]} onClose={closeUnit} onEnquire={() => setForm(true)}
           onViewMap={() => { const id = unit; setUnit(null); setSel(id); mapRef.current.focusOn(id); }} />
       )}
-      {form && unit != null && <EnquiryModal id={unit} ax={ax} onClose={() => setForm(false)} />}
+      {form && unit != null && <EnquiryModal id={unit} ax={ax} onClose={() => { setForm(false); setUnit(null); setSel(null); }} />}
     </>
   );
 }

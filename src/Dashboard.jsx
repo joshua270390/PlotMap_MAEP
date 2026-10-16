@@ -33,6 +33,7 @@ export default function Dashboard() {
   const [search, setSearch] = useState('');
   const [plotSearch, setPlotSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // Restore the admin session after a refresh in the same browser tab.
   useEffect(() => {
@@ -120,8 +121,19 @@ export default function Dashboard() {
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not save booking.');
       if (data.warning) setNotice(data.warning);
       else setNotice(statusOnly ? 'Status updated.' : 'Booking updated successfully.');
-      setEdit(null);
-      await loadData('bookings', pin);
+      if (statusOnly) {
+        setBookings(current => current.map(row => String(row.id) === String(rowId)
+          ? { ...row, ...(data.booking || values), status: (data.booking || values).status || values.status }
+          : row));
+        if (data.plotStatusSynced) {
+          setPlots(current => current.map(plot => String(plot.id) === String(values.plot_id)
+            ? { ...plot, status: values.status }
+            : plot));
+        }
+      } else {
+        setEdit(null);
+        await loadData('bookings', pin);
+      }
     } catch (e) { setError(e.message || 'Could not save booking.'); }
     finally { setSaving(false); }
   }
@@ -177,26 +189,25 @@ export default function Dashboard() {
           <span className="dashboard-brand-icon">MA</span>
           <span><strong>Mary Ann</strong><small>Elite Properties</small></span>
         </a>
-        <p className="sidebar-label">MANAGEMENT</p>
         <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); }}>
           <span className="nav-icon">▤</span> Bookings
         </button>
         <button className={'nav-item' + (page === 'plots' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/plot_lists'); setPage('plots'); }}>
           <span className="nav-icon">▦</span> Plot lists
         </button>
-        <div className="sidebar-bottom">
-          <span className="online-dot" /> Connected to admin session
-          <button className="signout-btn" onClick={() => { window.sessionStorage.removeItem('maep_admin_pin'); setLoggedIn(false); setPin(''); setBookings([]); setPlots([]); setError(''); setNotice(''); }}>Sign out</button>
-        </div>
       </aside>
 
       <main className="dashboard-main">
         <header className="dashboard-topbar">
-          <div><p className="eyebrow">PROPERTY MANAGEMENT</p><h1>{page === 'bookings' ? 'Bookings' : 'Plot lists'}</h1></div>
-          <div className="topbar-actions">
-            <span className="topbar-avatar">MA</span>
-            <div className="admin-label"><strong>Administrator</strong><small>Mary Ann Elite Properties</small></div>
-            <button className="refresh-btn" onClick={() => page === 'bookings' ? loadData('bookings', pin) : setPlotSearch('')} disabled={loading} title="Refresh data">↻</button>
+          <div><h1>{page === 'bookings' ? 'Bookings' : 'Plot lists'}</h1></div>
+          <div className="topbar-actions profile-wrap">
+            <button type="button" className="topbar-avatar profile-trigger" aria-label="Open administrator menu" aria-expanded={profileOpen} onClick={() => setProfileOpen(open => !open)}>MA</button>
+            {profileOpen && <div className="profile-menu" role="menu">
+              <strong className="profile-role">Administrator</strong>
+              <span className="profile-company">Mary Ann Elite Properties</span>
+              <span className="profile-session"><i />Connected to admin session</span>
+              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); window.sessionStorage.removeItem('maep_admin_pin'); setLoggedIn(false); setPin(''); setBookings([]); setPlots([]); setError(''); setNotice(''); }}>Sign out</button>
+            </div>}
           </div>
         </header>
 

@@ -40,7 +40,7 @@ async function db(cfg, method, table, query = "", body) {
   const headers = { apikey: cfg.key, Authorization: "Bearer " + cfg.key, Accept: "application/json" };
   if (body !== undefined) {
     headers["Content-Type"] = "application/json";
-    headers.Prefer = method === "PATCH" ? "return=representation" : "return=minimal";
+    headers.Prefer = method === "PATCH" || method === "POST" ? "return=representation" : "return=minimal";
   }
   try {
     const response = await fetch(url, {
@@ -63,8 +63,8 @@ export default async function handler(request) {
   const cfg = config();
   const url = new URL(request.url);
   const method = request.method;
-  if (!["GET", "PATCH", "DELETE"].includes(method))
-    return json({ ok: false, error: "Method not allowed" }, 405, { Allow: "GET, PATCH, DELETE" });
+  if (!["GET", "POST", "PATCH", "DELETE"].includes(method))
+    return json({ ok: false, error: "Method not allowed" }, 405, { Allow: "GET, POST, PATCH, DELETE" });
 
   if (!cfg.pin || request.headers.get("x-admin-pin") !== cfg.pin)
     return json({ ok: false, error: "Admin authentication failed. Please log in again." }, 401);
@@ -118,6 +118,38 @@ export default async function handler(request) {
   let body;
   try { body = await request.json(); } catch { body = null; }
   if (!body || typeof body !== "object") return json({ ok: false, error: "Invalid request body." }, 400);
+  if (method === "POST") {
+    const customerName = String(body.customer_name ?? "").trim();
+    const phone = String(body.phone ?? "").trim();
+    const plotId = String(body.plot_id ?? "").trim();
+    const status = String(body.status ?? "");
+    if (!customerName || customerName.length > 120) return json({ ok: false, error: "Enter a valid customer name." }, 422);
+    if (!phone || phone.length > 25) return json({ ok: false, error: "Enter a valid phone number." }, 422);
+    if (!/^\d+$/.test(plotId)) return json({ ok: false, error: "Select a valid plot." }, 422);
+    if (!allowedStatuses.has(status)) return json({ ok: false, error: "Select a valid status." }, 422);
+
+    const lookup = await db(cfg, "GET", cfg.plotsTable,
+      new URLSearchParams({ select: "id,project_id", id: "eq." + plotId, project_id: "eq." + cfg.projectId, limit: "1" }).toString());
+    if (!lookup.ok || !Array.isArray(lookup.data) || !lookup.data.length)
+      return json({ ok: false, error: "The selected unit does not belong to this project." }, 422);
+
+    const inserted = await db(cfg, "POST", cfg.bookingsTable, "", {
+      project_id: Number(cfg.projectId), customer_name: customerName, phone, plot_id: Number(plotId), status,
+    });
+    if (!inserted.ok || !Array.isArray(inserted.data) || !inserted.data.length) {
+      console.error("[admin-data] Manual customer insert failed:", inserted.status, inserted.error, JSON.stringify(keyDiagnostics(cfg)));
+      return json({ ok: false, error: "Could not add customer. Check bookings table columns and database permissions." }, 502);
+    }
+
+    const plotUpdate = await db(cfg, "PATCH", cfg.plotsTable,
+      new URLSearchParams({ id: "eq." + plotId, project_id: "eq." + cfg.projectId }).toString(), { status });
+    if (!plotUpdate.ok) console.error("[admin-data] Plot status sync failed after manual customer insert:", plotUpdate.status, plotUpdate.error);
+    return json({
+      ok: true, booking: inserted.data[0], plotStatusSynced: plotUpdate.ok,
+      warning: plotUpdate.ok ? undefined : "Customer added, but plot status could not be synced. Check plot permissions/columns.",
+    }, 201);
+  }
+
   const id = String(body.id ?? "").trim();
   if (!/^\d+$/.test(id)) return json({ ok: false, error: "A valid booking ID is required." }, 422);
   const filter = new URLSearchParams({ id: "eq." + id, project_id: "eq." + cfg.projectId });

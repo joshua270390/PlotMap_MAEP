@@ -22,7 +22,7 @@ export default function Dashboard() {
   }, []);
   const [pin, setPin] = useState('');
   const [loggedIn, setLoggedIn] = useState(false);
-  const [page, setPage] = useState(() => window.location.pathname.replace(/\/+$/, '') === '/plot_lists' ? 'plots' : 'bookings');
+  const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : 'dashboard'; });
   const [bookings, setBookings] = useState([]);
   const [plots, setPlots] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -105,7 +105,7 @@ export default function Dashboard() {
   useEffect(() => {
     // The Plot lists page is intentionally a static design for now.
     // Only the Bookings page loads live records from the API.
-    if (loggedIn && page === 'bookings') loadData('bookings', pin);
+    if (loggedIn && page !== 'plots') loadData('bookings', pin);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, loggedIn]);
 
@@ -156,6 +156,12 @@ export default function Dashboard() {
     finally { setSaving(false); }
   }
 
+  const plotCounts = useMemo(() => {
+    const counts = { Available: 0, Reserved: 0, Booked: 0, Sold: 0 };
+    plots.forEach(plot => { const value = normalizedStatus(plot.status); counts[value] = (counts[value] || 0) + 1; });
+    return counts;
+  }, [plots]);
+
   const visibleBookings = useMemo(() => bookings.filter(row => {
     const plot = plotById.get(String(row.plot_id));
     const unit = field(plot, 'plot_number', 'unit_number');
@@ -189,6 +195,7 @@ export default function Dashboard() {
           <span className="dashboard-brand-icon">MA</span>
           <span><strong>Mary Ann</strong><small>Elite Properties</small></span>
         </a>
+        <button className={'nav-item' + (page === 'dashboard' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/dashboard'); setPage('dashboard'); }}><span className="nav-icon">▦</span> Dashboard</button>
         <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); }}>
           <span className="nav-icon">▤</span> Bookings
         </button>
@@ -199,7 +206,7 @@ export default function Dashboard() {
 
       <main className="dashboard-main">
         <header className="dashboard-topbar">
-          <div><h1>{page === 'bookings' ? 'Bookings' : 'Plot lists'}</h1></div>
+          <div><h1>{page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : 'Plot lists'}</h1></div>
           <div className="topbar-actions profile-wrap">
             <button type="button" className="topbar-avatar profile-trigger" aria-label="Open administrator menu" aria-expanded={profileOpen} onClick={() => setProfileOpen(open => !open)}>MA</button>
             {profileOpen && <div className="profile-menu" role="menu">
@@ -212,12 +219,24 @@ export default function Dashboard() {
         </header>
 
         <section className="dashboard-content">
-          {page === 'bookings' && error && <div className="alert alert-error" role="alert">{error}</div>}
-          {page === 'bookings' && notice && <div className="alert alert-success" role="status">{notice}</div>}
+          {page !== 'plots' && error && <div className="alert alert-error" role="alert">{error}</div>}
+          {page !== 'plots' && notice && <div className="alert alert-success" role="status">{notice}</div>}
 
-          {page === 'bookings' ? (
+          {page !== 'plots' ? (
             <>
-              <div className="page-intro"><div><h2>Bookings overview</h2><p>Review customer enquiries and manage unit availability.</p></div><div className="record-count"><strong>{bookings.length}</strong><span>Total bookings</span></div></div>
+              {page === 'dashboard' ? (
+                <>
+                  <div className="dashboard-welcome"><div><span className="dashboard-kicker">MARY ANN ELITE PROPERTIES</span><h2>Property inventory overview</h2><p>Live unit availability and sales progress at a glance.</p></div><div className="inventory-total"><span>Total units</span><strong>{plots.length}</strong><small>Across this layout</small></div></div>
+                  <div className="kpi-grid">
+                    <article className="kpi-card kpi-available"><div className="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12.5 9.2 17 20 6" /></svg></div><span className="kpi-label">Available</span><strong>{plotCounts.Available || 0}</strong><small>Ready for enquiry</small><span className="kpi-watermark">A</span></article>
+                    <article className="kpi-card kpi-reserved"><div className="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5 14.6 8.8 20.5 9.6 16.2 13.7 17.2 19.5 12 16.7 6.8 19.5 7.8 13.7 3.5 9.6 9.4 8.8Z" /></svg></div><span className="kpi-label">Reserved</span><strong>{plotCounts.Reserved || 0}</strong><small>Temporarily held</small><span className="kpi-watermark">R</span></article>
+                    <article className="kpi-card kpi-booked"><div className="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M8 14l2.5 2.5L16 12" /></svg></div><span className="kpi-label">Booked</span><strong>{plotCounts.Booked || 0}</strong><small>Booking in progress</small><span className="kpi-watermark">B</span></article>
+                    <article className="kpi-card kpi-sold"><div className="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12 12 4h7l1 7-8 9Z"/><circle cx="16" cy="8" r="1"/><path d="m8.5 13.5 2 2 4-4" /></svg></div><span className="kpi-label">Sold</span><strong>{plotCounts.Sold || 0}</strong><small>Successfully sold</small><span className="kpi-watermark">S</span></article>
+                  </div>
+                  <div className="inventory-progress"><div><span>Inventory movement</span><strong>{plots.length ? Math.round(((plotCounts.Reserved + plotCounts.Booked + plotCounts.Sold) / plots.length) * 100) : 0}% committed</strong></div><div className="inventory-track"><i style={{ width: (plots.length ? Math.min(100, ((plotCounts.Reserved + plotCounts.Booked + plotCounts.Sold) / plots.length) * 100) : 0) + '%' }} /></div></div>
+                </>
+              ) : null}
+              <div className="page-intro"><div><h2>{page === 'dashboard' ? 'Recent enquiries & bookings' : 'Bookings overview'}</h2><p>Review customer enquiries and manage unit availability.</p></div><div className="record-count"><strong>{bookings.length}</strong><span>Total bookings</span></div></div>
               <section className="table-card">
                 <div className="table-toolbar">
                   <label className="search-field"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search customer, phone or unit…" /></label>

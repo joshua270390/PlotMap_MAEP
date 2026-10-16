@@ -72,8 +72,14 @@ export default function App() {
       return;
     }
     if (id == null) { setSel(null); return; }
-    setSel(id);
     const plotStatus = status[id] || 'a';
+    if (plotStatus === 'b' || plotStatus === 's') {
+      setForm(false);
+      setUnit(null);
+      setSel(null);
+      return;
+    }
+    setSel(id);
     setUnit(id);
     setForm(false);
   };
@@ -89,7 +95,7 @@ export default function App() {
         <UnitModal id={unit} ax={ax} status={status[unit]} onClose={closeUnit} onEnquire={() => setForm(true)}
           onViewMap={() => { const id = unit; setUnit(null); setSel(id); mapRef.current.focusOn(id); }} />
       )}
-      {form && unit != null && <EnquiryModal id={unit} ax={ax} onClose={() => { setForm(false); setUnit(null); setSel(null); }} />}
+      {form && unit != null && <EnquiryModal id={unit} ax={ax} onClose={() => setForm(false)} />}
     </>
   );
 }

@@ -202,9 +202,17 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
 
   return (
     <main id="vp" ref={vpRef}>
+      <div className="map-compass" aria-label="North compass" title="North">
+        <svg viewBox="0 0 72 92" role="img" aria-hidden="true">
+          <text x="36" y="12" className="compass-n">N</text>
+          <circle cx="36" cy="48" r="27" className="compass-ring" />
+          <path d="M36 23 L45 49 L36 44 L27 49 Z" className="compass-north" />
+          <path d="M36 73 L27 47 L36 52 L45 47 Z" className="compass-south" />
+          <circle cx="36" cy="48" r="3.5" className="compass-center" />
+        </svg>
+      </div>
       <div className="top" ref={topRef}>
         <div className="brand fl" aria-label={COMPANY}>
-          <img className="brand-logo" src="/mary-ann-sidebar-logo.svg" alt="Mary Ann Elite Properties" />
           <div className="brand-copy">
             <b>{PROJECT}</b>
             <span className="sub">{LAYOUT}</span>

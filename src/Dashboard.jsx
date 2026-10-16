@@ -233,6 +233,34 @@ export default function Dashboard() {
                     <article className="kpi-card kpi-sold"><div className="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12 12 4h7l1 7-8 9Z"/><circle cx="16" cy="8" r="1"/><path d="m8.5 13.5 2 2 4-4" /></svg></div><span className="kpi-label">Sold</span><strong>{plotCounts.Sold || 0}</strong><small>Successfully sold</small><span className="kpi-watermark">S</span></article>
                   </div>
                   <div className="inventory-progress"><div><span>Inventory movement</span><strong>{plots.length ? Math.round(((plotCounts.Reserved + plotCounts.Booked + plotCounts.Sold) / plots.length) * 100) : 0}% committed</strong></div><div className="inventory-track"><i style={{ width: (plots.length ? Math.min(100, ((plotCounts.Reserved + plotCounts.Booked + plotCounts.Sold) / plots.length) * 100) : 0) + '%' }} /></div></div>
+                  <section className="dashboard-chart-grid" aria-label="Inventory charts">
+                    <article className="chart-panel chart-panel-donut">
+                      <div className="chart-heading"><div><span className="chart-eyebrow">INVENTORY MIX</span><h3>Plot availability</h3></div><span className="chart-menu-mark">•••</span></div>
+                      <div className="donut-layout">
+                        <div className="inventory-donut" style={{ background: plots.length ? `conic-gradient(#18a779 0% ${plotCounts.Available / plots.length * 100}%, #e8b34e ${plotCounts.Available / plots.length * 100}% ${(plotCounts.Available + plotCounts.Reserved) / plots.length * 100}%, #4e82d5 ${(plotCounts.Available + plotCounts.Reserved) / plots.length * 100}% ${(plotCounts.Available + plotCounts.Reserved + plotCounts.Booked) / plots.length * 100}%, #dd6572 ${(plotCounts.Available + plotCounts.Reserved + plotCounts.Booked) / plots.length * 100}% 100%)` : 'conic-gradient(#e5eaf1 0% 100%)' }}>
+                          <div className="donut-hole"><strong>{plots.length}</strong><span>Total plots</span></div>
+                        </div>
+                        <div className="chart-legend">
+                          <div><i className="legend-available" /><span>Available</span><strong>{plotCounts.Available}</strong></div>
+                          <div><i className="legend-reserved" /><span>Reserved</span><strong>{plotCounts.Reserved}</strong></div>
+                          <div><i className="legend-booked" /><span>Booked</span><strong>{plotCounts.Booked}</strong></div>
+                          <div><i className="legend-sold" /><span>Sold</span><strong>{plotCounts.Sold}</strong></div>
+                        </div>
+                      </div>
+                    </article>
+                    <article className="chart-panel chart-panel-bars">
+                      <div className="chart-heading"><div><span className="chart-eyebrow">PROPERTY PERFORMANCE</span><h3>Inventory status</h3></div><span className="chart-period">Live</span></div>
+                      <div className="inventory-bars">
+                        {[
+                          { label: 'Available', value: plotCounts.Available, tone: 'bar-available' },
+                          { label: 'Reserved', value: plotCounts.Reserved, tone: 'bar-reserved' },
+                          { label: 'Booked', value: plotCounts.Booked, tone: 'bar-booked' },
+                          { label: 'Sold', value: plotCounts.Sold, tone: 'bar-sold' },
+                        ].map(item => <div className="inventory-bar-row" key={item.label}><div className="bar-label"><span>{item.label}</span><strong>{item.value}</strong></div><div className="bar-track"><i className={item.tone} style={{ width: (plots.length ? item.value / Math.max(...Object.values(plotCounts), 1) * 100 : 0) + '%' }} /></div></div>)}
+                      </div>
+                      <div className="chart-footnote"><span className="chart-live-dot" /> Updated from current plot records</div>
+                    </article>
+                  </section>
                 </>
               ) : null}
               <div className="page-intro"><div><h2>{page === 'dashboard' ? 'Recent enquiries & bookings' : 'Bookings overview'}</h2><p>Review customer enquiries and manage unit availability.</p></div><div className="record-count"><strong>{bookings.length}</strong><span>Total bookings</span></div></div>
@@ -285,9 +313,9 @@ export default function Dashboard() {
               </label>
               {(!plotSearch.trim() || 'mary ann elite properties madurai tamil nadu interactive plot layout'.includes(plotSearch.trim().toLowerCase())) ? (
                 <div className="project-cards">
-                  <a className="project-list-card" href="/" target="_blank" rel="noopener noreferrer" aria-label="Open Mary Ann Elite Properties interactive plot map">
-                    <div className="project-card-visual" aria-label="Static preview of the interactive plot map">
-                      <svg className="project-map-static" viewBox="0 0 4400 3400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Static thumbnail of the actual plot map layout">
+                  <a className="project-list-card" href="/velavan_nagar" aria-label="Open Velavan Nagar interactive plot map">
+                    <div className="project-card-visual" aria-label="Static preview of the Velavan Nagar interactive plot map">
+                      <svg className="project-map-static" viewBox="0 0 4400 3400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Static thumbnail of the Velavan Nagar plot layout">
                         <rect width="4400" height="3400" fill="#e8e4dc" />
                         <g fill="#363e4c">
                           {G.base.map((d, i) => <path key={'road-' + i} d={d} />)}
@@ -311,9 +339,9 @@ export default function Dashboard() {
                       <div className="project-preview-overlay" aria-hidden="true"><span className="project-visual-mark">MA</span><span className="project-visual-tag">INTERACTIVE PLOT MAP</span></div>
                     </div>
                     <div className="project-card-content">
-                      <div className="project-card-heading"><div><span className="project-card-kicker">MARY ANN ELITE PROPERTIES</span><h2>Mary Ann Elite Properties</h2></div><span className="project-card-arrow" aria-hidden="true">↗</span></div>
+                      <div className="project-card-heading"><div><span className="project-card-kicker">MARY ANN ELITE PROPERTIES</span><h2>Velavan Nagar</h2></div><span className="project-card-arrow" aria-hidden="true">↗</span></div>
                       <p className="project-card-location"><span aria-hidden="true">⌖</span> Madurai, Tamil Nadu</p>
-                      <p className="project-card-description">Explore the interactive plot layout and view plot details.</p>
+                      <p className="project-card-description">Open the Velavan Nagar interactive plot layout and view plot details.</p>
                       <div className="project-card-footer"><span className="project-type"><span aria-hidden="true">▦</span> Interactive Plot Layout</span><span className="project-view-link">View project <span aria-hidden="true">→</span></span></div>
                     </div>
                   </a>

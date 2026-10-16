@@ -75,7 +75,7 @@ export default function App() {
     setSel(id);
     const plotStatus = status[id] || 'a';
     setUnit(id);
-    setForm(plotStatus === 'a' || plotStatus === 'r');
+    setForm(false);
   };
 
   return (

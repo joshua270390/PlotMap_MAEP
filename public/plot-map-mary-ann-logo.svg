@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 447 447" role="img" aria-labelledby="title desc">
+<title id="title">Mary Ann Elite Properties</title><desc id="desc">Yellow circular Mary Ann Elite Properties logo with the tagline Turning Dreams into Reality.</desc>
+<defs><radialGradient id="gold" cx="38%" cy="27%" r="75%"><stop offset="0" stop-color="#ffe33b"/><stop offset=".55" stop-color="#ffd21a"/><stop offset="1" stop-color="#f4bd00"/></radialGradient><filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#b98700" flood-opacity=".22"/></filter></defs>
+<circle cx="223.5" cy="223.5" r="200" fill="url(#gold)" filter="url(#shadow)"/>
+<g fill="none" stroke="#343b46" stroke-width="7" stroke-linejoin="miter"><path d="M159 135 L159 257 M159 135 L219 190 L219 257 M159 135 L219 192 M159 194 L219 135 M219 135 L219 257"/><path d="M231 135 L291 135 L231 194 L291 194 M231 194 L291 257 L231 257"/></g>
+<g fill="#343b46" text-anchor="middle" font-family="Arial,Helvetica,sans-serif"><text x="223.5" y="287" font-size="35" font-weight="800" letter-spacing="-1.5">MARY ANN</text><text x="223.5" y="311" font-size="17" font-weight="700" letter-spacing="2">ELITE PROPERTIES</text></g>
+<text x="223.5" y="337" fill="#3156b9" text-anchor="middle" font-family="Georgia,serif" font-style="italic" font-size="18">Turning Dreams into Reality</text>
+</svg>

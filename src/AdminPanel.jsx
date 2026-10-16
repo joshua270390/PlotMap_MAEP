@@ -101,7 +101,7 @@ function DmEditor({ k, ax, setAd, onGone }) {
   );
 }
 
-export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addMode, setAddMode, clearSel, status, setStatus }) {
+export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addMode, setAddMode, clearSel, status, setStatus, onAdminAuth, onAdminExit }) {
   const [pin, setPin] = useState(''), [authPin, setAuthPin] = useState(''), [pm, setPm] = useState(''), [note, setNote] = useState(null), [rst, setRst] = useState(false), [authBusy, setAuthBusy] = useState(false);
   const [rate, setRate] = useState(ax.ad.rate || '');
   const file = useRef(null), rt = useRef(0);
@@ -118,12 +118,12 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || 'Wrong PIN.');
-      setAuthPin(pin); setPin(''); setPanel('tools');
+      setAuthPin(pin); setPin(''); setPanel('tools'); if (onAdminAuth) onAdminAuth(pin);
     } catch (error) {
       setPm(error.message || 'Admin authentication failed.');
     } finally { setAuthBusy(false); }
   };
-  const exit = () => { setPanel('off'); setPin(''); setAuthPin(''); setPm(''); setNote(null); clearSel(); };
+  const exit = () => { setPanel('off'); setPin(''); setAuthPin(''); setPm(''); setNote(null); clearSel(); if (onAdminExit) onAdminExit(); };
   const exportEdits = () => {
     const b = new Blob([JSON.stringify({ admin: ax.ad, status: {} }, null, 1)], { type: 'application/json' }), a = document.createElement('a');
     a.href = URL.createObjectURL(b); a.download = 'velavan-plot-edits.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1500);

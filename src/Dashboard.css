@@ -136,3 +136,15 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 .dashboard-brand-logo{display:block;width:205px;max-width:100%;height:auto;filter:brightness(0) invert(1)}
 .login-logo{display:block;width:min(250px,100%);height:auto;margin:0 0 20px}
 @media(max-width:640px){.dashboard-brand-logo{width:185px}.login-logo{width:min(230px,100%)}}
+
+/* Rich navy-and-gold brand treatment; preserve logo proportions */
+.dashboard-sidebar{background:linear-gradient(165deg,#102744 0%,#183a61 58%,#102a49 100%);border-right:1px solid rgba(232,195,106,.28)}
+.dashboard-brand{border-bottom:1px solid rgba(226,190,102,.32);padding:3px 8px 27px}
+.dashboard-brand-logo{width:194px;max-width:100%;height:auto;max-height:60px;object-fit:contain;object-position:left center;filter:none}
+.dashboard-sidebar .nav-item{border:1px solid transparent;transition:background .18s ease,border-color .18s ease,color .18s ease}
+.dashboard-sidebar .nav-item:hover{background:rgba(232,195,106,.09);border-color:rgba(232,195,106,.18);color:#fff3cf}
+.dashboard-sidebar .nav-item.active{background:linear-gradient(100deg,rgba(229,190,97,.2),rgba(229,190,97,.07));border-color:rgba(229,190,97,.28);box-shadow:inset 3px 0 #e5c16b;color:#ffdf91}
+.dashboard-sidebar .nav-item.active .nav-icon{color:#f1cd78}
+.dashboard-sidebar .nav-icon{color:#c1cfe0}
+.topbar-avatar{background:linear-gradient(135deg,#f6dfa0,#d3a94d);box-shadow:0 4px 12px rgba(13,32,54,.2)}
+@media(max-width:640px){.dashboard-brand-logo{width:178px;max-height:52px}}

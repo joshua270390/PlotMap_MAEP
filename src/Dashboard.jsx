@@ -29,6 +29,7 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [edit, setEdit] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [plotSearch, setPlotSearch] = useState('');
@@ -113,14 +114,14 @@ export default function Dashboard() {
     setSaving(true); setError(''); setNotice('');
     try {
       const response = await fetch('/api/admin-data', {
-        method: 'PATCH',
+        method: rowId == null ? 'POST' : 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
-        body: JSON.stringify({ id: rowId, ...values }),
+        body: JSON.stringify({ ...(rowId == null ? {} : { id: rowId }), ...values }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not save booking.');
       if (data.warning) setNotice(data.warning);
-      else setNotice(statusOnly ? 'Status updated.' : 'Booking updated successfully.');
+      else setNotice(statusOnly ? 'Status updated.' : rowId == null ? 'Customer added successfully.' : 'Booking updated successfully.');
       if (statusOnly) {
         setBookings(current => current.map(row => String(row.id) === String(rowId)
           ? { ...row, ...(data.booking || values), status: (data.booking || values).status || values.status }
@@ -139,8 +140,6 @@ export default function Dashboard() {
   }
 
   async function deleteBooking(row) {
-    const name = field(row, 'customer_name', 'name') || 'this booking';
-    if (!window.confirm('Delete ' + name + '? This cannot be undone.')) return;
     setSaving(true); setError(''); setNotice('');
     try {
       const response = await fetch('/api/admin-data', {
@@ -150,6 +149,7 @@ export default function Dashboard() {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not delete booking.');
+      setDeleteTarget(null);
       setNotice('Booking deleted.');
       await loadData('bookings', pin);
     } catch (e) { setError(e.message || 'Could not delete booking.'); }
@@ -267,9 +267,12 @@ export default function Dashboard() {
               <section className="table-card">
                 <div className="table-toolbar">
                   <label className="search-field"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search customer, phone or unit…" /></label>
-                  <select className="filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} aria-label="Filter by status">
-                    <option value="All">All statuses</option>{STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                  </select>
+                  <div className="booking-toolbar-actions">
+                    {page === 'bookings' && <button type="button" className="add-customer-btn" onClick={() => { setError(''); setEdit({ id: null, customer_name: '', phone: '', plot_id: '', status: 'Available' }); }}>Add Customers +</button>}
+                    <select className="filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} aria-label="Filter by status">
+                      <option value="All">All statuses</option>{STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                    </select>
+                  </div>
                 </div>
                 {loading ? <div className="table-state">Loading bookings from Supabase…</div> : (
                   <div className="table-scroll"><table className="data-table">
@@ -291,10 +294,10 @@ export default function Dashboard() {
                           }, row.id, true)} disabled={saving} aria-label={'Status for booking ' + row.id}>
                             {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                           </select></td>
-                          <td><div className="row-actions"><button className="edit-btn" onClick={() => setEdit({
+                          <td><div className="row-actions"><button className="edit-btn" onClick={() => { setError(''); setEdit({
                             id: row.id, customer_name: field(row, 'customer_name', 'name'), phone: field(row, 'phone', 'phone_number'),
                             plot_id: String(row.plot_id ?? ''), status: normalizedStatus(row.status),
-                          })}>Edit</button><button className="delete-btn" onClick={() => deleteBooking(row)} disabled={saving}>Delete</button></div></td>
+                          }); }}>Edit</button><button className="delete-btn" onClick={() => setDeleteTarget(row)} disabled={saving}>Delete</button></div></td>
                         </tr>;
                       })}
                       {!visibleBookings.length && <tr><td colSpan="7" className="empty-cell">{bookings.length ? 'No bookings match your search.' : 'No bookings found in Supabase.'}</td></tr>}
@@ -357,7 +360,7 @@ export default function Dashboard() {
       {edit && <div className="edit-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setEdit(null); }}>
         <form className="edit-modal" onSubmit={e => { e.preventDefault(); saveBooking(edit, edit.id); }}>
           <button type="button" className="modal-close" onClick={() => setEdit(null)} aria-label="Close">×</button>
-          <p className="eyebrow">BOOKING #{edit.id}</p><h2>Edit booking</h2><p className="modal-copy">Update customer details, unit and availability status.</p>
+          <p className="eyebrow">{edit.id == null ? 'MANUAL CUSTOMER ENTRY' : 'BOOKING #' + edit.id}</p><h2>{edit.id == null ? 'Add customer' : 'Edit booking'}</h2><p className="modal-copy">{edit.id == null ? 'Enter customer details and add them to the bookings table.' : 'Update customer details, unit and availability status.'}</p>
           <label>Customer Name<input value={edit.customer_name} onChange={e => setEdit(s => ({ ...s, customer_name: e.target.value }))} required maxLength={120} /></label>
           <label>Phone Number<input value={edit.phone} onChange={e => setEdit(s => ({ ...s, phone: e.target.value }))} required maxLength={25} /></label>
           <label>Unit Number<select value={edit.plot_id} onChange={e => setEdit(s => ({ ...s, plot_id: e.target.value }))} required>
@@ -365,8 +368,18 @@ export default function Dashboard() {
           </select></label>
           <label>Status<select value={edit.status} onChange={e => setEdit(s => ({ ...s, status: e.target.value }))}>{STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></label>
           {error && <p className="dash-error">{error}</p>}
-          <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setEdit(null)}>Cancel</button><button className="primary-btn" disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</button></div>
+          <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setEdit(null)}>Cancel</button><button className="primary-btn" disabled={saving}>{saving ? 'Saving…' : edit.id == null ? 'Add customer' : 'Save changes'}</button></div>
         </form>
+      </div>}
+      {deleteTarget && <div className="edit-overlay confirm-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) setDeleteTarget(null); }}>
+        <section className="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="delete-confirm-title" aria-describedby="delete-confirm-copy">
+          <div className="confirm-icon" aria-hidden="true">!</div>
+          <button type="button" className="modal-close" onClick={() => setDeleteTarget(null)} aria-label="Close" disabled={saving}>×</button>
+          <p className="eyebrow">CONFIRM ACTION</p>
+          <h2 id="delete-confirm-title">Delete customer booking?</h2>
+          <p id="delete-confirm-copy">Are you sure you want to delete <strong>{field(deleteTarget, 'customer_name', 'name') || 'this customer'}</strong>? This action cannot be undone.</p>
+          <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setDeleteTarget(null)} disabled={saving}>Cancel</button><button type="button" className="confirm-delete-btn" onClick={() => deleteBooking(deleteTarget)} disabled={saving}>{saving ? 'Deleting…' : 'Yes, delete'}</button></div>
+        </section>
       </div>}
     </div>
   );

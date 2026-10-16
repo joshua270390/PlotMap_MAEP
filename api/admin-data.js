@@ -55,8 +55,8 @@ function authorized(req, cfg) {
 
 export default async function handler(req, res) {
   const cfg = config();
-  if (!['GET', 'PATCH', 'DELETE'].includes(req.method)) {
-    res.setHeader('Allow', 'GET, PATCH, DELETE');
+  if (!['GET', 'POST', 'PATCH', 'DELETE'].includes(req.method)) {
+    res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
     return out(res, 405, { ok: false, error: 'Method not allowed' });
   }
   if (!authorized(req, cfg)) return out(res, 401, { ok: false, error: 'Admin authentication failed. Please log in again.' });
@@ -116,6 +116,37 @@ export default async function handler(req, res) {
 
   const body = parseBody(req);
   if (!body) return out(res, 400, { ok: false, error: 'Invalid request body.' });
+
+  if (req.method === 'POST') {
+    const customerName = String(body.customer_name ?? '').trim();
+    const phone = String(body.phone ?? '').trim();
+    const plotId = String(body.plot_id ?? '').trim();
+    const status = String(body.status ?? '');
+    if (!customerName || customerName.length > 120) return out(res, 422, { ok: false, error: 'Enter a valid customer name.' });
+    if (!phone || phone.length > 25) return out(res, 422, { ok: false, error: 'Enter a valid phone number.' });
+    if (!/^\\d+$/.test(plotId)) return out(res, 422, { ok: false, error: 'Select a valid plot.' });
+    if (!allowedStatuses.has(status)) return out(res, 422, { ok: false, error: 'Select a valid status.' });
+
+    const plotLookup = await db(cfg, 'GET', cfg.plotsTable,
+      new URLSearchParams({ select: 'id,project_id', id: 'eq.' + plotId, project_id: 'eq.' + cfg.projectId, limit: '1' }).toString());
+    if (!plotLookup.ok || !Array.isArray(plotLookup.data) || !plotLookup.data.length)
+      return out(res, 422, { ok: false, error: 'The selected unit does not belong to this project.' });
+
+    const inserted = await db(cfg, 'POST', cfg.bookingsTable, '', {
+      project_id: Number(cfg.projectId), customer_name: customerName, phone, plot_id: Number(plotId), status,
+    });
+    if (!inserted.ok || !Array.isArray(inserted.data) || !inserted.data.length) {
+      console.error('[admin-data] Manual customer insert failed:', inserted.status, inserted.error);
+      return out(res, 502, { ok: false, error: 'Could not add customer. Check bookings table columns and database permissions.' });
+    }
+    const plotUpdate = await db(cfg, 'PATCH', cfg.plotsTable,
+      new URLSearchParams({ id: 'eq.' + plotId, project_id: 'eq.' + cfg.projectId }).toString(), { status });
+    return out(res, 201, {
+      ok: true, booking: inserted.data[0], plotStatusSynced: plotUpdate.ok,
+      warning: plotUpdate.ok ? undefined : 'Customer added, but plot status could not be synced. Check plot permissions/columns.',
+    });
+  }
+
   const id = String(body.id ?? '').trim();
   if (!/^\d+$/.test(id)) return out(res, 422, { ok: false, error: 'A valid booking ID is required.' });
   const bookingFilter = new URLSearchParams({ id: 'eq.' + id, project_id: 'eq.' + cfg.projectId });

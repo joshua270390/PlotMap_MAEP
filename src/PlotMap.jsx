@@ -50,8 +50,8 @@ const EnquiryPins = memo(({ enquiries, ax }) => {
     if (!plot) return null;
     const points = plot[3].split(' ').map(pair => pair.split(',').map(Number));
     const topRight = points.reduce((best, point) => point[0] - point[1] > best[0] - best[1] ? point : best, points[0]);
-    const x = topRight[0] - 8;
-    const y = topRight[1] + 30;
+    const x = topRight[0];
+    const y = topRight[1] - 31;
     const names = (item.names || []).filter(Boolean);
     if (!names.length) return null;
     return <g key={String(item.plotNumber)} data-enquiry-pin="true" className="enquiry-map-pin" transform={`translate(${x} ${y}) rotate(16)`}>

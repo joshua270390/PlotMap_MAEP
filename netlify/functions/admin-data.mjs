@@ -152,6 +152,9 @@ export default async function handler(request) {
 
   const plotUpdate = await db(cfg, "PATCH", cfg.plotsTable,
     new URLSearchParams({ id: "eq." + plotId, project_id: "eq." + cfg.projectId }).toString(), { status });
+  if (!plotUpdate.ok) {
+    console.error("[admin-data] Plot status sync failed:", plotUpdate.status, plotUpdate.error, "plotId:", plotId, "status:", status);
+  }
   return json({
     ok: true, booking: updated.data[0], plotStatusSynced: plotUpdate.ok,
     warning: plotUpdate.ok ? undefined : "Booking saved, but plot status could not be synced. Check plot permissions/columns.",

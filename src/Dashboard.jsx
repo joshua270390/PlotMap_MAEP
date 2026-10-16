@@ -285,7 +285,7 @@ export default function Dashboard() {
               </label>
               {(!plotSearch.trim() || 'mary ann elite properties madurai tamil nadu interactive plot layout'.includes(plotSearch.trim().toLowerCase())) ? (
                 <div className="project-cards">
-                  <a className="project-list-card" href="https://plot-map-maep-xipa.vercel.app/" target="_blank" rel="noopener noreferrer" aria-label="Open Mary Ann Elite Properties interactive plot map">
+                  <a className="project-list-card" href="/" target="_blank" rel="noopener noreferrer" aria-label="Open Mary Ann Elite Properties interactive plot map">
                     <div className="project-card-visual" aria-label="Static preview of the interactive plot map">
                       <svg className="project-map-static" viewBox="0 0 4400 3400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Static thumbnail of the actual plot map layout">
                         <rect width="4400" height="3400" fill="#e8e4dc" />

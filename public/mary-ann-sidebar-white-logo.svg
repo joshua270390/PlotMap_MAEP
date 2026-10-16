@@ -11,9 +11,9 @@
     <path d="M10 68H68" stroke="url(#gold)" stroke-width="2.5" stroke-linecap="round"/>
     <path d="M39 8 69 26" stroke="#fff" stroke-opacity=".14" stroke-width="1.5"/>
   </g>
-  <g font-family="Arial, Helvetica, sans-serif">
-    <text x="94" y="49" font-size="37" font-weight="700" letter-spacing="1.2" fill="#ffffff">MARY ANN</text>
+  <g font-family="Inter, Arial, Helvetica, sans-serif">
+    <text x="94" y="49" font-size="39" font-weight="700" letter-spacing="0.8" fill="#ffffff">MARY ANN</text>
     <path d="M95 61H402" stroke="url(#gold)" stroke-width="2.2" stroke-linecap="round"/>
-    <text x="96" y="84" font-size="18" font-weight="600" letter-spacing="4.2" fill="url(#gold)">ELITE PROPERTIES</text>
+    <text x="96" y="84" font-size="22" font-weight="700" letter-spacing="2.8" fill="url(#gold)">ELITE PROPERTIES</text>
   </g>
 </svg>

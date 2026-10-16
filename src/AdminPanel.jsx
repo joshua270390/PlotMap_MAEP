@@ -41,10 +41,12 @@ function PlotEditor({ id, ax, setAd }) {
   );
 }
 
-function StatusEditor({ id, ax, status, setStatus, pin }) {
+function StatusEditor({ id, ax, status, setStatus, pin, setAd }) {
   const [value, setValue] = useState(({ a: 'Available', r: 'Reserved', b: 'Booked', s: 'Sold' })[status[id] || 'a']);
   const [m, setM] = useState(null);
   const [busy, setBusy] = useState(false);
+  const currentColor = ax.ad.colors?.[id] || '#c7dfc7';
+  const presets = ['#c7dfc7', '#9fd7c2', '#a9c9f2', '#f6d58b', '#f4b6b6', '#d6c2f0', '#f2c6a0', '#d5dde6'];
   const save = async () => {
     setBusy(true); setM(null);
     try {
@@ -62,6 +64,7 @@ function StatusEditor({ id, ax, status, setStatus, pin }) {
       setM({ t: e.message || 'Could not update plot status.' });
     } finally { setBusy(false); }
   };
+  const chooseColor = color => setAd(ad => ({ ...ad, colors: { ...(ad.colors || {}), [id]: color } }));
   return (
     <>
       <div className="sec">Availability status</div>
@@ -71,6 +74,13 @@ function StatusEditor({ id, ax, status, setStatus, pin }) {
         </select>
       </label>
       <div className="arow"><button className="pri" type="button" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save status'}</button></div>
+      <div className="sec plot-color-heading">Unit plot color</div>
+      <div className="plot-color-palette" role="group" aria-label="Choose unit plot color">
+        {presets.map(color => <button key={color} type="button" className={'plot-color-swatch' + (currentColor.toLowerCase() === color ? ' selected' : '')} style={{ backgroundColor: color }} aria-label={'Set plot color ' + color} aria-pressed={currentColor.toLowerCase() === color} onClick={() => chooseColor(color)} />)}
+        <label className="plot-custom-color"><span>Custom</span><input type="color" value={currentColor} onChange={e => chooseColor(e.target.value)} aria-label="Choose custom plot color" /></label>
+        <button type="button" className="plot-color-reset" onClick={() => setAd(ad => { const colors = { ...(ad.colors || {}) }; delete colors[id]; return { ...ad, colors }; })}>Default</button>
+      </div>
+      <p className="hint">Color changes apply immediately and are saved in this browser.</p>
       <p className={'hint' + (m ? (m.ok ? ' ok' : ' err') : '')}>{m && m.t}</p>
     </>
   );
@@ -167,7 +177,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
             <div className="sec">Selected</div>
             <div className="card">
               {addMode ? <p className="hint">Click on the map where the new dimension label should go.</p>
-                : sel != null ? <><PlotEditor key={sel} id={sel} ax={ax} setAd={setAd} /><StatusEditor key={'status-' + sel} id={sel} ax={ax} status={status} setStatus={setStatus} pin={authPin} /></>
+                : sel != null ? <><PlotEditor key={sel} id={sel} ax={ax} setAd={setAd} /><StatusEditor key={'status-' + sel} id={sel} ax={ax} status={status} setStatus={setStatus} pin={authPin} setAd={setAd} /></>
                 : selD && ax.dmList().some(d => d.k === selD) ? <DmEditor key={selD} k={selD} ax={ax} setAd={setAd} onGone={clearSel} />
                 : <p className="hint">Click a plot or a dimension label on the map to edit it.</p>}
             </div>

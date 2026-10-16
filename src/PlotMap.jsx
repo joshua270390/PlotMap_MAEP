@@ -29,13 +29,13 @@ const Measures = memo(({ ax, selD }) => ax.dmList().map(d => (
   <text key={d.k} data-dm={d.k} className={'dm' + (selD === d.k ? ' dsel' : '')} transform={`translate(${d.x} ${d.y}) rotate(${d.r})`}>{d.t}</text>
 )));
 
-const Plots = memo(({ status, filt, sel, ax }) => (
+const Plots = memo(({ status, filt, sel, ax, colors = {} }) => (
   <>
     {P.map(([id, , , pt]) => {
       const v = status[id] || 'a';
       return (
         <path key={id} data-id={id} d={'M' + pt.replace(/ /g, 'L') + 'Z'}
-          className={'p ' + v + (sel === id ? ' sel' : '')}>
+          className={'p ' + v + (sel === id ? ' sel' : '')} style={colors[id] ? { fill: colors[id] } : undefined}>
           <title>Plot {ax.lbl(id)}</title>
         </path>
       );
@@ -203,12 +203,15 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
   return (
     <main id="vp" ref={vpRef}>
       <div className="map-compass" aria-label="North compass" title="North">
-        <svg viewBox="0 0 72 92" role="img" aria-hidden="true">
-          <text x="36" y="12" className="compass-n">N</text>
-          <circle cx="36" cy="48" r="27" className="compass-ring" />
-          <path d="M36 23 L45 49 L36 44 L27 49 Z" className="compass-north" />
-          <path d="M36 73 L27 47 L36 52 L45 47 Z" className="compass-south" />
-          <circle cx="36" cy="48" r="3.5" className="compass-center" />
+        <svg viewBox="0 0 100 100" role="img" aria-hidden="true">
+          <text x="50" y="11" className="compass-direction">N</text>
+          <text x="91" y="55" className="compass-direction">E</text>
+          <text x="50" y="98" className="compass-direction">S</text>
+          <text x="9" y="55" className="compass-direction">W</text>
+          <circle cx="50" cy="54" r="30" className="compass-ring" />
+          <path d="M50 26 L60 56 L50 50 L40 56 Z" className="compass-north" />
+          <path d="M50 82 L40 52 L50 58 L60 52 Z" className="compass-south" />
+          <circle cx="50" cy="54" r="3.5" className="compass-center" />
         </svg>
       </div>
       <div className="top" ref={topRef}>
@@ -236,7 +239,7 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
       </div>
       <div id="stage" ref={stageRef}>
         <svg id="ov" ref={ovRef} viewBox="0 0 4400 3400">
-          <Ground /><Plots status={status} filt={filt} sel={sel} ax={ax} />{admin && <EnquiryPins enquiries={adminEnquiries} ax={ax} />}<Trees /><PlotNumbers status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims />
+          <Ground /><Plots status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} />{admin && <EnquiryPins enquiries={adminEnquiries} ax={ax} />}<Trees /><PlotNumbers status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims /><image href="/mary-ann-sidebar-logo.svg" x="290" y="330" width="340" height="90" preserveAspectRatio="xMinYMid meet" opacity="0.92" pointerEvents="none" />
         </svg>
       </div>
       <div className="zoom fl">

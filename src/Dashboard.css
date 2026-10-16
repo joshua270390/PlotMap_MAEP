@@ -118,8 +118,9 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 .data-table tbody td{font-size:14px;padding-top:16px;padding-bottom:16px}
 .data-table .unit-pill{font-size:12px}
 .status-select{font-size:13px;min-width:125px;height:35px}
-.status-reserved,.status-booked{background:#fff1d8;color:#985b05;border-color:#f0c77d}
-.status-reserved:focus,.status-booked:focus{outline:2px solid #efc16a;outline-offset:1px}
+.status-reserved{background:#fff0e2;color:#a64f08;border-color:#f28c28}
+.status-booked{background:#fff6df;color:#895d05;border-color:#d99a1c}
+.status-reserved:focus{outline:2px solid #f28c28;outline-offset:1px}.status-booked:focus{outline:2px solid #d99a1c;outline-offset:1px}
 @media(max-width:640px){
   .profile-menu{right:0;top:calc(100% + 9px);width:min(270px,calc(100vw - 30px))}
   .dashboard-topbar h1{font-size:25px}
@@ -127,3 +128,6 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
   .data-table tbody td{font-size:13px}
 }
 
+
+/* Reserved and Booked remain visually distinct in the admin table. */
+.status-select.status-reserved{background:#fff0e2!important;color:#a64f08!important;border-color:#f28c28!important}.status-select.status-booked{background:#fff6df!important;color:#895d05!important;border-color:#d99a1c!important}

@@ -203,6 +203,13 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
   return (
     <main id="vp" ref={vpRef}>
       <div className="top" ref={topRef}>
+        <div className="brand fl" aria-label={COMPANY}>
+          <img className="brand-logo" src="/mary-ann-sidebar-logo.svg" alt="Mary Ann Elite Properties" />
+          <div className="brand-copy">
+            <b>{PROJECT}</b>
+            <span className="sub">{LAYOUT}</span>
+          </div>
+        </div>
         <div className="legend fl" title="Hover a plot for a quick look. Click it for details and booking enquiry.">
           <div className="lrow">
             <div className="chip status-chip"><i style={{ background: 'var(--av)' }} /><span className="l">Availability</span><span className="c">{n.a}</span></div>

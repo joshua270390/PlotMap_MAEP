@@ -395,3 +395,11 @@ path.p.s{fill:#b4313f;fill-opacity:.95}
 .plot-custom-color{display:flex;align-items:center;gap:6px;margin:0!important;font-size:11px!important;color:#53667d}
 .plot-custom-color input[type=color]{width:34px!important;height:30px!important;padding:2px!important;margin:0!important;border:1px solid #d5dfeb!important;border-radius:7px!important;background:#fff!important;cursor:pointer}
 .plot-color-reset{border:1px solid #d5dfeb;border-radius:7px;background:#f8fafc;color:#53667d;padding:7px 9px;font:600 11px 'DM Sans',sans-serif;cursor:pointer}
+
+
+/* Styled back navigation beside the Velavan Nagar / Kurayur layout title */
+.map-back-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;padding:0 14px;border:1px solid rgba(6,78,59,.2);border-radius:12px;background:linear-gradient(135deg,#ffffff,#edf8f1);color:#07533e;font-size:14px;font-weight:700;box-shadow:0 5px 16px rgba(15,35,28,.12);white-space:nowrap;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
+.map-back-button svg{position:static;inset:auto;width:18px;height:18px;flex:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.map-back-button:hover{background:linear-gradient(135deg,#e7f8ed,#d4f0df);box-shadow:0 7px 18px rgba(15,35,28,.18);transform:translateY(-1px)}
+.map-back-button:focus-visible{outline:3px solid rgba(46,139,58,.4);outline-offset:2px}
+@media(max-width:600px){.map-back-button{min-height:38px;padding:0 11px;font-size:13px;gap:5px}}

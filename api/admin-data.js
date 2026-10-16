@@ -124,7 +124,7 @@ export default async function handler(req, res) {
     const status = String(body.status ?? '');
     if (!customerName || customerName.length > 120) return out(res, 422, { ok: false, error: 'Enter a valid customer name.' });
     if (!phone || phone.length > 25) return out(res, 422, { ok: false, error: 'Enter a valid phone number.' });
-    if (!/^\\d+$/.test(plotId)) return out(res, 422, { ok: false, error: 'Select a valid plot.' });
+    if (!/^\d+$/.test(plotId)) return out(res, 422, { ok: false, error: 'Select a valid plot.' });
     if (!allowedStatuses.has(status)) return out(res, 422, { ok: false, error: 'Select a valid status.' });
 
     const plotLookup = await db(cfg, 'GET', cfg.plotsTable,

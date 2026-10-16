@@ -239,7 +239,7 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
             <path d="M50 82 L40 52 L50 58 L60 52 Z" className="compass-south" />
             <circle cx="50" cy="54" r="3.5" className="compass-center" />
           </g>
-          <image href="https://approvalguru.in/wp-content/uploads/2025/10/dtcp_approved-1-1024x752-1.jpg" x="2320" y="790" width="360" height="271" preserveAspectRatio="xMidYMid meet" opacity="1" pointerEvents="none">
+          <image href="https://approvalguru.in/wp-content/uploads/2025/10/dtcp_approved-1-1024x752-1.jpg" x="2450" y="790" width="360" height="271" preserveAspectRatio="xMidYMid meet" opacity="1" pointerEvents="none">
             <title>DTCP approved layout</title>
           </image>
         </svg>

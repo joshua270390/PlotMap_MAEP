@@ -175,8 +175,8 @@ export default function Dashboard() {
     return (
       <main className="dash-login">
         <form className="login-card" onSubmit={e => { e.preventDefault(); login(); }}>
-          <div className="login-mark">MA</div>
-          <p className="eyebrow">MARY ANN ELITE PROPERTIES</p>
+          <img className="login-logo" src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" />
+          <p className="eyebrow">ADMINISTRATOR ACCESS</p>
           <h1>Admin Dashboard</h1>
           <p className="login-copy">Sign in to manage bookings and plot availability.</p>
           <label htmlFor="admin-pin">Admin PIN</label>
@@ -192,8 +192,7 @@ export default function Dashboard() {
     <div className="dashboard-shell">
       <aside className="dashboard-sidebar">
         <a className="dashboard-brand" href="/dashboard" aria-label="Mary Ann dashboard home">
-          <span className="dashboard-brand-icon">MA</span>
-          <span><strong>Mary Ann</strong><small>Elite Properties</small></span>
+          <img className="dashboard-brand-logo" src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" />
         </a>
         <button className={'nav-item' + (page === 'dashboard' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/dashboard'); setPage('dashboard'); }}><span className="nav-icon">▦</span> Dashboard</button>
         <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); }}>

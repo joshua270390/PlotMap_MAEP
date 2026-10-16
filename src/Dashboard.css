@@ -131,3 +131,8 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 
 /* Reserved and Booked remain visually distinct in the admin table. */
 .status-select.status-reserved{background:#fff0e2!important;color:#a64f08!important;border-color:#f28c28!important}.status-select.status-booked{background:#fff6df!important;color:#895d05!important;border-color:#d99a1c!important}
+
+/* Company wordmark sizing */
+.dashboard-brand-logo{display:block;width:205px;max-width:100%;height:auto;filter:brightness(0) invert(1)}
+.login-logo{display:block;width:min(250px,100%);height:auto;margin:0 0 20px}
+@media(max-width:640px){.dashboard-brand-logo{width:185px}.login-logo{width:min(230px,100%)}}

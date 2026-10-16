@@ -234,3 +234,21 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 /* Final centering fix: pin each KPI SVG to the exact center of its square tile */
 .kpi-grid .kpi-card>.kpi-icon{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;align-self:center!important;line-height:0!important;overflow:hidden!important;box-sizing:border-box!important}
 .kpi-grid .kpi-card>.kpi-icon svg{position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;display:block!important;flex:none!important;margin:0!important;padding:0!important;}
+
+
+/* Bookings toolbar: add-customer action sits immediately to the left of status filter. */
+.booking-toolbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex:none}
+.add-customer-btn{min-height:39px;padding:0 15px;border:1px solid #1b5b83;border-radius:9px;background:linear-gradient(135deg,#216b91,#1b4776);color:#fff;font:700 12px 'DM Sans',sans-serif;white-space:nowrap;cursor:pointer;box-shadow:0 5px 12px rgba(31,71,120,.14);transition:transform .16s ease,box-shadow .16s ease}
+.add-customer-btn:hover{transform:translateY(-1px);box-shadow:0 8px 16px rgba(31,71,120,.2)}
+.confirm-overlay{z-index:40}
+.confirm-modal{position:relative;width:min(100%,430px);padding:30px;background:#fff;border:1px solid #e7ebf1;border-radius:19px;box-shadow:0 25px 80px rgba(12,30,55,.3);animation:confirm-enter .18s ease-out}
+.confirm-modal .eyebrow{margin:0 0 8px;color:#b1904b}
+.confirm-modal h2{margin:0;color:#1c2f45;font:800 21px Manrope,sans-serif;letter-spacing:-.03em}
+.confirm-modal>p:not(.eyebrow){margin:12px 0 0;color:#65758a;font-size:13px;line-height:1.65}
+.confirm-modal>p strong{color:#253c55}
+.confirm-icon{display:grid;place-items:center;width:44px;height:44px;margin-bottom:17px;border-radius:14px;background:#fff0f0;color:#c63d3d;font:800 24px Manrope,sans-serif}
+.confirm-delete-btn{padding:11px 16px;border:1px solid #b8323b;border-radius:9px;background:linear-gradient(135deg,#d94a50,#b92e3a);color:#fff;font:700 12px 'DM Sans',sans-serif;cursor:pointer}
+.confirm-delete-btn:disabled{opacity:.65;cursor:wait}
+.confirm-modal .modal-close:disabled{opacity:.5;cursor:wait}
+@keyframes confirm-enter{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
+@media(max-width:640px){.booking-toolbar-actions{width:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.booking-toolbar-actions .filter-select{min-width:0;width:100%}.add-customer-btn{width:100%;padding:0 8px;font-size:11px}.confirm-modal{padding:25px 20px}}

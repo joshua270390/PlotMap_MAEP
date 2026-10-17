@@ -92,7 +92,7 @@ export default function App() {
           addMode={addMode} setAddMode={setAddMode} clearSel={clearSel} onAdminAuth={loadAdminEnquiries} onAdminExit={() => setAdminEnquiries([])} />
       </PlotMap>
       {unit != null && !form && (
-        <UnitModal id={unit} ax={ax} status={status[unit]} onClose={closeUnit} onEnquire={() => setForm(true)}
+        <UnitModal id={unit} ax={ax} status={status[unit]} setAd={setAd} onClose={closeUnit} onEnquire={() => setForm(true)}
           onViewMap={() => { const id = unit; setUnit(null); setSel(id); mapRef.current.focusOn(id); }} />
       )}
       {form && unit != null && <EnquiryModal id={unit} ax={ax} onClose={() => setForm(false)} />}

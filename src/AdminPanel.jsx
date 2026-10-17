@@ -175,7 +175,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
           <div className="lockc">
             <div className="lk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg></div>
             <p className="lt2">Enter your PIN to edit the plot map</p>
-            <label><span>Admin PIN</span><input autoFocus type="password" inputMode="numeric" autoComplete="off" placeholder="PIN" value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => e.key === 'Enter' && unlock()} /></label>
+            <label><span>Admin PIN</span><input autoFocus type="password" inputMode="text" autoComplete="current-password" placeholder="Enter admin PIN" value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => e.key === 'Enter' && unlock()} /></label>
             <div className="arow"><button className="pri" type="button" disabled={authBusy} onClick={unlock}>{authBusy ? 'Checking…' : 'Unlock'}</button></div>
             <p className="hint" style={{ color: 'var(--sd)' }}>{pm}</p>
           </div>

@@ -467,10 +467,10 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
 .uc .chips .r,.chips .r,.ch.r{background:rgba(242,140,40,.14)!important;border-color:#f28c28!important;color:#a64f08!important}
 
 
-/* Responsive screens: keep the same light Admin Studio and plot-search styling as desktop,
-   regardless of the phone's system dark-mode preference. */
+/* Force responsive Admin Studio to use the exact desktop light palette.
+   Match the dark-mode selector specificity so device dark mode cannot override it. */
 @media(max-width:1199px){
-  :root{
+  :root:not([data-theme="light"]){
     color-scheme:light;
     --bg:#e8e4dc;
     --surface:#fffdf9;
@@ -494,13 +494,39 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
     --dimc:#9a5b3b;
     --reserved:#f28c28;
   }
-  #vp{color-scheme:light}
+  :root[data-theme="dark"]{
+    color-scheme:light;
+    --bg:#e8e4dc;
+    --surface:#fffdf9;
+    --ink:#1b2433;
+    --mute:#667085;
+    --line:#d8d2c5;
+    --acc:#1d3557;
+    --av:#2f7d6d;
+    --bk:#d99a1c;
+    --sd:#b4313f;
+    --plot:#ffffff;
+    --plot2:#eef0f4;
+    --gap:#aab0ba;
+    --road:#363e4c;
+    --dash:#e9e4d6;
+    --park:#cf9560;
+    --misc:#ded6c6;
+    --t1:#1f4a45;
+    --t2:#2c6a62;
+    --t3:#4f948a;
+    --dimc:#9a5b3b;
+    --reserved:#f28c28;
+  }
+  #vp{color-scheme:light;background:#e8e4dc!important;color:#1b2433!important}
+  body{background:#e8e4dc!important;color:#1b2433!important;color-scheme:light}
   .top .search,
   .top .search.fl{background:#fffdf9!important;color:#1b2433!important;border-color:#d8d2c5!important}
   .top .search input{background:transparent!important;color:#1b2433!important;-webkit-text-fill-color:#1b2433}
   .top .search input::placeholder{color:#667085!important;opacity:1}
-  .apn{background:#fffdf9!important;color:#1b2433!important}
+  .apn{background:#fffdf9!important;color:#1b2433!important;color-scheme:light}
   .apn .ah{background:linear-gradient(135deg,#27456f,#14243d)!important;color:#fff!important}
   .apn .card{background:#f4f2ec!important;color:#1b2433!important}
-  .apn input,.apn select{background:#fffdf9!important;color:#1b2433!important}
+  .apn input,.apn select{background:#fffdf9!important;color:#1b2433!important;-webkit-text-fill-color:#1b2433}
+  .apn input::placeholder{color:#667085!important;opacity:1}
 }

@@ -530,3 +530,23 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
   .apn input,.apn select{background:#fffdf9!important;color:#1b2433!important;-webkit-text-fill-color:#1b2433}
   .apn input::placeholder{color:#667085!important;opacity:1}
 }
+
+
+/* Responsive Admin Studio: start compact so the plot map stays visible.
+   Desktop layout and all editing controls remain unchanged. */
+@media(max-width:1199px){
+  .apn .admin-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex:none}
+  .apn .admin-compact-toggle{padding:7px 9px;border:1px solid rgba(255,255,255,.35);border-radius:9px;background:rgba(255,255,255,.12);color:#fff;font-size:12px;white-space:nowrap}
+  .apn .admin-compact-toggle:hover{background:rgba(255,255,255,.2)}
+  #adm.mobile-compact{position:fixed!important;inset:8px auto auto 8px!important;width:min(440px,calc(100vw - 16px))!important;max-width:calc(100vw - 16px)!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:hidden!important;border-radius:16px!important;transform:none!important;animation:none!important;box-shadow:0 8px 28px rgba(8,16,32,.22)!important}
+  #adm.mobile-compact .ah{position:relative;top:auto;padding:11px 12px}
+  #adm.mobile-compact .at{gap:8px}
+  #adm.mobile-compact .ai{width:32px;height:32px}
+  #adm.mobile-compact .at b{font-size:15px}
+  #adm.mobile-compact .at small{font-size:10px}
+  #adm.mobile-compact .abody{display:none!important}
+  #adm.mobile-expanded{position:fixed!important;inset:8px auto auto 8px!important;width:min(420px,calc(100vw - 16px))!important;max-width:calc(100vw - 16px)!important;height:min(78dvh,760px)!important;min-height:0!important;max-height:calc(100dvh - 16px)!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;border-radius:16px!important;transform:none!important;animation:none!important;box-shadow:0 8px 28px rgba(8,16,32,.22)!important}
+  #adm.mobile-expanded .ah{position:relative;top:auto;flex:0 0 auto}
+  #adm.mobile-expanded .abody{display:block!important;flex:1 1 auto!important;min-height:0!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;touch-action:pan-y}
+  #adm.mobile-expanded .abody>div{padding-bottom:8px}
+}

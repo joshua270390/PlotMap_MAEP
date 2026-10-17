@@ -173,7 +173,14 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
       }
     };
     const onKey = e => { if (e.key === '/' && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); qRef.current.focus(); } };
-    const onResize = () => v.fit(false);
+    const positionAdminBelowSearch = () => {
+      const search = topRef.current?.querySelector('.search');
+      if (!search) return;
+      const rect = search.getBoundingClientRect();
+      document.documentElement.style.setProperty('--admin-search-top', Math.ceil(rect.bottom + 12) + 'px');
+    };
+    const onResize = () => { v.fit(false); positionAdminBelowSearch(); };
+    positionAdminBelowSearch();
     vp.addEventListener('wheel', onWheel, { passive: false });
     vp.addEventListener('pointerdown', onDown); vp.addEventListener('pointermove', onMove);
     vp.addEventListener('pointerup', onUp); vp.addEventListener('pointercancel', onUp); vp.addEventListener('pointerleave', hideTip);

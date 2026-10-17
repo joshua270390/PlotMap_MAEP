@@ -424,3 +424,15 @@ path.p.s{fill:#b4313f;fill-opacity:.95}
 }
 @keyframes maep-drawer-in{from{transform:translateX(-105%)}to{transform:translateX(0)}}
 @media(prefers-reduced-motion:reduce){.apn{animation:none}}
+
+
+/* Admin studio: editable map-wide road and empty-soil colours, independent of screen size. */
+.apn .map-colour-field{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px!important}
+.apn .map-colour-field>span{display:block;flex:1;font-size:12px;font-weight:600;color:var(--ink)}
+.apn .map-colour-field input[type="color"]{flex:0 0 48px;width:48px!important;height:36px!important;margin:0!important;padding:3px!important;border:1px solid var(--line)!important;border-radius:9px!important;background:var(--surface)!important;cursor:pointer}
+.apn .map-colour-card>.plot-color-reset{width:100%;margin-top:2px}
+.apn .map-colour-card>.hint{margin-top:10px}
+
+/* Keep the Admin studio drawer clean without a heavy drop shadow. Exit unmounts it. */
+.apn{box-shadow:none!important}
+@media(max-width:1199px){.apn{box-shadow:none!important}}

@@ -279,3 +279,82 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
   .dashboard-topbar>.profile-wrap{order:2}
   .dashboard-menu-toggle{flex:0 0 42px}
 }
+
+
+/* Responsive drawer: compact, aligned brand/close header and consistent navigation rhythm. */
+@media (max-width: 1199px) {
+  .dashboard-sidebar {
+    box-sizing: border-box;
+    padding: 18px 16px 24px !important;
+    gap: 7px;
+  }
+  .dashboard-sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+    margin: 0 0 16px;
+    padding: 0 0 15px;
+    border-bottom: 1px solid rgba(255,255,255,.16);
+  }
+  .dashboard-sidebar .dashboard-brand {
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+  }
+  .dashboard-sidebar .dashboard-brand-logo {
+    display: block;
+    width: min(100%, 205px);
+    max-width: 100%;
+    max-height: 54px;
+    height: auto;
+    object-fit: contain;
+    object-position: left center;
+  }
+  .dashboard-sidebar .dashboard-sidebar-close {
+    position: static;
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    font-size: 25px;
+    line-height: 1;
+  }
+  .dashboard-sidebar .nav-item {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    min-height: 46px;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0 14px;
+    gap: 11px;
+    text-align: left;
+    border-radius: 10px;
+  }
+  .dashboard-sidebar .nav-item .nav-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 20px;
+    width: 20px;
+    margin: 0;
+    text-align: center;
+  }
+}
+@media (max-width: 380px) {
+  .dashboard-sidebar { padding: 15px 12px 20px !important; }
+  .dashboard-sidebar-header { gap: 8px; margin-bottom: 12px; padding-bottom: 12px; }
+  .dashboard-sidebar .dashboard-brand-logo { max-height: 46px; }
+  .dashboard-sidebar .dashboard-sidebar-close { flex-basis: 34px; width: 34px; height: 34px; }
+}

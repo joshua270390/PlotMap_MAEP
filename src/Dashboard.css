@@ -252,3 +252,19 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 .confirm-modal .modal-close:disabled{opacity:.5;cursor:wait}
 @keyframes confirm-enter{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
 @media(max-width:640px){.booking-toolbar-actions{width:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.booking-toolbar-actions .filter-select{min-width:0;width:100%}.add-customer-btn{width:100%;padding:0 8px;font-size:11px}.confirm-modal{padding:25px 20px}}
+
+
+/* Responsive navigation drawer: keep the company logo and hamburger on one row. */
+.dashboard-heading-group{display:flex;align-items:center;gap:13px;min-width:0}
+.dashboard-menu-toggle,.dashboard-sidebar-close{display:none}
+@media(max-width:1199px){
+  .dashboard-sidebar{position:fixed!important;z-index:120;inset:0 auto 0 0;width:min(310px,86vw)!important;height:100dvh!important;min-height:100dvh;overflow-y:auto;transform:translateX(-105%);transition:transform .28s ease;box-shadow:18px 0 50px rgba(10,25,45,.22);padding-top:22px}
+  .dashboard-shell.mobile-sidebar-open .dashboard-sidebar{transform:translateX(0)}
+  .dashboard-sidebar-backdrop{position:fixed;inset:0;z-index:119;display:block;width:100%;height:100%;border:0;background:rgba(12,24,40,.48);backdrop-filter:blur(2px)}
+  .dashboard-sidebar-close{display:grid;place-items:center;position:absolute;top:12px;right:12px;width:36px;height:36px;border:1px solid rgba(255,255,255,.3);border-radius:10px;background:rgba(255,255,255,.12);color:#fff;font-size:27px;line-height:1;cursor:pointer}
+  .dashboard-menu-toggle{display:flex;flex:0 0 42px;width:42px;height:42px;align-items:center;justify-content:center;flex-direction:column;gap:5px;border:1px solid #dbe4ee;border-radius:12px;background:#fff;box-shadow:0 4px 12px rgba(24,48,78,.08);cursor:pointer}
+  .dashboard-menu-toggle span{display:block;width:19px;height:2px;border-radius:2px;background:#173b5d}
+  .dashboard-topbar{gap:12px}
+  .dashboard-topbar h1{margin:0}
+}
+@media(prefers-reduced-motion:reduce){.dashboard-sidebar{transition:none}}

@@ -228,7 +228,7 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
       </div>
       <div id="stage" ref={stageRef}>
         <svg id="ov" ref={ovRef} viewBox="0 0 4400 3400">
-          <Ground /><Plots status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} />{admin && <EnquiryPins enquiries={adminEnquiries} ax={ax} />}<Trees /><PlotNumbers status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims /><image href="/mary-ann-sidebar-logo.svg" x="470" y="440" width="900" height="240" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />
+          <Ground /><Plots status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} />{admin && <EnquiryPins enquiries={adminEnquiries} ax={ax} />}<Trees /><PlotNumbers status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims /><image href="/mary-ann-plotmap-dtcp.png" x="470" y="440" width="900" height="240" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />
           <g className="map-compass" transform="translate(2590 440) scale(2.4)" aria-label="North compass">
             <title>North compass</title>
             <text x="50" y="11" className="compass-direction">N</text>
@@ -240,7 +240,7 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
             <path d="M50 82 L40 52 L50 58 L60 52 Z" className="compass-south" />
             <circle cx="50" cy="54" r="3.5" className="compass-center" />
           </g>
-          <image href="https://approvalguru.in/wp-content/uploads/2025/10/dtcp_approved-1-1024x752-1.jpg" x="2650" y="790" width="360" height="271" preserveAspectRatio="xMidYMid meet" opacity="1" pointerEvents="none">
+          <image href="/mary-ann-plotmap-dtcp.png" x="2650" y="790" width="360" height="271" preserveAspectRatio="xMidYMid meet" opacity="1" pointerEvents="none">
             <title>DTCP approved layout</title>
           </image>
         </svg>

@@ -16,8 +16,8 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
     setDraft({ phone: d.phone ?? PHONE, whatsapp: d.whatsapp ?? PHONE, area: String(ax.areaOf(id)) });
     setEditing(false); setEditError('');
   }, [id]);
-  const phoneDigits = String(details.phone ?? PHONE).replace(/\\D/g, '');
-  const waDigits = String(details.whatsapp ?? PHONE).replace(/\\D/g, '').replace(/^0+/, '').replace(/^91(?=\\d{10}$)/, '');
+  const phoneDigits = String(details.phone ?? PHONE).replace(/\D/g, '');
+  const waDigits = String(details.whatsapp ?? PHONE).replace(/\D/g, '').replace(/^0+/, '').replace(/^91(?=\d{10}$)/, '');
   const draftArea = Number(draft.area);
   const saveDetails = () => {
     if (!(draftArea > 0) || !Number.isFinite(draftArea)) { setEditError('Enter a valid Sq.ft. value.'); return; }

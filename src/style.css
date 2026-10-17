@@ -545,9 +545,9 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
   #adm.mobile-compact .at b{font-size:15px}
   #adm.mobile-compact .at small{font-size:10px}
   #adm.mobile-compact .abody{display:none!important}
-  #adm.mobile-expanded{position:fixed!important;inset:8px auto auto 8px!important;width:min(420px,calc(100vw - 16px))!important;max-width:calc(100vw - 16px)!important;height:min(78dvh,760px)!important;min-height:0!important;max-height:calc(100dvh - 16px)!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;border-radius:16px!important;transform:none!important;animation:none!important;box-shadow:0 8px 28px rgba(8,16,32,.22)!important}
+  #adm.mobile-expanded{position:fixed!important;inset:8px auto auto 8px!important;width:min(420px,calc(100vw - 16px))!important;max-width:calc(100vw - 16px)!important;height:min(68dvh,680px)!important;min-height:0!important;max-height:calc(100dvh - var(--admin-search-top,122px) - 16px)!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;border-radius:16px!important;transform:none!important;animation:none!important;box-shadow:0 8px 28px rgba(8,16,32,.22)!important}
   #adm.mobile-expanded .ah{position:relative;top:auto;flex:0 0 auto}
-  #adm.mobile-expanded .abody{display:block!important;flex:1 1 auto!important;min-height:0!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;touch-action:pan-y}
+  #adm.mobile-expanded .abody{display:block!important;flex:1 1 0!important;min-height:0!important;height:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch}
   #adm.mobile-expanded .abody>div{padding-bottom:8px}
 }
 

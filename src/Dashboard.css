@@ -258,7 +258,7 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 .dashboard-heading-group{display:flex;align-items:center;gap:13px;min-width:0}
 .dashboard-menu-toggle,.dashboard-sidebar-close{display:none}
 @media(max-width:1199px){
-  .dashboard-sidebar{position:fixed!important;z-index:120;inset:0 auto 0 0;width:min(310px,86vw)!important;height:100dvh!important;min-height:100dvh;overflow-y:auto;transform:translateX(-105%);transition:transform .28s ease;box-shadow:18px 0 50px rgba(10,25,45,.22);padding-top:22px}
+  .dashboard-sidebar{position:fixed!important;z-index:120;inset:0 auto 0 0;width:min(310px,86vw)!important;height:100dvh!important;min-height:100dvh;overflow-y:auto;transform:translateX(-105%);transition:transform .28s ease;box-shadow:none!important;padding-top:22px}
   .dashboard-shell.mobile-sidebar-open .dashboard-sidebar{transform:translateX(0)}
   .dashboard-sidebar-backdrop{position:fixed;inset:0;z-index:119;display:block;width:100%;height:100%;border:0;background:rgba(12,24,40,.48);backdrop-filter:blur(2px)}
   .dashboard-sidebar-close{display:grid;place-items:center;position:absolute;top:12px;right:12px;width:36px;height:36px;border:1px solid rgba(255,255,255,.3);border-radius:10px;background:rgba(255,255,255,.12);color:#fff;font-size:27px;line-height:1;cursor:pointer}
@@ -274,7 +274,7 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
   .dashboard-topbar{align-items:center;flex-wrap:wrap}
   .dashboard-mobile-brand-row{display:flex;align-items:center;gap:12px;order:0;flex:1 1 100%;min-width:0}
   .dashboard-mobile-brand{display:flex;align-items:center;min-width:0}
-  .dashboard-mobile-brand img{display:block;width:clamp(140px,36vw,190px);height:46px;object-fit:contain;object-position:left center}
+  .dashboard-mobile-brand img{display:block;width:clamp(160px,40vw,220px);height:54px;object-fit:contain;object-position:left center}
   .dashboard-heading-group{order:1;flex:1 1 auto}
   .dashboard-topbar>.profile-wrap{order:2}
   .dashboard-menu-toggle{flex:0 0 42px}
@@ -407,6 +407,6 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 
 /* Responsive navigation: keep the hamburger near the right edge with a 30px inset. */
 @media(max-width:1199px){
-  .dashboard-shell .dashboard-mobile-brand-row{width:100%;padding-right:30px;box-sizing:border-box}
+  .dashboard-shell .dashboard-mobile-brand-row{width:100%;padding-right:15px;box-sizing:border-box}
   .dashboard-shell .dashboard-menu-toggle{margin-left:auto;flex:0 0 42px}
 }

@@ -193,10 +193,12 @@ export default function Dashboard() {
     <div className={"dashboard-shell" + (sidebarOpen ? " mobile-sidebar-open" : "")}>
       {sidebarOpen && <button type="button" className="dashboard-sidebar-backdrop" aria-label="Close navigation menu" onClick={() => setSidebarOpen(false)} />}
       <aside className="dashboard-sidebar">
-        <button type="button" className="dashboard-sidebar-close" aria-label="Close navigation menu" onClick={() => setSidebarOpen(false)}>×</button>
-        <a className="dashboard-brand" href="/dashboard" aria-label="Mary Ann dashboard home">
-          <img className="dashboard-brand-logo" src="/mary-ann-sidebar-white-logo.svg" alt="Mary Ann Elite Properties" />
-        </a>
+        <div className="dashboard-sidebar-header">
+          <a className="dashboard-brand" href="/dashboard" aria-label="Mary Ann dashboard home">
+            <img className="dashboard-brand-logo" src="/mary-ann-sidebar-white-logo.svg" alt="Mary Ann Elite Properties" />
+          </a>
+          <button type="button" className="dashboard-sidebar-close" aria-label="Close navigation menu" onClick={() => setSidebarOpen(false)}>×</button>
+        </div>
         <button className={'nav-item' + (page === 'dashboard' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/dashboard'); setPage('dashboard'); setSidebarOpen(false); }}><span className="nav-icon">▦</span> Dashboard</button>
         <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); setSidebarOpen(false); }}>
           <span className="nav-icon">▤</span> Bookings

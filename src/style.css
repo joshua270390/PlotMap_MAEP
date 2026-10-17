@@ -403,3 +403,18 @@ path.p.s{fill:#b4313f;fill-opacity:.95}
 .map-back-button:hover{background:linear-gradient(135deg,#e7f8ed,#d4f0df);box-shadow:0 7px 18px rgba(15,35,28,.18);transform:translateY(-1px)}
 .map-back-button:focus-visible{outline:3px solid rgba(46,139,58,.4);outline-offset:2px}
 @media(max-width:600px){.map-back-button{min-height:38px;padding:0 11px;font-size:13px;gap:5px}}
+
+
+/* Tablet/mobile: keep the plot canvas on its normal light background even when the device uses dark mode. */
+@media(max-width:1199px){
+  #vp{background-color:#f5f7f5!important;background-image:radial-gradient(rgba(34,57,45,.12) 1px,transparent 1.2px)!important;background-size:26px 26px!important;color-scheme:light}
+  .apn{position:fixed!important;z-index:1001!important;inset:0 auto 0 0!important;width:min(380px,92vw)!important;max-width:92vw!important;height:100dvh!important;max-height:100dvh!important;min-height:100dvh!important;border-radius:0 20px 20px 0!important;transform:translateX(-105%);transition:transform .28s ease;overscroll-behavior:contain;box-shadow:18px 0 55px rgba(8,16,32,.35)!important}
+  .apn .ah{position:sticky;top:0}
+  #adm{background:#fff;color:#17283b}
+  #adm .abody{min-height:calc(100dvh - 66px);overflow:visible}
+  #admbtn{z-index:5}
+}
+@media(max-width:1199px){
+  .apn{transform:translateX(0)}
+}
+@media(prefers-reduced-motion:reduce){.apn{transition:none}}

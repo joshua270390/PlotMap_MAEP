@@ -436,3 +436,10 @@ path.p.s{fill:#b4313f;fill-opacity:.95}
 /* Keep the Admin studio drawer clean without a heavy drop shadow. Exit unmounts it. */
 .apn{box-shadow:none!important}
 @media(max-width:1199px){.apn{box-shadow:none!important}}
+
+
+/* Let the admin drawer close with the same slide motion used when opening it. */
+@media(max-width:1199px){
+  .apn{box-shadow:none!important}
+  .apn.is-closing{transform:translateX(-105%)!important;animation:none!important;pointer-events:none}
+}

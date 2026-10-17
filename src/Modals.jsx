@@ -4,9 +4,32 @@ import { NAMES, inr } from './plots.js';
 
 const backdrop = onClose => ({ onPointerDown: e => { if (e.target === e.currentTarget) onClose(); } });
 
-export function UnitModal({ id, ax, status, onClose, onEnquire, onViewMap }) {
+export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap }) {
   const a = ax.areaOf(id), lb = ax.lbl(id), sv = status || 'a', closeRef = useRef(null);
+  const details = ax.ad.plotDetails?.[id] || {};
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({ phone: details.phone ?? PHONE, whatsapp: details.whatsapp ?? PHONE, area: String(a) });
+  const [editError, setEditError] = useState('');
   useEffect(() => { closeRef.current && closeRef.current.focus(); }, []);
+  useEffect(() => {
+    const d = ax.ad.plotDetails?.[id] || {};
+    setDraft({ phone: d.phone ?? PHONE, whatsapp: d.whatsapp ?? PHONE, area: String(ax.areaOf(id)) });
+    setEditing(false); setEditError('');
+  }, [id]);
+  const phoneDigits = String(details.phone ?? PHONE).replace(/\\D/g, '');
+  const waDigits = String(details.whatsapp ?? PHONE).replace(/\\D/g, '').replace(/^0+/, '').replace(/^91(?=\\d{10}$)/, '');
+  const draftArea = Number(draft.area);
+  const saveDetails = () => {
+    if (!(draftArea > 0) || !Number.isFinite(draftArea)) { setEditError('Enter a valid Sq.ft. value.'); return; }
+    const phone = draft.phone.trim(), whatsapp = draft.whatsapp.trim();
+    if (!phone || !whatsapp) { setEditError('Enter both contact and WhatsApp numbers.'); return; }
+    setAd(old => ({
+      ...old,
+      area: { ...(old.area || {}), [id]: draftArea },
+      plotDetails: { ...(old.plotDetails || {}), [id]: { phone, whatsapp } },
+    }));
+    setEditing(false); setEditError('');
+  };
   return (
     <div className="mo" role="dialog" aria-modal="true" aria-labelledby="u_no_l" {...backdrop(onClose)}>
       <div className="mb">
@@ -14,11 +37,11 @@ export function UnitModal({ id, ax, status, onClose, onEnquire, onViewMap }) {
         <div className="mh">
           <small>{COMPANY}</small><h2>{PROJECT}</h2>
           <div className="cts">
-            <a href={'tel:+91' + PHONE}>
+            <a href={'tel:+' + phoneDigits}>
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2.5" /><path d="M11 18h2" /></svg>
-              <span>{PHONE}</span>
+              <span>{details.phone ?? PHONE}</span>
             </a>
-            <a className="wa" target="_blank" rel="noopener" href={'https://wa.me/91' + PHONE + '?text=' + encodeURIComponent('Hi, I am interested in Unit : ' + lb + ' of ' + PROJECT)}>
+            <a className="wa" target="_blank" rel="noopener" href={'https://wa.me/' + waDigits + '?text=' + encodeURIComponent('Hi, I am interested in Unit : ' + lb + ' of ' + PROJECT)}>
               <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1 2.7s1.8 2.8 4.4 3.9c1.6.7 2.3.7 3.1.6.5-.1 1.5-.6 1.7-1.2s.2-1.1.2-1.2-.2-.2-.5-.3z" /></svg>
               WhatsApp
             </a>
@@ -37,6 +60,18 @@ export function UnitModal({ id, ax, status, onClose, onEnquire, onViewMap }) {
             <div className="ar"><b>{a} Sq.ft.</b> <span>&middot; {(a / 435.6).toFixed(2)} cents</span></div>
             {ax.rate > 0 && <><hr /><div className="pr"><i>Actual Price</i><b>{inr(a * ax.rate)}</b></div></>}
           </div></div>
+          {editing ? (
+            <div className="unit-edit-form">
+              <label>Contact number<input type="tel" inputMode="tel" value={draft.phone} onChange={e => setDraft(v => ({ ...v, phone: e.target.value }))} /></label>
+              <label>WhatsApp number<input type="tel" inputMode="tel" value={draft.whatsapp} onChange={e => setDraft(v => ({ ...v, whatsapp: e.target.value }))} /></label>
+              <label>Area (Sq.ft.)<input type="number" min="1" step="any" value={draft.area} onChange={e => setDraft(v => ({ ...v, area: e.target.value }))} /></label>
+              <p className="unit-edit-cent">= {draftArea > 0 && Number.isFinite(draftArea) ? (draftArea / 435.6).toFixed(2) : '0.00'} cent</p>
+              {editError && <p className="unit-edit-error" role="alert">{editError}</p>}
+              <div className="unit-edit-actions"><button className="mbtn" type="button" onClick={saveDetails}>Save changes</button><button className="unit-edit-cancel" type="button" onClick={() => { setEditing(false); setEditError(''); }}>Cancel</button></div>
+            </div>
+          ) : (
+            <button className="unit-edit-trigger" type="button" onClick={() => { setDraft({ phone: details.phone ?? PHONE, whatsapp: details.whatsapp ?? PHONE, area: String(a) }); setEditing(true); }}>Edit unit details</button>
+          )}
           <button className="mv" type="button" onClick={onViewMap}>&#128205; View on Map</button>
         </div>
       </div>

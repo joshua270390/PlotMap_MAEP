@@ -403,3 +403,10 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
     gap: 10px;
   }
 }
+
+
+/* Responsive navigation: keep the hamburger near the right edge with a 30px inset. */
+@media(max-width:1199px){
+  .dashboard-shell .dashboard-mobile-brand-row{width:100%;padding-right:30px;box-sizing:border-box}
+  .dashboard-shell .dashboard-menu-toggle{margin-left:auto;flex:0 0 42px}
+}

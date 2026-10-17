@@ -562,3 +562,8 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
 @media(max-width:380px){
   #adm.mobile-compact,#adm.mobile-expanded{top:116px!important}
 }
+
+
+/* The Expand editor control is for responsive layouts only; keep desktop unchanged. */
+.apn .admin-compact-toggle{display:none!important}
+@media(max-width:1199px){.apn .admin-compact-toggle{display:inline-flex!important;align-items:center;justify-content:center}}

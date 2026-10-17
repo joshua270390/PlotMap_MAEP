@@ -191,6 +191,13 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
                   onBlur={() => setAd(ad => ({ ...ad, rate: Math.max(0, num(rate) || 0) }))} /></div>
               </label>
             </div>
+            <div className="sec">Map colours</div>
+            <div className="card map-colour-card">
+              <label className="map-colour-field"><span>Road colour</span><input type="color" value={ax.ad.mapColors?.road || '#363e4c'} onChange={e => setAd(ad => ({ ...ad, mapColors: { ...(ad.mapColors || {}), road: e.target.value } }))} aria-label="Change road colour" /></label>
+              <label className="map-colour-field"><span>Empty soil land colour</span><input type="color" value={ax.ad.mapColors?.soil || '#cf9560'} onChange={e => setAd(ad => ({ ...ad, mapColors: { ...(ad.mapColors || {}), soil: e.target.value } }))} aria-label="Change empty soil land colour" /></label>
+              <button type="button" className="plot-color-reset" onClick={() => setAd(ad => { const mapColors = { ...(ad.mapColors || {}) }; delete mapColors.road; delete mapColors.soil; return { ...ad, mapColors }; })}>Reset map colours</button>
+              <p className="hint">Changes apply immediately and are saved in this browser on desktop, tablet and mobile.</p>
+            </div>
             <div className="sec">Backup</div>
             <div className="arow"><button type="button" onClick={exportEdits}>Export</button><button type="button" onClick={() => file.current.click()}>Import</button></div>
             <button className="dng wide" type="button" onClick={reset}>{rst ? 'Tap again to confirm' : 'Reset edits'}</button>

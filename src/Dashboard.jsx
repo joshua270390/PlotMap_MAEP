@@ -35,6 +35,7 @@ export default function Dashboard() {
   const [plotSearch, setPlotSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [profileOpen, setProfileOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Restore the admin session after a refresh in the same browser tab.
   useEffect(() => {
@@ -189,23 +190,25 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="dashboard-shell">
+    <div className={"dashboard-shell" + (sidebarOpen ? " mobile-sidebar-open" : "")}>
+      {sidebarOpen && <button type="button" className="dashboard-sidebar-backdrop" aria-label="Close navigation menu" onClick={() => setSidebarOpen(false)} />}
       <aside className="dashboard-sidebar">
+        <button type="button" className="dashboard-sidebar-close" aria-label="Close navigation menu" onClick={() => setSidebarOpen(false)}>×</button>
         <a className="dashboard-brand" href="/dashboard" aria-label="Mary Ann dashboard home">
           <img className="dashboard-brand-logo" src="/mary-ann-sidebar-white-logo.svg" alt="Mary Ann Elite Properties" />
         </a>
-        <button className={'nav-item' + (page === 'dashboard' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/dashboard'); setPage('dashboard'); }}><span className="nav-icon">▦</span> Dashboard</button>
-        <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); }}>
+        <button className={'nav-item' + (page === 'dashboard' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/dashboard'); setPage('dashboard'); setSidebarOpen(false); }}><span className="nav-icon">▦</span> Dashboard</button>
+        <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); setSidebarOpen(false); }}>
           <span className="nav-icon">▤</span> Bookings
         </button>
-        <button className={'nav-item' + (page === 'plots' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/plot_lists'); setPage('plots'); }}>
+        <button className={'nav-item' + (page === 'plots' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/plot_lists'); setPage('plots'); setSidebarOpen(false); }}>
           <span className="nav-icon">▦</span> Plot lists
         </button>
       </aside>
 
       <main className="dashboard-main">
         <header className="dashboard-topbar">
-          <div><h1>{page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : 'Plot lists'}</h1></div>
+          <div className="dashboard-heading-group"><button type="button" className="dashboard-menu-toggle" aria-label="Open navigation menu" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(true)}><span></span><span></span><span></span></button><h1>{page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : 'Plot lists'}</h1></div>
           <div className="topbar-actions profile-wrap">
             <button type="button" className="topbar-avatar profile-trigger" aria-label="Open administrator menu" aria-expanded={profileOpen} onClick={() => setProfileOpen(open => !open)}>MA</button>
             {profileOpen && <div className="profile-menu" role="menu">

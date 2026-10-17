@@ -114,6 +114,7 @@ function DmEditor({ k, ax, setAd, onGone }) {
 export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addMode, setAddMode, clearSel, status, setStatus, onAdminAuth, onAdminExit }) {
   const [pin, setPin] = useState(''), [authPin, setAuthPin] = useState(''), [pm, setPm] = useState(''), [note, setNote] = useState(null), [rst, setRst] = useState(false), [authBusy, setAuthBusy] = useState(false);
   const [rate, setRate] = useState(ax.ad.rate || '');
+  const [isClosing, setIsClosing] = useState(false);
   const file = useRef(null), rt = useRef(0);
 
   if (panel === 'off') return <button id="admbtn" className="fl" type="button" onClick={() => setPanel('lock')}>Admin</button>;
@@ -133,7 +134,13 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
       setPm(error.message || 'Admin authentication failed.');
     } finally { setAuthBusy(false); }
   };
-  const exit = () => { setPanel('off'); setPin(''); setAuthPin(''); setPm(''); setNote(null); clearSel(); if (onAdminExit) onAdminExit(); };
+  const exit = () => {
+    if (isClosing) return;
+    setIsClosing(true);
+    setPin(''); setAuthPin(''); setPm(''); setNote(null); clearSel();
+    if (onAdminExit) onAdminExit();
+    window.setTimeout(() => { setPanel('off'); setIsClosing(false); }, 280);
+  };
   const exportEdits = () => {
     const b = new Blob([JSON.stringify({ admin: ax.ad, status: {} }, null, 1)], { type: 'application/json' }), a = document.createElement('a');
     a.href = URL.createObjectURL(b); a.download = 'velavan-plot-edits.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1500);
@@ -155,7 +162,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
   };
 
   return (
-    <div id="adm" className="apn fl">
+    <div id="adm" className={"apn fl" + (isClosing ? " is-closing" : "")}>
       <div className="ah">
         <div className="at">
           <span className="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.3 8-8 9-4.7-1-8-4.5-8-9V6z" /><path d="m9 12 2 2 4-4" /></svg></span>

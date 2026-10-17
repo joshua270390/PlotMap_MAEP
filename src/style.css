@@ -418,3 +418,9 @@ path.p.s{fill:#b4313f;fill-opacity:.95}
   .apn{transform:translateX(0)}
 }
 @media(prefers-reduced-motion:reduce){.apn{transition:none}}
+
+@media(max-width:1199px){
+  .apn{animation:maep-drawer-in .28s ease-out both}
+}
+@keyframes maep-drawer-in{from{transform:translateX(-105%)}to{transform:translateX(0)}}
+@media(prefers-reduced-motion:reduce){.apn{animation:none}}

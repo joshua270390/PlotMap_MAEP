@@ -405,8 +405,9 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 }
 
 
-/* Responsive navigation: keep the hamburger near the right edge with a 30px inset. */
+/* Responsive navigation: hamburger flush to the right edge; larger company logo. */
 @media(max-width:1199px){
-  .dashboard-shell .dashboard-mobile-brand-row{width:100%;padding-right:15px;box-sizing:border-box}
-  .dashboard-shell .dashboard-menu-toggle{margin-left:auto;flex:0 0 42px}
+  .dashboard-shell .dashboard-mobile-brand-row{width:100%;padding-right:0!important;box-sizing:border-box}
+  .dashboard-shell .dashboard-mobile-brand img{width:clamp(190px,48vw,260px)!important;height:62px!important;max-width:calc(100vw - 54px)!important}
+  .dashboard-shell .dashboard-menu-toggle{margin-left:auto;margin-right:0!important;flex:0 0 42px}
 }

@@ -4,7 +4,7 @@ import { AREAS, POS } from './plots.js';
 import { RATE } from './config.js';
 
 export const AKEY = 'velavan-plot-admin-v1';
-export const AD0 = () => ({ lbl: {}, area: {}, pos: {}, dm: {}, dmDel: [], dmAdd: [], colors: {}, rate: 0 });
+export const AD0 = () => ({ lbl: {}, area: {}, pos: {}, dm: {}, dmDel: [], dmAdd: [], colors: {}, mapColors: {}, rate: 0 });
 export const loadAd = () => { try { return Object.assign(AD0(), JSON.parse(localStorage.getItem(AKEY) || '{}')); } catch (_) { return AD0(); } };
 export const saveAd = ad => { try { localStorage.setItem(AKEY, JSON.stringify(ad)); } catch (_) {} };
 

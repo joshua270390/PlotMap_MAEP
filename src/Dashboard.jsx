@@ -208,7 +208,7 @@ export default function Dashboard() {
 
       <main className="dashboard-main">
         <header className="dashboard-topbar">
-          <div className="dashboard-mobile-brand-row"><a className="dashboard-mobile-brand" href="/dashboard" aria-label="Mary Ann dashboard home"><img src="/mary-ann-sidebar-white-logo.svg" alt="Mary Ann Elite Properties" /></a><button type="button" className="dashboard-menu-toggle" aria-label="Open navigation menu" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(true)}><span></span><span></span><span></span></button></div>
+          <div className="dashboard-mobile-brand-row"><a className="dashboard-mobile-brand" href="/dashboard" aria-label="Mary Ann dashboard home"><img src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" /></a><button type="button" className="dashboard-menu-toggle" aria-label="Open navigation menu" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(true)}><span></span><span></span><span></span></button></div>
           <div className="dashboard-heading-group"><h1>{page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : 'Plot lists'}</h1></div>
           <div className="topbar-actions profile-wrap">
             <button type="button" className="topbar-avatar profile-trigger" aria-label="Open administrator menu" aria-expanded={profileOpen} onClick={() => setProfileOpen(open => !open)}>MA</button>

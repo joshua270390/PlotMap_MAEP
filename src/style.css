@@ -458,3 +458,10 @@ path.p.s{fill:#b4313f;fill-opacity:.95}
 .unit-edit-actions{display:flex;gap:8px;flex-wrap:wrap}
 .unit-edit-actions .mbtn{flex:1}
 .unit-edit-cancel{padding:9px 13px;border:1px solid #d5dfd8;border-radius:9px;background:#fff;color:#405b4c;font-weight:700;cursor:pointer}
+
+
+/* Reserved plot hover and unit popup use the requested orange palette. */
+path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
+.sb.r{background:rgba(242,140,40,.14)!important;border-color:#f28c28!important;color:#a64f08!important}
+.sb.r h3 i{background:#f28c28!important}
+.uc .chips .r,.chips .r,.ch.r{background:rgba(242,140,40,.14)!important;border-color:#f28c28!important;color:#a64f08!important}

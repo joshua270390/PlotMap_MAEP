@@ -268,3 +268,14 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
   .dashboard-topbar h1{margin:0}
 }
 @media(prefers-reduced-motion:reduce){.dashboard-sidebar{transition:none}}
+
+.dashboard-mobile-brand-row{display:none}
+@media(max-width:1199px){
+  .dashboard-topbar{align-items:center;flex-wrap:wrap}
+  .dashboard-mobile-brand-row{display:flex;align-items:center;gap:12px;order:0;flex:1 1 100%;min-width:0}
+  .dashboard-mobile-brand{display:flex;align-items:center;min-width:0}
+  .dashboard-mobile-brand img{display:block;width:clamp(140px,36vw,190px);height:46px;object-fit:contain;object-position:left center}
+  .dashboard-heading-group{order:1;flex:1 1 auto}
+  .dashboard-topbar>.profile-wrap{order:2}
+  .dashboard-menu-toggle{flex:0 0 42px}
+}

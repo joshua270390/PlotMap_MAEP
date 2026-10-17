@@ -6,10 +6,10 @@ import { NAMES, PM, cents, inr } from './plots.js';
 const TREE = `<symbol id="tr1" viewBox="0 0 100 120"><ellipse cx="50" cy="111" rx="30" ry="7" fill="rgba(0,0,0,.24)"/><path class="tk" d="M44 112 L47 66 L53 66 L56 112Z"/><path class="tk" d="M50 88 L36 72 L40 70 L50 80Z"/><circle class="g1" cx="50" cy="46" r="34"/><circle class="g1" cx="25" cy="62" r="22"/><circle class="g1" cx="75" cy="62" r="22"/><circle class="g2" cx="48" cy="42" r="28"/><circle class="g2" cx="28" cy="57" r="16"/><circle class="g2" cx="72" cy="57" r="16"/><circle class="g3" cx="40" cy="32" r="13"/><circle class="g3" cx="63" cy="44" r="9"/><circle class="g3" cx="25" cy="52" r="7"/></symbol>`;
 
 // Static drawing: never re-renders.
-const Ground = memo(() => (
+const Ground = memo(({ colors = {} }) => (
   <>
-    {G.base.map((d, i) => <path key={'b' + i} d={d} className="rd" />)}
-    {G.park.map((d, i) => <path key={'p' + i} d={d} className="pk" />)}
+    {G.base.map((d, i) => <path key={'b' + i} d={d} className="rd" style={colors.road ? { fill: colors.road } : undefined} />)}
+    {G.park.map((d, i) => <path key={'p' + i} d={d} className="pk" style={colors.soil ? { fill: colors.soil } : undefined} />)}
     {G.misc.map((d, i) => <path key={'m' + i} d={d} className="ms" />)}
     {G.dash.map((d, i) => <path key={'d' + i} d={d} className="dash" />)}
   </>
@@ -228,7 +228,7 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
       </div>
       <div id="stage" ref={stageRef}>
         <svg id="ov" ref={ovRef} viewBox="0 0 4400 3400">
-          <Ground /><Plots status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} />{admin && <EnquiryPins enquiries={adminEnquiries} ax={ax} />}<Trees /><PlotNumbers status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims /><image href="/mary-ann-plotmap-logo.png" x="470" y="440" width="600" height="451.7" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />
+          <Ground colors={ax.ad.mapColors || {}} /><Plots status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} />{admin && <EnquiryPins enquiries={adminEnquiries} ax={ax} />}<Trees /><PlotNumbers status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims /><image href="/mary-ann-plotmap-logo.png" x="470" y="440" width="600" height="451.7" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />
           <g className="map-compass" transform="translate(2590 440) scale(2.4)" aria-label="North compass">
             <title>North compass</title>
             <text x="50" y="11" className="compass-direction">N</text>

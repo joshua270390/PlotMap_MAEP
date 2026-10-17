@@ -115,6 +115,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
   const [pin, setPin] = useState(''), [authPin, setAuthPin] = useState(''), [pm, setPm] = useState(''), [note, setNote] = useState(null), [rst, setRst] = useState(false), [authBusy, setAuthBusy] = useState(false);
   const [rate, setRate] = useState(ax.ad.rate || '');
   const [isClosing, setIsClosing] = useState(false);
+  const [mobileCompact, setMobileCompact] = useState(true);
   const file = useRef(null), rt = useRef(0);
 
   if (panel === 'off') return <button id="admbtn" className="fl" type="button" onClick={() => setPanel('lock')}>Admin</button>;
@@ -162,13 +163,16 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
   };
 
   return (
-    <div id="adm" className={"apn fl" + (isClosing ? " is-closing" : "")}>
+    <div id="adm" className={"apn fl" + (isClosing ? " is-closing" : "") + (panel === "tools" ? (mobileCompact ? " mobile-compact" : " mobile-expanded") : "")}>
       <div className="ah">
         <div className="at">
           <span className="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.3 8-8 9-4.7-1-8-4.5-8-9V6z" /><path d="m9 12 2 2 4-4" /></svg></span>
           <div><b>Admin studio</b><small>Plots, labels and rates</small></div>
         </div>
-        <button className="ghost" type="button" onClick={exit}>Exit</button>
+        <div className="admin-header-actions">
+          {panel === "tools" && <button className="admin-compact-toggle" type="button" onClick={() => setMobileCompact(value => !value)} aria-expanded={!mobileCompact} aria-label={mobileCompact ? "Expand Admin Studio editor" : "Collapse Admin Studio editor"}>{mobileCompact ? "Expand editor ＋" : "Collapse −"}</button>}
+          <button className="ghost" type="button" onClick={exit}>Exit</button>
+        </div>
       </div>
       <div className="abody">
         {panel === 'lock' ? (

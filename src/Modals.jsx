@@ -4,7 +4,7 @@ import { NAMES, inr } from './plots.js';
 
 const backdrop = onClose => ({ onPointerDown: e => { if (e.target === e.currentTarget) onClose(); } });
 
-export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap }) {
+export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap, reservedCustomers = [] }) {
   const a = ax.areaOf(id), lb = ax.lbl(id), sv = status || 'a', closeRef = useRef(null);
   const details = ax.ad.plotDetails?.[id] || {};
   const [editing, setEditing] = useState(false);
@@ -55,10 +55,10 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
               ? <div><button className="mbtn" type="button" onClick={onEnquire}>Booking enquiry</button></div>
               : <p>{sv === 'b' ? 'This plot is currently booked.' : 'This plot has been sold.'}</p>}
           </div>
-          {sv === 'r' && Array.isArray(details.reservedCustomers) && details.reservedCustomers.length > 0 && (
+          {sv === 'r' && Array.isArray(reservedCustomers) && reservedCustomers.length > 0 && (
             <section className="reserved-customer-list" aria-label="Customers who reserved this unit">
               <h3>Already reserved by</h3>
-              <ul>{details.reservedCustomers.map((customer, index) => (
+              <ul>{reservedCustomers.map((customer, index) => (
                 <li key={String(customer.name) + '-' + index}>
                   <span>{customer.name}</span>{customer.mobile && <small>{customer.mobile}</small>}
                 </li>

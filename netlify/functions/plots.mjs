@@ -76,8 +76,21 @@ export default async function handler(request) {
     }
   }
 
-  // Use the newest booking with customer information for each plot. Booking status
-  // never overrides the plot table's current status.
+  // Keep a list of all Reserved customers for each unit. Public map data masks
+  // phone numbers; the popup only needs names to identify existing reservations.
+  const reservedByPlot = new Map();
+  for (const booking of bookingResult.data || []) {
+    if (String(booking.status || "").trim().toLowerCase() !== "reserved") continue;
+    const rawPlotKey = String(booking.plot_id ?? booking.plot_number ?? booking.unit_number ?? booking.plot_no ?? "");
+    const plotNumber = plotNumberById.get(rawPlotKey) || plotNumberByAnyKey.get(rawPlotKey);
+    if (!plotNumber) continue;
+    const detail = customerDetails(booking);
+    if (!detail.name) continue;
+    if (!reservedByPlot.has(plotNumber)) reservedByPlot.set(plotNumber, []);
+    reservedByPlot.get(plotNumber).push({ name: detail.name, mobile: detail.mobile });
+  }
+
+  // Keep the most recent customer summary for existing tooltip compatibility.
   const assigned = new Set();
   for (const booking of bookingResult.data || []) {
     const rawPlotKey = String(booking.plot_id ?? booking.plot_number ?? booking.unit_number ?? booking.plot_no ?? "");
@@ -86,10 +99,19 @@ export default async function handler(request) {
     const detail = customerDetails(booking);
     if (!detail.name && !detail.mobile) continue;
     const status = plots[plotNumber] || "Available";
-    const merged = { ...detail, status };
+    const merged = { ...detail, status, reservedCustomers: reservedByPlot.get(plotNumber) || [] };
     details[plotNumber] = merged;
     for (const [id, mappedNumber] of plotNumberById) if (mappedNumber === plotNumber) details[id] = merged;
     assigned.add(plotNumber);
+  }
+
+  // Also expose Reserved customers if the plot has no other customer summary.
+  for (const [plotNumber, customers] of reservedByPlot) {
+    if (!details[plotNumber]) details[plotNumber] = { status: plots[plotNumber] || "Available", reservedCustomers: customers };
+    else details[plotNumber] = { ...details[plotNumber], reservedCustomers: customers };
+    for (const [id, mappedNumber] of plotNumberById) {
+      if (mappedNumber === plotNumber) details[id] = { ...details[plotNumber] };
+    }
   }
 
   return json({ ok: true, plots, details });

@@ -111,7 +111,18 @@ export default async function handler(req, res) {
         warning: 'Bookings loaded. Plot unit numbers could not be loaded (' + plots.status + '): ' + plots.error,
       });
     }
-    return out(res, 200, { ok: true, bookings: bookings.data || [], plots: plots.data || [] });
+    // Match the public plot map: the newest booking per plot determines its displayed status.
+    const statusByPlot = new Map();
+    for (const booking of bookings.data || []) {
+      const plotId = String(booking.plot_id);
+      if (statusByPlot.has(plotId)) continue;
+      statusByPlot.set(plotId, allowedStatuses.has(String(booking.status)) ? String(booking.status) : 'Available');
+    }
+    const mapPlots = (plots.data || []).map(plot => ({
+      ...plot,
+      status: statusByPlot.get(String(plot.id)) || 'Available',
+    }));
+    return out(res, 200, { ok: true, bookings: bookings.data || [], plots: mapPlots });
   }
 
   const body = parseBody(req);
@@ -152,12 +163,34 @@ export default async function handler(req, res) {
   const bookingFilter = new URLSearchParams({ id: 'eq.' + id, project_id: 'eq.' + cfg.projectId });
 
   if (req.method === 'DELETE') {
+    const existing = await db(cfg, 'GET', cfg.bookingsTable,
+      new URLSearchParams({ select: 'id,plot_id', id: 'eq.' + id, project_id: 'eq.' + cfg.projectId, limit: '1' }).toString());
+    if (!existing.ok) {
+      console.error('[admin-data] Booking lookup before delete failed:', existing.status, existing.error);
+      return out(res, 502, { ok: false, error: 'Could not verify the booking before deleting it.' });
+    }
+    if (!Array.isArray(existing.data) || !existing.data.length)
+      return out(res, 404, { ok: false, error: 'Booking was not found.' });
+
+    const plotId = String(existing.data[0].plot_id);
     const removed = await db(cfg, 'DELETE', cfg.bookingsTable, bookingFilter.toString(), undefined);
     if (!removed.ok) {
       console.error('[admin-data] Booking delete failed:', removed.status, removed.error);
       return out(res, 502, { ok: false, error: 'Could not delete booking from Supabase.' });
     }
-    return out(res, 200, { ok: true });
+
+    // Keep the plot table in sync with the remaining newest booking; if none remain,
+    // make the plot available again. The public map also derives its state from bookings.
+    const remaining = await db(cfg, 'GET', cfg.bookingsTable,
+      new URLSearchParams({ select: 'id,status', plot_id: 'eq.' + plotId, project_id: 'eq.' + cfg.projectId, order: 'id.desc', limit: '1' }).toString());
+    let plotStatus = 'Available';
+    if (remaining.ok && Array.isArray(remaining.data) && remaining.data.length) {
+      const remainingStatus = String(remaining.data[0].status || '');
+      plotStatus = allowedStatuses.has(remainingStatus) ? remainingStatus : 'Available';
+    }
+    const plotSync = await db(cfg, 'PATCH', cfg.plotsTable,
+      new URLSearchParams({ id: 'eq.' + plotId, project_id: 'eq.' + cfg.projectId }).toString(), { status: plotStatus });
+    return out(res, 200, { ok: true, plotStatus, plotStatusSynced: plotSync.ok });
   }
 
   const customerName = String(body.customer_name ?? '').trim();

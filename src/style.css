@@ -786,3 +786,26 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
   .top>.sw .search{height:38px!important;padding:0 7px!important;gap:5px!important}
   .top>.sw .search input{font-size:11px!important}
 }
+
+
+/* Admin Studio: Add Customer modal */
+.admin-add-customer{display:flex!important;align-items:center;justify-content:center;gap:9px;width:100%;padding:11px 12px!important;border:1px solid #1b8c69!important;border-radius:10px!important;background:linear-gradient(135deg,#138765,#176b88)!important;color:#fff!important;font-weight:700!important}
+.admin-add-customer svg{width:17px;height:17px;flex:none}
+.admin-add-customer:hover{filter:brightness(1.06)}
+.admin-customer-overlay{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(12,20,34,.62);backdrop-filter:blur(4px)}
+.admin-customer-modal{position:relative;width:min(100%,460px);max-height:min(90vh,760px);overflow:auto;padding:28px;border:1px solid #e1e7ef;border-radius:18px;background:#fff;color:#172337;box-shadow:0 24px 80px rgba(0,0,0,.28);font-family:Inter,system-ui,sans-serif}
+.admin-customer-modal h2{margin:0 34px 8px 0;font-size:25px;line-height:1.2;font-weight:800;color:#152238}
+.admin-customer-eyebrow{margin:0 0 8px;color:#12815f;font-size:11px;letter-spacing:.12em;font-weight:800}
+.admin-customer-copy{margin:0 0 20px;color:#64748b;font-size:13px;line-height:1.55}
+.admin-customer-close{position:absolute;right:17px;top:14px;width:34px;height:34px;border:0;border-radius:9px;background:#f1f5f9;color:#344256;font-size:25px;line-height:1;cursor:pointer}
+.admin-customer-modal label{display:block;margin:0 0 14px;color:#344256;font-size:12px;font-weight:700}
+.admin-customer-modal input,.admin-customer-modal select{display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:11px 12px;border:1px solid #d8e0ea;border-radius:9px;background:#fff;color:#172337;font:500 14px/1.35 Inter,system-ui,sans-serif;outline:none}
+.admin-customer-modal input:focus,.admin-customer-modal select:focus{border-color:#168563;box-shadow:0 0 0 3px rgba(22,133,99,.12)}
+.admin-customer-modal input:disabled,.admin-customer-modal select:disabled{background:#f5f7fa;color:#7c8797}
+.admin-customer-error{margin:0 0 12px;color:#b42332;font-size:12px;line-height:1.5}
+.admin-customer-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+.admin-customer-actions button{min-height:42px;padding:10px 16px;border-radius:9px;font-size:13px;font-weight:750;cursor:pointer}
+.admin-customer-cancel{border:1px solid #d6deea;background:#fff;color:#344256}
+.admin-customer-submit{border:1px solid #12815f;background:#12815f;color:#fff}
+.admin-customer-actions button:disabled{opacity:.6;cursor:wait}
+@media(max-width:480px){.admin-customer-overlay{padding:10px}.admin-customer-modal{padding:23px 18px;border-radius:15px;max-height:94vh}.admin-customer-modal h2{font-size:22px}.admin-customer-actions button{flex:1}}

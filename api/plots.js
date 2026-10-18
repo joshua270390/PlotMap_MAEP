@@ -17,7 +17,7 @@ async function readTable(table, query) {
 export default async function handler(req, res) {
   if (req.method !== 'GET') { res.setHeader('Allow', 'GET'); return res.status(405).json({ ok: false }); }
   if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(500).json({ ok: false });
-  const plotQuery = new URLSearchParams({ select: 'id,plot_number,unit_number', project_id: 'eq.' + PROJECT_ID, limit: '2000' });
+  const plotQuery = new URLSearchParams({ select: '*', project_id: 'eq.' + PROJECT_ID, limit: '2000' });
   const bookingQuery = new URLSearchParams({ select: '*', project_id: 'eq.' + PROJECT_ID, order: 'id.desc', limit: '2000' });
   const [plotResult, bookingResult] = await Promise.all([
     readTable(PLOTS, plotQuery.toString()),
@@ -34,8 +34,19 @@ export default async function handler(req, res) {
     const id = String(row.id);
     const plotNumber = String(row.plot_number ?? row.unit_number ?? row.id);
     plotNumberById.set(id, plotNumber);
-    plots[id] = 'Available';
-    plots[plotNumber] = 'Available';
+    const tableStatus = String(row.status || '').trim().toLowerCase();
+    const initialStatus = ({ available: 'Available', reserved: 'Reserved', booked: 'Booked', sold: 'Sold' })[tableStatus] || 'Available';
+    plots[id] = initialStatus;
+    plots[plotNumber] = initialStatus;
+    const plotName = row.customer_name ?? row.name ?? row.full_name ?? '';
+    const plotPhone = row.phone ?? row.phone_number ?? row.mobile ?? row.mobile_number ?? row.contact_number ?? '';
+    const plotDigits = String(plotPhone || '').replace(/\D/g, '');
+    const plotMobile = plotDigits.length >= 10 ? plotDigits.slice(0, 2) + 'xxxxxx' + plotDigits.slice(-2) : '';
+    if (String(plotName).trim() || plotMobile) {
+      const detail = { name: String(plotName || '').trim(), mobile: plotMobile, status: initialStatus };
+      details[id] = detail;
+      details[plotNumber] = detail;
+    }
   }
   const seen = new Set();
   const allowed = new Set(['Available', 'Reserved', 'Booked', 'Sold']);

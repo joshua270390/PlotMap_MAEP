@@ -54,6 +54,9 @@ export default async function handler(request) {
   if (!plotLookup.ok) return json({ ok: false, error: "Could not look up the unit in Supabase." }, 502);
   if (!Array.isArray(plotLookup.data) || !plotLookup.data.length) return json({ ok: false, error: "No unit matched this number and project." }, 404);
   const plotId = plotLookup.data[0].id;
+  const currentInventoryStatus = String(plotLookup.data[0].status || "Available");
+  if (["Booked", "Sold"].includes(currentInventoryStatus) && ["Available", "Reserved"].includes(status))
+    return json({ ok: false, error: "This unit is already Booked or Sold. Reopen it from the selected customer's booking in the Bookings page." }, 409);
 
   if (["Booked", "Sold"].includes(status)) {
     const bookingQuery = new URLSearchParams({

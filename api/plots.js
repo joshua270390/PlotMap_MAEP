@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     const status = String(booking.status || '');
     const plotNumber = plotNumberById.get(plotId);
     plots[plotNumber] = allowed.has(status) ? status : 'Available';
-    const digits = String(booking.phone || '').replace(/\\D/g, '');
+    const digits = String(booking.phone || '').replace(/\D/g, '');
     const mobileDigits = digits.length >= 10 ? digits.slice(-10) : digits;
     const maskedMobile = mobileDigits.length >= 4
       ? mobileDigits.slice(0, 2) + 'xxxxxx' + mobileDigits.slice(-2)

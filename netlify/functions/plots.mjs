@@ -18,7 +18,7 @@ function customerDetails(row = {}) {
   let mobile = "";
   if (/[x*]/i.test(rawPhone)) mobile = rawPhone;
   else {
-    const digits = rawPhone.replace(/\\D/g, "");
+    const digits = rawPhone.replace(/\D/g, "");
     if (digits.length >= 12) mobile = digits.slice(0, 3) + "xxxxxx" + digits.slice(-3);
     else if (digits.length >= 10) mobile = digits.slice(0, 2) + "xxxxxx" + digits.slice(-2);
     else if (digits.length >= 4) mobile = digits.slice(0, 1) + "xxxx" + digits.slice(-2);
@@ -28,7 +28,7 @@ function customerDetails(row = {}) {
 
 export default async function handler(request) {
   if (request.method !== "GET") return json({ ok: false, error: "Method not allowed" }, 405);
-  const url = (process.env.SUPABASE_URL || "").replace(/\\/+$/, "");
+  const url = (process.env.SUPABASE_URL || "").replace(/\/+$/, "");
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || "").trim();
   const projectId = String(parseInt(process.env.PROJECT_ID || "1", 10));
   const plotsTable = process.env.PLOTS_TABLE || "plots";

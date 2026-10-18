@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AD0, delDm, revertPlot, setDm, setPlot } from './adminData.js';
 import { AREAS, POS, cents } from './plots.js';
 
@@ -178,6 +179,8 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load plot units.');
       setCustomerPlots(data.plots || []);
+      if (data.warning) setCustomerError(data.warning);
+      else if (!(data.plots || []).length) setCustomerError('No plot units were returned by the database for this project. Check PROJECT_ID and the plots table project_id values in Netlify environment variables.');
     } catch (error) {
       setCustomerError(error.name === 'TimeoutError' ? 'Loading units timed out. Please close the form and try again.' : (error.message || 'Could not load plot units.'));
     } finally { setCustomerLoading(false); }
@@ -278,9 +281,9 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
         )}
       </div>
     </div>
-    {customerOpen && <div className="admin-customer-overlay" role="presentation" onMouseDown={handleOverlayMouseDown}>
+    {customerOpen && createPortal(<div className="admin-customer-overlay" role="presentation" onMouseDown={handleOverlayMouseDown}>
       <form className="admin-customer-modal" onSubmit={saveCustomer}>
-        <button type="button" className="admin-customer-close" onClick={() => setCustomerOpen(false)} aria-label="Close" disabled={false}>×</button>
+        <button type="button" className="admin-customer-close" onClick={() => setCustomerOpen(false)} aria-label="Close">×</button>
         <p className="admin-customer-eyebrow">MANUAL CUSTOMER ENTRY</p>
         <h2>Add Customer</h2>
         <p className="admin-customer-copy">Enter the customer details. After saving, the booking will be available in the Bookings page.</p>
@@ -296,7 +299,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
         {customerError && <p className="admin-customer-error" role="alert">{customerError}</p>}
         <div className="admin-customer-actions"><button type="button" className="admin-customer-cancel" onClick={() => setCustomerOpen(false)}>Cancel</button><button type="submit" className="admin-customer-submit" disabled={customerBusy || customerLoading || !customerPlots.length}>{customerBusy ? 'Saving…' : customerLoading ? 'Loading units…' : 'Add Customer'}</button></div>
       </form>
-    </div>}
+    </div>, document.body)}
     </>
   );
 }

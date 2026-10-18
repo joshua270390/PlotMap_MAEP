@@ -73,7 +73,7 @@ const PlotNumbers = memo(({ status, filt, ax }) => (
   </>
 ));
 
-const Tooltip = forwardRef(({ status, vpRef, ax }, ref) => {
+const Tooltip = forwardRef(({ status, vpRef, ax, details = {} }, ref) => {
   const [t, setT] = useState(null);
   const el = useRef(null);
   useImperativeHandle(ref, () => ({ show: (id, cx, cy) => setT({ id, cx, cy }), hide: () => setT(null) }), []);
@@ -86,21 +86,24 @@ const Tooltip = forwardRef(({ status, vpRef, ax }, ref) => {
     el.current.style.transform = `translate(${x}px,${y}px)`;
   });
   const s = t ? status[t.id] || 'a' : 'a', a = t ? ax.areaOf(t.id) : 0, [c, rem] = cents(a);
+  const customer = t ? (details[ax.lbl(t.id)] || details[String(t.id)]) : null;
   return (
     <div id="tip" role="tooltip" hidden={!t} ref={el}>
       {t && <>
         <div className="chips"><span className="ch u">Unit: {ax.lbl(t.id)}</span><span className={'ch ' + s}>Status: {NAMES[s]}</span></div>
         <div className="ar"><b>{a} Sq.ft.</b><span> &middot; {c} cent {rem} sqft <small>approx.</small></span></div>
+        {(s === 'b' || s === 's') && <div className="plot-customer-detail"><strong>This plot is {s === 'b' ? 'Booked' : 'Sold'} by:</strong><span>Name: {customer?.name || '—'}</span><span>Mobile No: {customer?.mobile || '—'}</span></div>}
         {ax.rate > 0 && <><hr /><div className="pr"><i>Actual Price</i><b>{inr(a * ax.rate)}</b></div></>}
       </>}
     </div>
   );
 });
 
-const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, setSel, onTap, ax, admin, addMode, adminEnquiries = [], children }, ref) {
+const PlotMap = forwardRef(function PlotMap({ status, details = {}, filt, setFilt, sel, selD, setSel, onTap, ax, admin, addMode, adminEnquiries = [], children }, ref) {
   const vpRef = useRef(null), stageRef = useRef(null), ovRef = useRef(null), topRef = useRef(null), tipRef = useRef(null), qRef = useRef(null);
   const view = useRef({}), cb = useRef({});
   const [msg, setMsg] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   cb.current = { onTap, ax, admin };
 
   useImperativeHandle(ref, () => ({ focusOn: id => view.current.focusOn(id) }), []);
@@ -174,7 +177,9 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
     };
     const onKey = e => { if (e.key === '/' && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); qRef.current.focus(); } };
     const positionAdminBelowSearch = () => {
-      const search = topRef.current?.querySelector('.search');
+      const isResponsive = window.matchMedia('(max-width: 1199px)').matches;
+      const search = topRef.current?.querySelector('.sw.mobile-search-open .search')
+        || topRef.current?.querySelector(isResponsive ? '.search-toggle' : '.search');
       if (!search) return;
       const rect = search.getBoundingClientRect();
       document.documentElement.style.setProperty('--admin-search-top', Math.ceil(rect.bottom + 12) + 'px');
@@ -202,7 +207,7 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
     if (e.key !== 'Enter') return;
     const val = e.target.value.trim(), fid = ax.findId(val), hit = fid != null ? [fid] : null;
     if (!hit) { setMsg('Plot ' + (val || '?') + ' is not on this layout. Try a number from the drawing.'); return; }
-    const id = hit[0]; setMsg(''); setSel(id); view.current.focusOn(id);
+    const id = hit[0]; setMsg(''); setSel(id); setSearchOpen(false); view.current.focusOn(id);
     setTimeout(() => { const r = vpRef.current.getBoundingClientRect(); tipRef.current.show(id, r.left + r.width / 2, r.top + r.height * 0.4); }, 450);
   };
   const chips = [['a', 'var(--av)'], ['b', 'var(--bk)'], ['s', 'var(--sd)']];
@@ -217,6 +222,20 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
             <span className="sub">{LAYOUT}</span>
           </div>
         </div>
+        <button type="button" className="search-toggle" aria-label="Search plot number" aria-expanded={searchOpen} onClick={() => {
+          const next = !searchOpen;
+          setSearchOpen(next);
+          setTimeout(() => {
+            const anchor = topRef.current?.querySelector('.sw.mobile-search-open .search') || topRef.current?.querySelector('.search-toggle');
+            if (anchor) {
+              const rect = anchor.getBoundingClientRect();
+              document.documentElement.style.setProperty('--admin-search-top', Math.ceil(rect.bottom + 12) + 'px');
+            }
+            if (next) qRef.current?.focus();
+          }, 0);
+        }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+        </button>
         <div className="legend fl" title="Hover a plot for a quick look. Click it for details and booking enquiry.">
           <div className="lrow">
             <div className="chip status-chip"><i style={{ background: 'var(--av)' }} /><span className="l">Availability</span><span className="c">{n.a}</span></div>
@@ -225,7 +244,7 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
             <div className="chip status-chip"><i style={{ background: 'var(--sd)' }} /><span className="l">Sold</span><span className="c">{n.s}</span></div>
           </div>
         </div>
-        <div className="sw">
+        <div className={'sw' + (searchOpen ? ' mobile-search-open' : '')}>
           <label className="search fl">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
             <input id="q" ref={qRef} type="search" inputMode="numeric" placeholder="Search plot number" aria-label="Search plot number" onKeyDown={search} onChange={() => setMsg('')} />
@@ -257,7 +276,7 @@ const PlotMap = forwardRef(function PlotMap({ status, filt, setFilt, sel, selD, 
         <button id="zo" aria-label="Zoom out" onClick={() => center(1 / 1.5)}>&minus;</button>
         <button id="zf" aria-label="Fit to screen" style={{ fontSize: 13 }} onClick={() => view.current.fit(true)}>Fit</button>
       </div>
-      <Tooltip ref={tipRef} status={status} vpRef={vpRef} ax={ax} />
+      <Tooltip ref={tipRef} status={status} vpRef={vpRef} ax={ax} details={details} />
       {children}
     </main>
   );

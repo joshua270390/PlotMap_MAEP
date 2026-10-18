@@ -106,7 +106,7 @@ function StatusEditor({ id, ax, status, setStatus, pin, setAd }) {
       <div className="sec">Availability status</div>
       <label><span>Plot status</span>
         <select value={value} onChange={e => { setValue(e.target.value); setM(null); setSelectedBookingId(''); }}>
-          <option value="Available">Availability</option><option value="Reserved">Reserved</option><option value="Booked">Booked</option><option value="Sold">Sold</option>
+          <option value="Available">Availability</option><option value="Reserved">Reserved</option>
         </select>
       </label>
       {['Booked', 'Sold'].includes(value) && <label><span>Reserved customer to {value.toLowerCase()}</span>
@@ -331,7 +331,10 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
         <p className="admin-customer-copy">Enter the customer details. After saving, the booking will be available in the Bookings page.</p>
         <label>Customer Name<input value={customerForm.customer_name} onChange={event => setCustomerForm(old => ({ ...old, customer_name: event.target.value }))} required maxLength={120} autoFocus /></label>
         <label>Phone Number<input type="tel" value={customerForm.phone} onChange={event => setCustomerForm(old => ({ ...old, phone: event.target.value }))} required maxLength={25} /></label>
-        <label>Unit Number<select value={customerForm.plot_id} onChange={event => setCustomerForm(old => ({ ...old, plot_id: event.target.value }))} required disabled={customerLoading || customerBusy || !customerPlots.length}>
+        <label>Unit Number<select value={customerForm.plot_id} onChange={event => {
+            const selected = customerPlots.find(plot => String(plot.id) === event.target.value);
+            setCustomerForm(old => ({ ...old, plot_id: event.target.value, status: String(selected?.status || '').toLowerCase() === 'reserved' ? 'Reserved' : old.status }));
+          }} required disabled={customerLoading || customerBusy || !customerPlots.length}>
           <option value="" disabled>{customerLoading ? 'Loading units…' : 'Select a unit'}</option>
           {customerPlots.filter(plot => !['booked', 'sold'].includes(String(plot.status || 'Available').trim().toLowerCase())).map(plot => <option key={plot.id} value={String(plot.id)}>{String(plot.plot_number ?? plot.unit_number ?? plot.id)}{String(plot.status || '').toLowerCase() === 'reserved' ? ' · Reserved' : ''} (Plot ID: {plot.id})</option>)}
         </select></label>

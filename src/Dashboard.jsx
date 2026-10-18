@@ -380,14 +380,17 @@ export default function Dashboard() {
           <p className="eyebrow">{edit.id == null ? 'MANUAL CUSTOMER ENTRY' : 'BOOKING #' + edit.id}</p><h2>{edit.id == null ? 'Add customer' : 'Edit booking'}</h2><p className="modal-copy">{edit.id == null ? 'Enter customer details and add them to the bookings table.' : 'Update customer details, unit and availability status.'}</p>
           <label>Customer Name<input value={edit.customer_name} onChange={e => setEdit(s => ({ ...s, customer_name: e.target.value }))} required maxLength={120} /></label>
           <label>Phone Number<input value={edit.phone} onChange={e => setEdit(s => ({ ...s, phone: e.target.value }))} required maxLength={25} /></label>
-          <label>Unit Number<select value={edit.plot_id} onChange={e => setEdit(s => ({ ...s, plot_id: e.target.value }))} required>
+          <label>Unit Number<select value={edit.plot_id} onChange={e => {
+            const selected = plots.find(plot => String(plot.id) === e.target.value);
+            setEdit(s => ({ ...s, plot_id: e.target.value, status: normalizedStatus(selected?.status) === 'Reserved' ? 'Reserved' : s.status }));
+          }} required>
             <option value="" disabled>Select a unit</option>
             {plots.filter(plot => {
               const plotStatus = normalizedStatus(plot.status);
               return (edit?.id != null && String(plot.id) === String(edit.plot_id)) || !['Booked', 'Sold'].includes(plotStatus);
             }).map(plot => <option key={plot.id} value={String(plot.id)}>{field(plot, 'plot_number', 'unit_number')} (Plot ID: {plot.id})</option>)}
           </select></label>
-          <label>Status<select value={edit.status} onChange={e => setEdit(s => ({ ...s, status: e.target.value }))}>{STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></label>
+          <label>Status<select value={edit.status} onChange={e => setEdit(s => ({ ...s, status: e.target.value }))}>{STATUSES.filter(s => edit.id != null || ['Available', 'Reserved'].includes(s.value)).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></label>
           {error && <p className="dash-error">{error}</p>}
           <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setEdit(null)}>Cancel</button><button className="primary-btn" disabled={saving}>{saving ? 'Saving…' : edit.id == null ? 'Add customer' : 'Save changes'}</button></div>
         </form>

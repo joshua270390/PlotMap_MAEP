@@ -101,7 +101,7 @@ export default async function handler(request) {
       console.error("[admin-data] Booking fetch failed:", bookings.status, bookings.error, JSON.stringify(keyDiagnostics(cfg)));
       return json({ ok: false, error: "Supabase bookings query failed (" + bookings.status + "): " + bookings.error }, 502);
     }
-    const plotsQuery = new URLSearchParams({ select: "id,plot_number", project_id: "eq." + cfg.projectId, limit: "2000" });
+    const plotsQuery = new URLSearchParams({ select: "*", project_id: "eq." + cfg.projectId, limit: "2000" });
     const plots = await db(cfg, "GET", cfg.plotsTable, plotsQuery.toString());
     if (!plots.ok) {
       console.error("[admin-data] Plot lookup failed:", plots.status, plots.error);

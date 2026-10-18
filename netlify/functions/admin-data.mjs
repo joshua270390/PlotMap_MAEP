@@ -178,8 +178,17 @@ export default async function handler(request) {
     return json({ ok: false, error: "The selected unit does not belong to this project." }, 422);
 
   const targetPlotStatus = String(lookup.data[0].status || "Available");
-  if (["Booked", "Sold"].includes(targetPlotStatus) && String(lookup.data[0].id) !== String(plotId))
-    return json({ ok: false, error: "This unit is already Booked or Sold." }, 409);
+  if (["Booked", "Sold"].includes(status)) {
+    const currentBooking = await db(cfg, "GET", cfg.bookingsTable,
+      new URLSearchParams({ select: "id,status,plot_id", id: "eq." + id, project_id: "eq." + cfg.projectId, limit: "1" }).toString());
+    if (!currentBooking.ok) return json({ ok: false, error: "Could not verify the selected customer booking." }, 502);
+    if (!Array.isArray(currentBooking.data) || !currentBooking.data.length)
+      return json({ ok: false, error: "Booking was not found." }, 404);
+    if (String(currentBooking.data[0].plot_id) !== String(plotId))
+      return json({ ok: false, error: "Select the same unit as this customer's existing booking." }, 422);
+    if (String(currentBooking.data[0].status).toLowerCase() !== "reserved")
+      return json({ ok: false, error: "Only a Reserved customer's booking can be changed to Booked or Sold." }, 422);
+  }
   const updated = await db(cfg, "PATCH", cfg.bookingsTable, filter.toString(), {
     customer_name: customerName, phone, plot_id: Number(plotId), status,
   });

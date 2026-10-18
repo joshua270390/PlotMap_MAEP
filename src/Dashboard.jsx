@@ -8,7 +8,10 @@ const STATUSES = [
   { value: 'Booked', label: 'Booked' },
   { value: 'Sold', label: 'Sold' },
 ];
-const normalizedStatus = value => STATUSES.some(item => item.value === value) ? value : 'Available';
+const normalizedStatus = value => {
+  const normalized = String(value ?? '').trim().toLowerCase();
+  return STATUSES.find(item => item.value.toLowerCase() === normalized)?.value || 'Available';
+};
 const statusLabel = value => STATUSES.find(item => item.value === normalizedStatus(value))?.label || 'Availability';
 const field = (row, ...keys) => {
   for (const key of keys) if (row?.[key] != null) return String(row[key]);
@@ -157,9 +160,17 @@ export default function Dashboard() {
     finally { setSaving(false); }
   }
 
-  const plotStatusByNumber = useMemo(() => new Map(
-    plots.map(plot => [String(plot.plot_number ?? plot.unit_number ?? plot.id), normalizedStatus(plot.status)])
-  ), [plots]);
+  const plotStatusByNumber = useMemo(() => {
+    const statusMap = new Map();
+    plots.forEach(plot => {
+      const status = normalizedStatus(plot.status);
+      // Match both the plot-map's canonical ID and the database's displayed unit number.
+      [plot.id, plot.plot_number, plot.unit_number].forEach(value => {
+        if (value != null && String(value).trim() !== '') statusMap.set(String(value).trim(), status);
+      });
+    });
+    return statusMap;
+  }, [plots]);
   const plotCounts = useMemo(() => {
     const counts = { Available: 0, Reserved: 0, Booked: 0, Sold: 0 };
     P.forEach(([id]) => {

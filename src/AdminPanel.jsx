@@ -120,6 +120,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
   const [customerForm, setCustomerForm] = useState({ customer_name: '', phone: '', plot_id: '', status: 'Available' });
   const [customerPlots, setCustomerPlots] = useState([]);
   const [customerBusy, setCustomerBusy] = useState(false);
+  const [customerLoading, setCustomerLoading] = useState(false);
   const [customerError, setCustomerError] = useState('');
   const [customerNotice, setCustomerNotice] = useState('');
   const file = useRef(null), rt = useRef(0);
@@ -171,7 +172,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
   const openAddCustomer = async () => {
     setCustomerOpen(true); setCustomerError(''); setCustomerNotice('');
     setCustomerForm({ customer_name: '', phone: '', plot_id: '', status: 'Available' });
-    setCustomerBusy(true);
+    setCustomerLoading(true);
     try {
       const response = await fetch('/api/admin-data?view=bookings', { headers: { 'x-admin-pin': authPin }, cache: 'no-store' });
       const data = await response.json().catch(() => ({}));
@@ -179,7 +180,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
       setCustomerPlots(data.plots || []);
     } catch (error) {
       setCustomerError(error.message || 'Could not load plot units.');
-    } finally { setCustomerBusy(false); }
+    } finally { setCustomerLoading(false); }
   };
 
   const saveCustomer = async event => {
@@ -279,15 +280,15 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
         <p className="admin-customer-copy">Enter the customer details. After saving, the booking will be available in the Bookings page.</p>
         <label>Customer Name<input value={customerForm.customer_name} onChange={event => setCustomerForm(old => ({ ...old, customer_name: event.target.value }))} required maxLength={120} autoFocus /></label>
         <label>Phone Number<input type="tel" value={customerForm.phone} onChange={event => setCustomerForm(old => ({ ...old, phone: event.target.value }))} required maxLength={25} /></label>
-        <label>Unit Number<select value={customerForm.plot_id} onChange={event => setCustomerForm(old => ({ ...old, plot_id: event.target.value }))} required disabled={customerBusy || !customerPlots.length}>
-          <option value="" disabled>{customerBusy ? 'Loading units…' : 'Select a unit'}</option>
+        <label>Unit Number<select value={customerForm.plot_id} onChange={event => setCustomerForm(old => ({ ...old, plot_id: event.target.value }))} required disabled={customerLoading || customerBusy || !customerPlots.length}>
+          <option value="" disabled>{customerLoading ? 'Loading units…' : 'Select a unit'}</option>
           {customerPlots.map(plot => <option key={plot.id} value={String(plot.id)}>{String(plot.plot_number ?? plot.unit_number ?? plot.id)} (Plot ID: {plot.id})</option>)}
         </select></label>
         <label>Status<select value={customerForm.status} onChange={event => setCustomerForm(old => ({ ...old, status: event.target.value }))}>
           <option value="Available">Availability</option><option value="Reserved">Reserved</option><option value="Booked">Booked</option><option value="Sold">Sold</option>
         </select></label>
         {customerError && <p className="admin-customer-error" role="alert">{customerError}</p>}
-        <div className="admin-customer-actions"><button type="button" className="admin-customer-cancel" onClick={() => setCustomerOpen(false)} disabled={customerBusy}>Cancel</button><button type="submit" className="admin-customer-submit" disabled={customerBusy || !customerPlots.length}>{customerBusy ? 'Saving…' : 'Add Customer'}</button></div>
+        <div className="admin-customer-actions"><button type="button" className="admin-customer-cancel" onClick={() => setCustomerOpen(false)} disabled={customerBusy}>Cancel</button><button type="submit" className="admin-customer-submit" disabled={customerBusy || customerLoading || !customerPlots.length}>{customerBusy ? 'Saving…' : customerLoading ? 'Loading units…' : 'Add Customer'}</button></div>
       </form>
     </div>}
   );

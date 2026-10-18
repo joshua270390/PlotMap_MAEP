@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : 'dashboard'; });
   const [bookings, setBookings] = useState([]);
   const [plots, setPlots] = useState([]);
+  const [mapPlotStatuses, setMapPlotStatuses] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -73,13 +74,22 @@ export default function Dashboard() {
   async function loadData(view = page, currentPin = pin) {
     setLoading(true); setError('');
     try {
-      const response = await fetch('/api/admin-data?view=' + encodeURIComponent(view), {
+      const requests = [fetch('/api/admin-data?view=' + encodeURIComponent(view), {
         headers: { 'x-admin-pin': currentPin },
         cache: 'no-store',
-      });
+      })];
+      // Dashboard KPIs must use the exact public status feed used by the plot map,
+      // not booking-row statuses that can disagree with manually edited plot states.
+      if (view === 'bookings') requests.push(fetch('/api/plots', { cache: 'no-store' }));
+      const responses = await Promise.all(requests);
+      const response = responses[0];
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load dashboard data.');
       if (view === 'bookings') {
+        const mapResponse = responses[1];
+        const mapData = await mapResponse.json().catch(() => ({}));
+        if (!mapResponse.ok || !mapData.ok) throw new Error('Could not load plot-map availability. Please refresh and try again.');
+        setMapPlotStatuses(mapData.plots || {});
         setBookings(data.bookings || []);
         setPlots(data.plots || []);
         if (data.warning) setNotice(data.warning);
@@ -160,25 +170,14 @@ export default function Dashboard() {
     finally { setSaving(false); }
   }
 
-  const plotStatusByNumber = useMemo(() => {
-    const statusMap = new Map();
-    plots.forEach(plot => {
-      const status = normalizedStatus(plot.status);
-      // Match both the plot-map's canonical ID and the database's displayed unit number.
-      [plot.id, plot.plot_number, plot.unit_number].forEach(value => {
-        if (value != null && String(value).trim() !== '') statusMap.set(String(value).trim(), status);
-      });
-    });
-    return statusMap;
-  }, [plots]);
   const plotCounts = useMemo(() => {
     const counts = { Available: 0, Reserved: 0, Booked: 0, Sold: 0 };
     P.forEach(([id]) => {
-      const value = plotStatusByNumber.get(String(id)) || 'Available';
+      const value = normalizedStatus(mapPlotStatuses[String(id)]);
       counts[value] = (counts[value] || 0) + 1;
     });
     return counts;
-  }, [plotStatusByNumber]);
+  }, [mapPlotStatuses]);
 
   const visibleBookings = useMemo(() => bookings.filter(row => {
     const plot = plotById.get(String(row.plot_id));

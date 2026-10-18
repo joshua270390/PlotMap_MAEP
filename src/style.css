@@ -586,3 +586,28 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
   .top>.sw.mobile-search-open{display:block}
   .top>.sw .search{width:100%;box-sizing:border-box}
 }
+
+
+/* Responsive search control: keep the magnifier centered inside its own button. */
+@media(max-width:1199px){
+  .top .search-toggle{
+    position:relative!important;
+    inset:auto!important;
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    margin-inline-start:8px!important;
+    order:2;
+    flex:0 0 42px!important;
+  }
+  .top .search-toggle svg{
+    position:static!important;
+    inset:auto!important;
+    display:block!important;
+    width:20px!important;
+    height:20px!important;
+    margin:0!important;
+    transform:none!important;
+    flex:none!important;
+  }
+}

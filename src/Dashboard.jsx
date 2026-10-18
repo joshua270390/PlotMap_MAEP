@@ -242,7 +242,7 @@ export default function Dashboard() {
 
                 </>
               ) : null}
-              <div className="dashboard-recent-layout dashboard-recent-layout-single">
+              <div className={page === 'dashboard' ? "dashboard-recent-layout" : "dashboard-recent-layout dashboard-recent-layout-single"}>
                 <div className="dashboard-recent-main">
               <div className="page-intro"><div><h2>{page === 'dashboard' ? 'Recent enquiries & bookings' : 'Bookings overview'}</h2><p>Review customer enquiries and manage unit availability.</p></div><div className="record-count"><strong>{bookings.length}</strong><span>Total bookings</span></div></div>
               <section className="table-card">
@@ -288,6 +288,22 @@ export default function Dashboard() {
                 <div className="table-footer">Showing {visibleBookings.length} of {bookings.length} bookings</div>
               </section>
                 </div>
+                {page === 'dashboard' && (
+                  <article className="chart-panel chart-panel-donut">
+                    <div className="chart-heading"><div><span className="chart-eyebrow">INVENTORY MIX</span><h3>Plot availability</h3></div><span className="chart-menu-mark">•••</span></div>
+                    <div className="donut-layout">
+                      <div className="inventory-donut" style={{ background: plots.length ? `conic-gradient(#18a779 0% ${plotCounts.Available / plots.length * 100}%, #e8b34e ${plotCounts.Available / plots.length * 100}% ${(plotCounts.Available + plotCounts.Reserved) / plots.length * 100}%, #4e82d5 ${(plotCounts.Available + plotCounts.Reserved) / plots.length * 100}% ${(plotCounts.Available + plotCounts.Reserved + plotCounts.Booked) / plots.length * 100}%, #dd6572 ${(plotCounts.Available + plotCounts.Reserved + plotCounts.Booked) / plots.length * 100}% 100%)` : 'conic-gradient(#e5eaf1 0% 100%)' }}>
+                        <div className="donut-hole"><strong>{plots.length}</strong><span>Total plots</span></div>
+                      </div>
+                      <div className="chart-legend">
+                        <div><i className="legend-available" /><span>Available</span><strong>{plotCounts.Available}</strong></div>
+                        <div><i className="legend-reserved" /><span>Reserved</span><strong>{plotCounts.Reserved}</strong></div>
+                        <div><i className="legend-booked" /><span>Booked</span><strong>{plotCounts.Booked}</strong></div>
+                        <div><i className="legend-sold" /><span>Sold</span><strong>{plotCounts.Sold}</strong></div>
+                      </div>
+                    </div>
+                  </article>
+                )}
               </div>
             </>
           ) : (

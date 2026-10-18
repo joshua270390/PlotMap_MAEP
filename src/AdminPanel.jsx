@@ -206,7 +206,12 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
     } finally { setCustomerBusy(false); }
   };
 
+  const handleOverlayMouseDown = event => {
+    if (event.target === event.currentTarget && !customerBusy) setCustomerOpen(false);
+  };
+
   return (
+    <>
     <div id="adm" className={"apn fl" + (isClosing ? " is-closing" : "") + (panel === "tools" ? (mobileCompact ? " mobile-compact" : " mobile-expanded") : "")}>
       <div className="ah">
         <div className="at">
@@ -272,7 +277,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
         )}
       </div>
     </div>
-    {customerOpen && <div className="admin-customer-overlay" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !customerBusy) setCustomerOpen(false); }}>
+    {customerOpen && <div className="admin-customer-overlay" role="presentation" onMouseDown={handleOverlayMouseDown}>
       <form className="admin-customer-modal" onSubmit={saveCustomer}>
         <button type="button" className="admin-customer-close" onClick={() => setCustomerOpen(false)} aria-label="Close" disabled={customerBusy}>×</button>
         <p className="admin-customer-eyebrow">MANUAL CUSTOMER ENTRY</p>
@@ -291,5 +296,6 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
         <div className="admin-customer-actions"><button type="button" className="admin-customer-cancel" onClick={() => setCustomerOpen(false)} disabled={customerBusy}>Cancel</button><button type="submit" className="admin-customer-submit" disabled={customerBusy || customerLoading || !customerPlots.length}>{customerBusy ? 'Saving…' : customerLoading ? 'Loading units…' : 'Add Customer'}</button></div>
       </form>
     </div>}
+    </>
   );
 }

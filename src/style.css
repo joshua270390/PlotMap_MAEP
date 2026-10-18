@@ -221,6 +221,12 @@ text.dm{opacity:1;font-size:17px;font-weight:500;stroke:rgba(255,255,255,.85);st
 .sb.b{background:rgba(242,176,30,.14);border-color:rgba(242,176,30,.6);color:#8a5d00}
 .sb.s{background:rgba(214,56,44,.1);border-color:rgba(214,56,44,.45);color:#a82a20}
 .sb p{margin:0;font-size:13px;font-weight:500}
+.reserved-customer-list{margin:10px 0;padding:12px 14px;border:1px solid rgba(242,140,40,.45);border-radius:12px;background:rgba(242,140,40,.08);color:var(--ink,#243044)}
+.reserved-customer-list h3{margin:0 0 8px;font-size:14px;font-weight:750}
+.reserved-customer-list ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.reserved-customer-list li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 9px;border-radius:8px;background:rgba(255,255,255,.72);font-size:13px;font-weight:650}
+.reserved-customer-list li small{font-size:11px;color:var(--mute);font-weight:500;white-space:nowrap}
+.reserved-customer-list p{margin:8px 0 0;font-size:11px;line-height:1.45;color:var(--mute)}
 .mbtn{font:inherit;font-size:13px;font-weight:600;padding:8px 14px;border-radius:8px;border:1px solid #2563eb;background:#fff;color:#1d4ed8;cursor:pointer}
 .mbtn:hover{background:#eff4ff}
 .mbtn:focus-visible,.mx:focus-visible,.mh a:focus-visible,.sub-btn:focus-visible{outline:3px solid #f59e0b;outline-offset:2px}

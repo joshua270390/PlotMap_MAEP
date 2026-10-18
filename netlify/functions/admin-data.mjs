@@ -86,12 +86,9 @@ export default async function handler(request) {
         console.error("[admin-data] Plot list fetch failed:", result.status, result.error, bookings.status, bookings.error, JSON.stringify(keyDiagnostics(cfg)));
         return json({ ok: false, error: "Could not fetch plot list from Supabase." }, 502);
       }
-      const statusByPlot = new Map();
-      for (const booking of bookings.data || []) {
-        const id = String(booking.plot_id);
-        if (!statusByPlot.has(id)) statusByPlot.set(id, allowedStatuses.has(String(booking.status)) ? String(booking.status) : "Available");
-      }
-      return json({ ok: true, plots: (result.data || []).map(plot => ({ ...plot, status: statusByPlot.get(String(plot.id)) || "Available" })) });
+      // The plots table is the authoritative inventory status. Booking rows may
+      // contain multiple Reserved customers for the same unit.
+      return json({ ok: true, plots: result.data || [] });
     }
     if (view !== "bookings") return json({ ok: false, error: "Unknown dashboard view." }, 400);
 
@@ -107,12 +104,9 @@ export default async function handler(request) {
       console.error("[admin-data] Plot lookup failed:", plots.status, plots.error);
       return json({ ok: true, bookings: bookings.data || [], plots: [], warning: "Bookings loaded, but plot unit numbers could not be loaded (" + plots.status + "): " + plots.error });
     }
-    const statusByPlot = new Map();
-    for (const booking of bookings.data || []) {
-      const plotKey = String(booking.plot_id);
-      if (!statusByPlot.has(plotKey)) statusByPlot.set(plotKey, allowedStatuses.has(String(booking.status)) ? String(booking.status) : "Available");
-    }
-    return json({ ok: true, bookings: bookings.data || [], plots: (plots.data || []).map(plot => ({ ...plot, status: statusByPlot.get(String(plot.id)) || "Available" })) });
+    // Inventory status must come from plots.status, not from whichever booking
+    // happens to be newest. Multiple Reserved booking rows are valid.
+    return json({ ok: true, bookings: bookings.data || [], plots: plots.data || [] });
   }
 
   let body;
@@ -129,9 +123,15 @@ export default async function handler(request) {
     if (!allowedStatuses.has(status)) return json({ ok: false, error: "Select a valid status." }, 422);
 
     const lookup = await db(cfg, "GET", cfg.plotsTable,
-      new URLSearchParams({ select: "id,project_id", id: "eq." + plotId, project_id: "eq." + cfg.projectId, limit: "1" }).toString());
+      new URLSearchParams({ select: "id,project_id,status", id: "eq." + plotId, project_id: "eq." + cfg.projectId, limit: "1" }).toString());
     if (!lookup.ok || !Array.isArray(lookup.data) || !lookup.data.length)
       return json({ ok: false, error: "The selected unit does not belong to this project." }, 422);
+    const inventoryStatus = String(lookup.data[0].status || "Available");
+    if (["Booked", "Sold"].includes(inventoryStatus))
+      return json({ ok: false, error: "This unit is already Booked or Sold and cannot accept another customer." }, 409);
+    if (status === "Booked" || status === "Sold")
+      return json({ ok: false, error: "Add the customer as Reserved first, then change that specific reserved customer's status to Booked or Sold." }, 422);
+    const effectivePlotStatus = inventoryStatus === "Reserved" || status === "Reserved" ? "Reserved" : "Available";
 
     const inserted = await db(cfg, "POST", cfg.bookingsTable, "", {
       project_id: Number(cfg.projectId), customer_name: customerName, phone, plot_id: Number(plotId), status,
@@ -142,7 +142,7 @@ export default async function handler(request) {
     }
 
     const plotUpdate = await db(cfg, "PATCH", cfg.plotsTable,
-      new URLSearchParams({ id: "eq." + plotId, project_id: "eq." + cfg.projectId }).toString(), { status });
+      new URLSearchParams({ id: "eq." + plotId, project_id: "eq." + cfg.projectId }).toString(), { status: effectivePlotStatus });
     if (!plotUpdate.ok) console.error("[admin-data] Plot status sync failed after manual customer insert:", plotUpdate.status, plotUpdate.error);
     return json({
       ok: true, booking: inserted.data[0], plotStatusSynced: plotUpdate.ok,
@@ -173,10 +173,13 @@ export default async function handler(request) {
   if (!allowedStatuses.has(status)) return json({ ok: false, error: "Select a valid status." }, 422);
 
   const lookup = await db(cfg, "GET", cfg.plotsTable,
-    new URLSearchParams({ select: "id,project_id", id: "eq." + plotId, project_id: "eq." + cfg.projectId, limit: "1" }).toString());
+    new URLSearchParams({ select: "id,project_id,status", id: "eq." + plotId, project_id: "eq." + cfg.projectId, limit: "1" }).toString());
   if (!lookup.ok || !Array.isArray(lookup.data) || !lookup.data.length)
     return json({ ok: false, error: "The selected unit does not belong to this project." }, 422);
 
+  const targetPlotStatus = String(lookup.data[0].status || "Available");
+  if (["Booked", "Sold"].includes(targetPlotStatus) && String(lookup.data[0].id) !== String(plotId))
+    return json({ ok: false, error: "This unit is already Booked or Sold." }, 409);
   const updated = await db(cfg, "PATCH", cfg.bookingsTable, filter.toString(), {
     customer_name: customerName, phone, plot_id: Number(plotId), status,
   });
@@ -187,8 +190,15 @@ export default async function handler(request) {
   if (!Array.isArray(updated.data) || !updated.data.length)
     return json({ ok: false, error: "Booking was not found." }, 404);
 
+  // Changing one booking must never overwrite other Reserved customers' rows.
+  // A Booked/Sold booking closes the unit; a Reserved/Available edit does not
+  // reopen it if another booking for this unit is already Booked/Sold.
+  const others = await db(cfg, "GET", cfg.bookingsTable,
+    new URLSearchParams({ select: "id,status", project_id: "eq." + cfg.projectId, plot_id: "eq." + plotId, id: "neq." + id }).toString());
+  const otherClosed = others.ok && (others.data || []).some(row => ["Booked", "Sold"].includes(String(row.status)));
+  const nextPlotStatus = ["Booked", "Sold"].includes(status) ? status : otherClosed ? targetPlotStatus : status;
   const plotUpdate = await db(cfg, "PATCH", cfg.plotsTable,
-    new URLSearchParams({ id: "eq." + plotId, project_id: "eq." + cfg.projectId }).toString(), { status });
+    new URLSearchParams({ id: "eq." + plotId, project_id: "eq." + cfg.projectId }).toString(), { status: nextPlotStatus });
   if (!plotUpdate.ok) {
     console.error("[admin-data] Plot status sync failed:", plotUpdate.status, plotUpdate.error, "plotId:", plotId, "status:", status);
   }

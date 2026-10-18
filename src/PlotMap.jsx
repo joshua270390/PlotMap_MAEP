@@ -92,7 +92,7 @@ const Tooltip = forwardRef(({ status, vpRef, ax, details = {} }, ref) => {
       {t && <>
         <div className="chips"><span className="ch u">Unit: {ax.lbl(t.id)}</span><span className={'ch ' + s}>Status: {NAMES[s]}</span></div>
         <div className="ar"><b>{a} Sq.ft.</b><span> &middot; {c} cent {rem} sqft <small>approx.</small></span></div>
-        {(s === 'r' || s === 'b' || s === 's') && <div className="plot-customer-detail"><strong>This plot is {s === 'r' ? 'Reserved' : s === 'b' ? 'Booked' : 'Sold'} by:</strong><span>Name: {customer?.name || '—'}</span><span>Mobile No: {customer?.mobile || '—'}</span></div>}
+        {(s === 'b' || s === 's') && <div className="plot-customer-detail"><strong>This plot is {s === 'b' ? 'Booked' : 'Sold'} by:</strong><span>Name: {customer?.name || '—'}</span><span>Mobile No: {customer?.mobile || '—'}</span></div>}
         {ax.rate > 0 && <><hr /><div className="pr"><i>Actual Price</i><b>{inr(a * ax.rate)}</b></div></>}
       </>}
     </div>

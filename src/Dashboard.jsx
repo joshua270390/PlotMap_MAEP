@@ -145,6 +145,8 @@ export default function Dashboard() {
             ? { ...plot, status: values.status }
             : plot));
         }
+        // Refresh the authoritative map status feed so the KPI cards update immediately.
+        await loadData('bookings', pin);
       } else {
         setEdit(null);
         await loadData('bookings', pin);

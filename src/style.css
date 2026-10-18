@@ -647,3 +647,55 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
   .top .legend{order:3}
   .top>.sw{order:4}
 }
+
+
+/* Keep layout title and the complete plot-search box on the same row on responsive screens. */
+@media(max-width:1199px){
+  .top{
+    display:flex!important;
+    flex-wrap:nowrap!important;
+    align-items:center!important;
+    gap:8px!important;
+  }
+  .top .brand{
+    order:1!important;
+    flex:1 1 auto!important;
+    min-width:0!important;
+    max-width:none!important;
+  }
+  .top .brand-copy{min-width:0!important}
+  .top .search-toggle{display:none!important}
+  .top>.sw,
+  .top>.sw.mobile-search-open{
+    order:2!important;
+    display:block!important;
+    position:relative!important;
+    inset:auto!important;
+    flex:0 0 190px!important;
+    width:190px!important;
+    max-width:190px!important;
+    margin:0!important;
+    padding:0!important;
+    z-index:25!important;
+  }
+  .top>.sw .search{
+    display:flex!important;
+    width:100%!important;
+    min-width:0!important;
+    box-sizing:border-box!important;
+  }
+  .top>.sw #msg{display:none}
+}
+@media(max-width:420px){
+  .top{gap:5px!important}
+  .top .brand{padding:6px 8px!important}
+  .top .brand-copy b{font-size:12px!important}
+  .top .brand-copy .sub{font-size:9px!important}
+  .top>.sw,
+  .top>.sw.mobile-search-open{
+    flex-basis:145px!important;
+    width:145px!important;
+    max-width:145px!important;
+  }
+  .top>.sw .search input{min-width:0!important;font-size:11px!important}
+}

@@ -84,7 +84,10 @@ export default async function handler(req, res) {
         if (statusByPlot.has(plotId)) continue;
         statusByPlot.set(plotId, allowedStatuses.has(String(booking.status)) ? String(booking.status) : 'Available');
       }
-      const plots = (result.data || []).map(plot => ({ ...plot, status: statusByPlot.get(String(plot.id)) || 'Available' }));
+      const plots = (result.data || []).map(plot => ({
+        ...plot,
+        status: statusByPlot.get(String(plot.id)) || (allowedStatuses.has(String(plot.status)) ? String(plot.status) : 'Available'),
+      }));
       return out(res, 200, { ok: true, plots });
     }
     if (view !== 'bookings') return out(res, 400, { ok: false, error: 'Unknown dashboard view.' });
@@ -120,7 +123,7 @@ export default async function handler(req, res) {
     }
     const mapPlots = (plots.data || []).map(plot => ({
       ...plot,
-      status: statusByPlot.get(String(plot.id)) || 'Available',
+      status: statusByPlot.get(String(plot.id)) || (allowedStatuses.has(String(plot.status)) ? String(plot.status) : 'Available'),
     }));
     return out(res, 200, { ok: true, bookings: bookings.data || [], plots: mapPlots });
   }

@@ -178,8 +178,9 @@ const PlotMap = forwardRef(function PlotMap({ status, details = {}, filt, setFil
     const onKey = e => { if (e.key === '/' && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); qRef.current.focus(); } };
     const positionAdminBelowSearch = () => {
       const isResponsive = window.matchMedia('(max-width: 1199px)').matches;
-      const search = topRef.current?.querySelector('.sw.mobile-search-open .search')
-        || topRef.current?.querySelector(isResponsive ? '.search-toggle' : '.search');
+      const search = isResponsive
+        ? topRef.current?.querySelector('.sw .search')
+        : topRef.current?.querySelector('.search');
       if (!search) return;
       const rect = search.getBoundingClientRect();
       document.documentElement.style.setProperty('--admin-search-top', Math.ceil(rect.bottom + 12) + 'px');

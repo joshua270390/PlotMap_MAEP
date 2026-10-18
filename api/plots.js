@@ -1,5 +1,4 @@
-// Map availability follows customer booking statuses. Legacy plot status values are not counted
-// until a booking is explicitly marked Reserved, Booked, or Sold in the admin dashboard.
+// Plot-table status is the source of truth for map availability. Booking rows supply customer details only.
 import { SUPABASE_URL, SUPABASE_KEY, PROJECT_ID, PLOTS, BOOKINGS } from './_supabase.js';
 
 async function readTable(table, query) {
@@ -30,49 +29,51 @@ export default async function handler(req, res) {
   const plots = {};
   const details = {};
   const plotNumberById = new Map();
+  const plotNumberByAnyKey = new Map();
+  const statusName = value => {
+    const normalized = String(value || '').trim().toLowerCase();
+    return ({ available: 'Available', reserved: 'Reserved', booked: 'Booked', sold: 'Sold' })[normalized] || 'Available';
+  };
+  const makeDetail = row => {
+    const rawName = row.customer_name ?? row.customer_full_name ?? row.full_name ?? row.customer ?? row.name ?? '';
+    const rawPhone = row.phone ?? row.customer_phone ?? row.customer_mobile ?? row.phone_number ?? row.mobile ?? row.mobile_number ?? row.mobile_no ?? row.contact_number ?? row.contact ?? '';
+    const digits = String(rawPhone || '').replace(/\D/g, '');
+    const mobileDigits = digits.length >= 10 ? digits.slice(-10) : digits;
+    const mobile = mobileDigits.length >= 4 ? mobileDigits.slice(0, 2) + 'xxxxxx' + mobileDigits.slice(-2) : '';
+    return { name: String(rawName || '').trim(), mobile };
+  };
   for (const row of plotResult.data || []) {
     const id = String(row.id);
     const plotNumber = String(row.plot_number ?? row.unit_number ?? row.id);
+    const status = statusName(row.status);
     plotNumberById.set(id, plotNumber);
-    const tableStatus = String(row.status || '').trim().toLowerCase();
-    const initialStatus = ({ available: 'Available', reserved: 'Reserved', booked: 'Booked', sold: 'Sold' })[tableStatus] || 'Available';
-    plots[id] = initialStatus;
-    plots[plotNumber] = initialStatus;
-    const plotName = row.customer_name ?? row.name ?? row.full_name ?? '';
-    const plotPhone = row.phone ?? row.phone_number ?? row.mobile ?? row.mobile_number ?? row.contact_number ?? '';
-    const plotDigits = String(plotPhone || '').replace(/\D/g, '');
-    const plotMobile = plotDigits.length >= 10 ? plotDigits.slice(0, 2) + 'xxxxxx' + plotDigits.slice(-2) : '';
-    if (String(plotName).trim() || plotMobile) {
-      const detail = { name: String(plotName || '').trim(), mobile: plotMobile, status: initialStatus };
-      details[id] = detail;
-      details[plotNumber] = detail;
+    plotNumberByAnyKey.set(id, plotNumber);
+    plotNumberByAnyKey.set(plotNumber, plotNumber);
+    plots[id] = status;
+    plots[plotNumber] = status;
+    const detail = makeDetail(row);
+    if (detail.name || detail.mobile) {
+      details[id] = { ...detail, status };
+      details[plotNumber] = { ...detail, status };
     }
   }
-  const seen = new Set();
-  const allowed = new Set(['Available', 'Reserved', 'Booked', 'Sold']);
+
+  // Bookings never override map status. Match by either the database plot ID or map plot number.
+  // Prefer the newest booking with actual customer data, so a blank newer row doesn't hide details.
+  const detailsAssigned = new Set();
   for (const booking of bookingResult.data || []) {
-    const plotId = String(booking.plot_id);
-    if (seen.has(plotId) || !plotNumberById.has(plotId)) continue;
-    seen.add(plotId);
-    const status = String(booking.status || '').trim().toLowerCase();
-    const plotNumber = plotNumberById.get(plotId);
-    const normalized = ({ available: 'Available', reserved: 'Reserved', booked: 'Booked', sold: 'Sold' })[status] || 'Available';
-    plots[plotId] = normalized;
-    plots[plotNumber] = normalized;
-    const rawName = booking.customer_name ?? booking.name ?? booking.full_name ?? booking.customer ?? '';
-    const rawPhone = booking.phone ?? booking.phone_number ?? booking.mobile ?? booking.mobile_number ?? booking.contact_number ?? '';
-    const digits = String(rawPhone || '').replace(/\D/g, '');
-    const mobileDigits = digits.length >= 10 ? digits.slice(-10) : digits;
-    const maskedMobile = mobileDigits.length >= 4
-      ? mobileDigits.slice(0, 2) + 'xxxxxx' + mobileDigits.slice(-2)
-      : '';
-    const detail = {
-      name: String(rawName || '').trim(),
-      mobile: maskedMobile,
-      status: normalized,
-    };
-    details[plotId] = detail;
-    details[plotNumber] = detail;
+    const plotKey = String(booking.plot_id ?? booking.plot_number ?? booking.unit_number ?? '');
+    const plotNumber = plotNumberByAnyKey.get(plotKey);
+    if (!plotNumber || detailsAssigned.has(plotNumber)) continue;
+    const detail = makeDetail(booking);
+    if (!detail.name && !detail.mobile) continue;
+    const status = plots[plotNumber] || 'Available';
+    const merged = { ...detail, status };
+    details[plotNumber] = merged;
+    for (const [id, mappedNumber] of plotNumberById) {
+      if (mappedNumber === plotNumber) details[id] = merged;
+    }
+    detailsAssigned.add(plotNumber);
   }
   res.setHeader('Cache-Control', 'no-store');
   return res.status(200).json({ ok: true, plots, details });

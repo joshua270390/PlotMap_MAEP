@@ -116,6 +116,12 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
   const [rate, setRate] = useState(ax.ad.rate || '');
   const [isClosing, setIsClosing] = useState(false);
   const [mobileCompact, setMobileCompact] = useState(true);
+  const [customerOpen, setCustomerOpen] = useState(false);
+  const [customerForm, setCustomerForm] = useState({ customer_name: '', phone: '', plot_id: '', status: 'Available' });
+  const [customerPlots, setCustomerPlots] = useState([]);
+  const [customerBusy, setCustomerBusy] = useState(false);
+  const [customerError, setCustomerError] = useState('');
+  const [customerNotice, setCustomerNotice] = useState('');
   const file = useRef(null), rt = useRef(0);
 
   if (panel === 'off') return <button id="admbtn" className="fl" type="button" onClick={() => setPanel('lock')}>Admin</button>;
@@ -162,6 +168,43 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
     clearTimeout(rt.current); setRst(false); setAd(AD0()); setRate(''); clearSel(); setNote({ t: 'All edits cleared.', ok: true });
   };
 
+  const openAddCustomer = async () => {
+    setCustomerOpen(true); setCustomerError(''); setCustomerNotice('');
+    setCustomerForm({ customer_name: '', phone: '', plot_id: '', status: 'Available' });
+    setCustomerBusy(true);
+    try {
+      const response = await fetch('/api/admin-data?view=bookings', { headers: { 'x-admin-pin': authPin }, cache: 'no-store' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load plot units.');
+      setCustomerPlots(data.plots || []);
+    } catch (error) {
+      setCustomerError(error.message || 'Could not load plot units.');
+    } finally { setCustomerBusy(false); }
+  };
+
+  const saveCustomer = async event => {
+    event.preventDefault();
+    if (customerBusy) return;
+    setCustomerBusy(true); setCustomerError(''); setCustomerNotice('');
+    try {
+      const response = await fetch('/api/admin-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-pin': authPin },
+        body: JSON.stringify(customerForm),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not add customer.');
+      const selectedPlot = customerPlots.find(plot => String(plot.id) === String(customerForm.plot_id));
+      const plotMapId = selectedPlot ? ax.findId(String(selectedPlot.plot_number ?? selectedPlot.unit_number ?? '')) : null;
+      const statusCode = ({ Available: 'a', Reserved: 'r', Booked: 'b', Sold: 's' })[customerForm.status] || 'a';
+      if (plotMapId != null) setStatus(previous => ({ ...previous, [plotMapId]: statusCode }));
+      setCustomerOpen(false);
+      setNote({ t: data.warning || 'Customer added successfully. The record is saved to Supabase and will appear in the Bookings table.', ok: true });
+    } catch (error) {
+      setCustomerError(error.message || 'Could not add customer.');
+    } finally { setCustomerBusy(false); }
+  };
+
   return (
     <div id="adm" className={"apn fl" + (isClosing ? " is-closing" : "") + (panel === "tools" ? (mobileCompact ? " mobile-compact" : " mobile-expanded") : "")}>
       <div className="ah">
@@ -192,6 +235,14 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
                 : selD && ax.dmList().some(d => d.k === selD) ? <DmEditor key={selD} k={selD} ax={ax} setAd={setAd} onGone={clearSel} />
                 : <p className="hint">Click a plot or a dimension label on the map to edit it.</p>}
             </div>
+            <div className="sec">Customers & bookings</div>
+            <div className="card">
+              <button className="tool admin-add-customer" type="button" onClick={openAddCustomer}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /><circle cx="12" cy="12" r="10" /></svg>
+                Add Customer
+              </button>
+              <p className="hint">Add a customer here; the saved booking is shared with the Bookings page.</p>
+            </div>
             <div className="sec">Map tools</div>
             <div className="card">
               <button className="tool" type="button" aria-pressed={addMode} onClick={() => { clearSel(); setAddMode(!addMode); }}>
@@ -220,5 +271,24 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
         )}
       </div>
     </div>
+    {customerOpen && <div className="admin-customer-overlay" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !customerBusy) setCustomerOpen(false); }}>
+      <form className="admin-customer-modal" onSubmit={saveCustomer}>
+        <button type="button" className="admin-customer-close" onClick={() => setCustomerOpen(false)} aria-label="Close" disabled={customerBusy}>×</button>
+        <p className="admin-customer-eyebrow">MANUAL CUSTOMER ENTRY</p>
+        <h2>Add Customer</h2>
+        <p className="admin-customer-copy">Enter the customer details. After saving, the booking will be available in the Bookings page.</p>
+        <label>Customer Name<input value={customerForm.customer_name} onChange={event => setCustomerForm(old => ({ ...old, customer_name: event.target.value }))} required maxLength={120} autoFocus /></label>
+        <label>Phone Number<input type="tel" value={customerForm.phone} onChange={event => setCustomerForm(old => ({ ...old, phone: event.target.value }))} required maxLength={25} /></label>
+        <label>Unit Number<select value={customerForm.plot_id} onChange={event => setCustomerForm(old => ({ ...old, plot_id: event.target.value }))} required disabled={customerBusy || !customerPlots.length}>
+          <option value="" disabled>{customerBusy ? 'Loading units…' : 'Select a unit'}</option>
+          {customerPlots.map(plot => <option key={plot.id} value={String(plot.id)}>{String(plot.plot_number ?? plot.unit_number ?? plot.id)} (Plot ID: {plot.id})</option>)}
+        </select></label>
+        <label>Status<select value={customerForm.status} onChange={event => setCustomerForm(old => ({ ...old, status: event.target.value }))}>
+          <option value="Available">Availability</option><option value="Reserved">Reserved</option><option value="Booked">Booked</option><option value="Sold">Sold</option>
+        </select></label>
+        {customerError && <p className="admin-customer-error" role="alert">{customerError}</p>}
+        <div className="admin-customer-actions"><button type="button" className="admin-customer-cancel" onClick={() => setCustomerOpen(false)} disabled={customerBusy}>Cancel</button><button type="submit" className="admin-customer-submit" disabled={customerBusy || !customerPlots.length}>{customerBusy ? 'Saving…' : 'Add Customer'}</button></div>
+      </form>
+    </div>}
   );
 }

@@ -63,7 +63,8 @@ export default async function handler(req, res) {
   const detailsAssigned = new Set();
   for (const booking of bookingResult.data || []) {
     const plotKey = String(booking.plot_id ?? booking.plot_number ?? booking.unit_number ?? '');
-    const plotNumber = plotNumberByAnyKey.get(plotKey);
+    // Prefer the foreign-key ID when present; fall back to a displayed plot/unit number.
+    const plotNumber = plotNumberById.get(plotKey) || plotNumberByAnyKey.get(plotKey);
     if (!plotNumber || detailsAssigned.has(plotNumber)) continue;
     const detail = makeDetail(booking);
     if (!detail.name && !detail.mobile) continue;

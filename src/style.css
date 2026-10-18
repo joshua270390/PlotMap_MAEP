@@ -571,3 +571,18 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
 
 /* Align the responsive Admin Studio directly below the actual plot search field. */
 @media(max-width:1199px){#adm.mobile-compact,#adm.mobile-expanded{top:var(--admin-search-top,122px)!important}}
+
+
+/* Responsive plot search: keep the map title row clean and reveal search on demand. */
+.search-toggle{display:none;align-items:center;justify-content:center;width:42px;height:42px;flex:0 0 42px;padding:0;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);box-shadow:0 6px 22px rgba(0,0,0,.12);cursor:pointer}
+.search-toggle svg{width:20px;height:20px}
+.plot-customer-detail{display:flex;flex-direction:column;gap:4px;margin-top:10px;padding-top:9px;border-top:1px solid var(--line);font-size:12px;line-height:1.4;color:var(--ink)}
+.plot-customer-detail strong{font-size:12px;font-weight:800;color:var(--acc)}
+.plot-customer-detail span{overflow-wrap:anywhere}
+@media(max-width:1199px){
+  .top .brand{flex:1 1 auto}
+  .search-toggle{display:inline-flex}
+  .top>.sw{display:none;position:absolute;top:calc(100% + 8px);right:0;width:min(290px,calc(100vw - 24px));max-width:calc(100vw - 24px);margin:0;z-index:25}
+  .top>.sw.mobile-search-open{display:block}
+  .top>.sw .search{width:100%;box-sizing:border-box}
+}

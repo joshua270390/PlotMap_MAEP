@@ -35,12 +35,32 @@ export default async function handler(req, res) {
     return ({ available: 'Available', reserved: 'Reserved', booked: 'Booked', sold: 'Sold' })[normalized] || 'Available';
   };
   const makeDetail = row => {
-    const rawName = row.customer_name ?? row.customer_full_name ?? row.full_name ?? row.customer ?? row.name ?? '';
-    const rawPhone = row.phone ?? row.customer_phone ?? row.customer_mobile ?? row.phone_number ?? row.mobile ?? row.mobile_number ?? row.mobile_no ?? row.contact_number ?? row.contact ?? '';
-    const digits = String(rawPhone || '').replace(/\D/g, '');
-    const mobileDigits = digits.length >= 10 ? digits.slice(-10) : digits;
-    const mobile = mobileDigits.length >= 4 ? mobileDigits.slice(0, 2) + 'xxxxxx' + mobileDigits.slice(-2) : '';
-    return { name: String(rawName || '').trim(), mobile };
+    // Handle both snake_case columns and legacy columns such as "Name" / "Mobile Number".
+    const normalized = {};
+    for (const [key, value] of Object.entries(row || {})) {
+      const k = String(key).toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (value != null && String(value).trim() !== '' && normalized[k] == null) normalized[k] = value;
+    }
+    const firstValue = keys => {
+      for (const key of keys) {
+        const value = normalized[key];
+        if (value != null && String(value).trim() !== '') return String(value).trim();
+      }
+      return '';
+    };
+    const name = firstValue(['customername', 'customerfullname', 'fullname', 'name', 'customer']);
+    const rawPhone = firstValue(['mobilenumber', 'mobileno', 'customermobile', 'customerphone', 'phonenumber', 'phone', 'mobile', 'contactnumber', 'contact', 'telephone']);
+    let mobile = '';
+    // Keep an already-masked number (for example 893xxxxxx098) as entered.
+    if (/[x*]/i.test(rawPhone)) {
+      mobile = rawPhone;
+    } else {
+      const digits = rawPhone.replace(/\D/g, '');
+      if (digits.length >= 12) mobile = digits.slice(0, 3) + 'xxxxxx' + digits.slice(-3);
+      else if (digits.length >= 10) mobile = digits.slice(0, 2) + 'xxxxxx' + digits.slice(-2);
+      else if (digits.length >= 4) mobile = digits.slice(0, 1) + 'xxxx' + digits.slice(-2);
+    }
+    return { name, mobile };
   };
   for (const row of plotResult.data || []) {
     const id = String(row.id);

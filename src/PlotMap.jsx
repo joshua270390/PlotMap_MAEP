@@ -234,7 +234,7 @@ const PlotMap = forwardRef(function PlotMap({ status, details = {}, filt, setFil
             if (next) qRef.current?.focus();
           }, 0);
         }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+          <span className="search-toggle-icon" aria-hidden="true" />
         </button>
         <div className="legend fl" title="Hover a plot for a quick look. Click it for details and booking enquiry.">
           <div className="lrow">

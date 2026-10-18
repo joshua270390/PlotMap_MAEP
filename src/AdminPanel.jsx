@@ -333,7 +333,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
         <label>Phone Number<input type="tel" value={customerForm.phone} onChange={event => setCustomerForm(old => ({ ...old, phone: event.target.value }))} required maxLength={25} /></label>
         <label>Unit Number<select value={customerForm.plot_id} onChange={event => setCustomerForm(old => ({ ...old, plot_id: event.target.value }))} required disabled={customerLoading || customerBusy || !customerPlots.length}>
           <option value="" disabled>{customerLoading ? 'Loading units…' : 'Select a unit'}</option>
-          {customerPlots.map(plot => <option key={plot.id} value={String(plot.id)}>{String(plot.plot_number ?? plot.unit_number ?? plot.id)} (Plot ID: {plot.id})</option>)}
+          {customerPlots.filter(plot => !['booked', 'sold'].includes(String(plot.status || 'Available').trim().toLowerCase())).map(plot => <option key={plot.id} value={String(plot.id)}>{String(plot.plot_number ?? plot.unit_number ?? plot.id)}{String(plot.status || '').toLowerCase() === 'reserved' ? ' · Reserved' : ''} (Plot ID: {plot.id})</option>)}
         </select></label>
         <label>Status<select value={customerForm.status} onChange={event => setCustomerForm(old => ({ ...old, status: event.target.value }))}>
           <option value="Available">Availability</option><option value="Reserved">Reserved</option><option value="Booked">Booked</option><option value="Sold">Sold</option>

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AD0, delDm, revertPlot, setDm, setPlot } from './adminData.js';
 import { AREAS, POS, cents } from './plots.js';
@@ -46,15 +46,50 @@ function StatusEditor({ id, ax, status, setStatus, pin, setAd }) {
   const [value, setValue] = useState(({ a: 'Available', r: 'Reserved', b: 'Booked', s: 'Sold' })[status[id] || 'a']);
   const [m, setM] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [reservedCustomers, setReservedCustomers] = useState([]);
+  const [selectedBookingId, setSelectedBookingId] = useState('');
+  const [customersLoading, setCustomersLoading] = useState(false);
   const currentColor = ax.ad.colors?.[id] || '#c7dfc7';
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadReservedCustomers() {
+      if (!pin) return;
+      setCustomersLoading(true);
+      try {
+        const response = await fetch('/api/admin-data?view=bookings', {
+          headers: { 'x-admin-pin': pin }, cache: 'no-store',
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load Reserved customers.');
+        const plot = (data.plots || []).find(item => String(item.plot_number ?? item.unit_number ?? item.id) === String(ax.lbl(id)));
+        const rows = (data.bookings || []).filter(row => String(row.plot_id) === String(plot?.id) && String(row.status).toLowerCase() === 'reserved');
+        if (!cancelled) {
+          setReservedCustomers(rows);
+          setSelectedBookingId('');
+        }
+      } catch (error) {
+        if (!cancelled) setM({ t: error.message || 'Could not load Reserved customers.' });
+      } finally {
+        if (!cancelled) setCustomersLoading(false);
+      }
+    }
+    loadReservedCustomers();
+    return () => { cancelled = true; };
+  }, [id, pin, ax]);
   const presets = ['#c7dfc7', '#9fd7c2', '#a9c9f2', '#f6d58b', '#f4b6b6', '#d6c2f0', '#f2c6a0', '#d5dde6'];
   const save = async () => {
     setBusy(true); setM(null);
     try {
+      if (['Booked', 'Sold'].includes(value) && !selectedBookingId) {
+        setM({ t: 'Select a customer from the Reserved list before setting Booked or Sold.' });
+        setBusy(false);
+        return;
+      }
       const response = await fetch('/api/plot-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
-        body: JSON.stringify({ plot_number: ax.lbl(id), status: value }),
+        body: JSON.stringify({ plot_number: ax.lbl(id), status: value, booking_id: selectedBookingId || undefined }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || 'Could not update plot status.');
@@ -70,10 +105,17 @@ function StatusEditor({ id, ax, status, setStatus, pin, setAd }) {
     <>
       <div className="sec">Availability status</div>
       <label><span>Plot status</span>
-        <select value={value} onChange={e => setValue(e.target.value)}>
+        <select value={value} onChange={e => { setValue(e.target.value); setM(null); setSelectedBookingId(''); }}>
           <option value="Available">Availability</option><option value="Reserved">Reserved</option><option value="Booked">Booked</option><option value="Sold">Sold</option>
         </select>
       </label>
+      {['Booked', 'Sold'].includes(value) && <label><span>Reserved customer to {value.toLowerCase()}</span>
+        <select value={selectedBookingId} onChange={e => setSelectedBookingId(e.target.value)} disabled={customersLoading || !reservedCustomers.length} required>
+          <option value="">{customersLoading ? 'Loading Reserved customers…' : 'Select a Reserved customer'}</option>
+          {reservedCustomers.map(row => <option key={row.id} value={String(row.id)}>{row.customer_name || row.name || 'Customer'} · {row.phone || row.phone_number || 'No phone'} (Booking #{row.id})</option>)}
+        </select>
+        {!customersLoading && !reservedCustomers.length && <p className="hint">No Reserved customer exists for this unit. Add the customer with Reserved status first.</p>}
+      </label>}
       <div className="arow"><button className="pri" type="button" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save status'}</button></div>
       <div className="sec plot-color-heading">Unit plot color</div>
       <div className="plot-color-palette" role="group" aria-label="Choose unit plot color">

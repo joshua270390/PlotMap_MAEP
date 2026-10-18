@@ -72,7 +72,9 @@ export default async function handler(request) {
     return json({ ok: false, error: "Could not verify this unit. Please try again." }, 502);
   }
   if (!Array.isArray(plot.data) || !plot.data.length) return json({ ok: false, error: "This unit was not found for the selected project." }, 404);
-  if (String(plot.data[0].status || "Available") !== "Available")
+  const inventoryStatus = String(plot.data[0].status || "Available").trim();
+  // Reserved units still accept additional enquiries. Only Booked and Sold are closed.
+  if (!["Available", "Reserved"].includes(inventoryStatus))
     return json({ ok: false, error: "Sorry, this unit is no longer available." }, 409);
 
   const inserted = await db(url, key, "POST", bookingsTable, "", {

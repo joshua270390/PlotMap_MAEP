@@ -611,3 +611,37 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
     flex:none!important;
   }
 }
+
+
+/* Final responsive header layout: title on the left, search button immediately on its right. */
+@media(max-width:1199px){
+  .top{
+    left:12px!important;
+    right:12px!important;
+    width:auto!important;
+    max-width:none!important;
+    display:flex!important;
+    align-items:center!important;
+    flex-wrap:nowrap!important;
+    gap:8px!important;
+  }
+  .top .brand{order:1;flex:1 1 auto!important;min-width:0}
+  .top .search-toggle{
+    order:2;
+    position:relative!important;
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    width:42px!important;
+    min-width:42px!important;
+    height:42px!important;
+    flex:0 0 42px!important;
+    margin:0!important;
+    padding:0!important;
+  }
+  .search-toggle-icon{position:relative!important;display:block!important;width:20px!important;height:20px!important;flex:0 0 20px!important}
+  .search-toggle-icon:before{content:"";position:absolute;left:1px;top:1px;width:10px;height:10px;border:2px solid currentColor;border-radius:50%;box-sizing:border-box}
+  .search-toggle-icon:after{content:"";position:absolute;left:11px;top:12px;width:7px;height:2px;background:currentColor;border-radius:2px;transform:rotate(45deg);transform-origin:left center}
+  .top .legend{order:3}
+  .top>.sw{order:4}
+}

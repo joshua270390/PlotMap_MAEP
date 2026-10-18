@@ -625,7 +625,9 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
     flex-wrap:nowrap!important;
     gap:8px!important;
   }
-  .top .brand{order:1;flex:1 1 auto!important;min-width:0}
+  .top .brand{order:1;flex:0 1 auto!important;min-width:0;max-width:calc(100% - 58px)}
+  .top .brand-copy{min-width:0}
+  .top .search-toggle{margin-inline-start:0!important}
   .top .search-toggle{
     order:2;
     position:relative!important;

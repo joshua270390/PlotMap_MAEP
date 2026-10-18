@@ -42,25 +42,37 @@ export default async function handler(request) {
   let body; try { body = await request.json(); } catch { body = null; }
   const plotNumber = String(body?.plot_number ?? "").trim();
   const status = String(body?.status ?? "");
+  const bookingId = String(body?.booking_id ?? "").trim();
   if (!/^[A-Za-z0-9-]{1,20}$/.test(plotNumber) || !allowedStatuses.has(status))
     return json({ ok: false, error: "Valid unit number and status are required." }, 422);
 
-  const plotQuery = new URLSearchParams({ select: "id,plot_number", project_id: "eq." + cfg.projectId, plot_number: "eq." + plotNumber });
+  if (["Booked", "Sold"].includes(status) && !/^\d+$/.test(bookingId))
+    return json({ ok: false, error: "Select a customer from this unit's Reserved customer list before marking it Booked or Sold." }, 422);
+
+  const plotQuery = new URLSearchParams({ select: "id,plot_number,status", project_id: "eq." + cfg.projectId, plot_number: "eq." + plotNumber });
   const plotLookup = await db(cfg, "GET", cfg.plotsTable, plotQuery.toString());
   if (!plotLookup.ok) return json({ ok: false, error: "Could not look up the unit in Supabase." }, 502);
   if (!Array.isArray(plotLookup.data) || !plotLookup.data.length) return json({ ok: false, error: "No unit matched this number and project." }, 404);
   const plotId = plotLookup.data[0].id;
 
+  if (["Booked", "Sold"].includes(status)) {
+    const bookingQuery = new URLSearchParams({
+      select: "id,plot_id,status", id: "eq." + bookingId,
+      project_id: "eq." + cfg.projectId, plot_id: "eq." + plotId, status: "eq.Reserved",
+    });
+    const selected = await db(cfg, "GET", cfg.bookingsTable, bookingQuery.toString());
+    if (!selected.ok) return json({ ok: false, error: "Could not verify the selected Reserved customer." }, 502);
+    if (!Array.isArray(selected.data) || !selected.data.length)
+      return json({ ok: false, error: "The selected customer is not Reserved for this unit. Refresh the customer list and try again." }, 422);
+    const bookingUpdate = await db(cfg, "PATCH", cfg.bookingsTable,
+      new URLSearchParams({ project_id: "eq." + cfg.projectId, plot_id: "eq." + plotId, id: "eq." + bookingId }).toString(), { status });
+    if (!bookingUpdate.ok || !Array.isArray(bookingUpdate.data) || !bookingUpdate.data.length)
+      return json({ ok: false, error: "Could not update the selected customer's booking status." }, 502);
+  }
+
   const plotUpdate = await db(cfg, "PATCH", cfg.plotsTable,
     new URLSearchParams({ project_id: "eq." + cfg.projectId, id: "eq." + plotId }).toString(), { status });
   if (!plotUpdate.ok) return json({ ok: false, error: "Could not save unit status to the plot table." }, 502);
 
-  // Keep every enquiry for this unit consistent with the inventory status shown on the map.
-  const bookingUpdate = await db(cfg, "PATCH", cfg.bookingsTable,
-    new URLSearchParams({ project_id: "eq." + cfg.projectId, plot_id: "eq." + plotId }).toString(), { status });
-  if (!bookingUpdate.ok) {
-    console.error("[plot-status] Booking status sync failed:", bookingUpdate.error);
-    return json({ ok: false, error: "Plot status saved, but the Bookings status could not be synchronized." }, 502);
-  }
-  return json({ ok: true, plot_number: plotNumber, plot_id: plotId, status });
+  return json({ ok: true, plot_number: plotNumber, plot_id: plotId, booking_id: bookingId || null, status });
 }

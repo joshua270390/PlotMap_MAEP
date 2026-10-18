@@ -78,15 +78,10 @@ export default async function handler(req, res) {
         console.error('[admin-data] Plot list fetch failed:', result.error, bookings.error);
         return out(res, 502, { ok: false, error: 'Could not fetch plot list from Supabase.' });
       }
-      const statusByPlot = new Map();
-      for (const booking of bookings.data || []) {
-        const plotId = String(booking.plot_id);
-        if (statusByPlot.has(plotId)) continue;
-        statusByPlot.set(plotId, allowedStatuses.has(String(booking.status)) ? String(booking.status) : 'Available');
-      }
+      // Plot records are authoritative for status; bookings contain customer activity only.
       const plots = (result.data || []).map(plot => ({
         ...plot,
-        status: statusByPlot.get(String(plot.id)) || (allowedStatuses.has(String(plot.status)) ? String(plot.status) : 'Available'),
+        status: allowedStatuses.has(String(plot.status)) ? String(plot.status) : 'Available',
       }));
       return out(res, 200, { ok: true, plots });
     }
@@ -114,16 +109,10 @@ export default async function handler(req, res) {
         warning: 'Bookings loaded. Plot unit numbers could not be loaded (' + plots.status + '): ' + plots.error,
       });
     }
-    // Match the public plot map: the newest booking per plot determines its displayed status.
-    const statusByPlot = new Map();
-    for (const booking of bookings.data || []) {
-      const plotId = String(booking.plot_id);
-      if (statusByPlot.has(plotId)) continue;
-      statusByPlot.set(plotId, allowedStatuses.has(String(booking.status)) ? String(booking.status) : 'Available');
-    }
+    // Dashboard's plot list follows the same authoritative status field as /api/plots.
     const mapPlots = (plots.data || []).map(plot => ({
       ...plot,
-      status: statusByPlot.get(String(plot.id)) || (allowedStatuses.has(String(plot.status)) ? String(plot.status) : 'Available'),
+      status: allowedStatuses.has(String(plot.status)) ? String(plot.status) : 'Available',
     }));
     return out(res, 200, { ok: true, bookings: bookings.data || [], plots: mapPlots });
   }

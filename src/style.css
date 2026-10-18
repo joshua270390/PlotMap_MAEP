@@ -699,3 +699,90 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
   }
   .top>.sw .search input{min-width:0!important;font-size:11px!important}
 }
+
+
+/* Responsive header: keep the layout title and full search field on one line.
+   The status legend sits on a separate row; desktop styles remain unchanged. */
+@media (max-width:1199px){
+  .top{
+    display:grid!important;
+    grid-template-columns:max-content minmax(0,1fr) minmax(130px,190px)!important;
+    grid-template-areas:"back title search" "legend legend legend"!important;
+    align-items:center!important;
+    gap:8px!important;
+    flex-wrap:initial!important;
+  }
+  .top>.map-back-button{grid-area:back!important;white-space:nowrap!important}
+  .top>.brand{
+    grid-area:title!important;
+    min-width:0!important;
+    width:100%!important;
+    max-width:none!important;
+    flex:initial!important;
+    padding:7px 10px!important;
+    overflow:hidden!important;
+  }
+  .top .brand-copy{min-width:0!important;width:100%!important;overflow:hidden!important}
+  .top .brand-copy b,.top .brand-copy .sub{
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+  }
+  .top>.search-toggle{display:none!important}
+  .top>.sw,.top>.sw.mobile-search-open{
+    grid-area:search!important;
+    display:block!important;
+    position:relative!important;
+    inset:auto!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:none!important;
+    flex:initial!important;
+    margin:0!important;
+    padding:0!important;
+    z-index:25!important;
+  }
+  .top>.sw .search{
+    display:flex!important;
+    align-items:center!important;
+    gap:7px!important;
+    width:100%!important;
+    min-width:0!important;
+    height:42px!important;
+    padding:0 9px!important;
+    margin:0!important;
+    border-radius:12px!important;
+    box-sizing:border-box!important;
+  }
+  .top>.sw .search svg{display:block!important;width:17px!important;height:17px!important;flex:0 0 17px!important}
+  .top>.sw .search input{
+    display:block!important;
+    width:100%!important;
+    min-width:0!important;
+    height:100%!important;
+    padding:0!important;
+    font-size:13px!important;
+  }
+  .top>.sw #msg{display:none!important}
+  .top>.legend{
+    grid-area:legend!important;
+    display:block!important;
+    width:100%!important;
+    min-width:0!important;
+    margin:0!important;
+  }
+  .top>.legend .lrow{display:flex!important;flex-wrap:wrap!important;justify-content:flex-start!important;gap:3px!important}
+  .top>.legend .status-chip{padding:5px 7px!important;gap:5px!important;font-size:11px!important}
+}
+@media(max-width:420px){
+  .top{
+    grid-template-columns:max-content minmax(0,1fr) 132px!important;
+    gap:5px!important;
+  }
+  .top>.map-back-button{padding:6px 7px!important;font-size:12px!important}
+  .top>.brand{padding:6px 7px!important}
+  .top .brand-copy b{font-size:12px!important}
+  .top .brand-copy .sub{font-size:9px!important}
+  .top>.sw .search{height:38px!important;padding:0 7px!important;gap:5px!important}
+  .top>.sw .search input{font-size:11px!important}
+}

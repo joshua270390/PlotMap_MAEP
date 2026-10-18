@@ -96,9 +96,13 @@ export default async function handler(request) {
     const rawPlotKey = String(booking.plot_id ?? booking.plot_number ?? booking.unit_number ?? booking.plot_no ?? "");
     const plotNumber = plotNumberById.get(rawPlotKey) || plotNumberByAnyKey.get(rawPlotKey);
     if (!plotNumber || assigned.has(plotNumber)) continue;
+    const status = plots[plotNumber] || "Available";
+    const bookingStatus = String(booking.status || "").trim().toLowerCase();
+    // For Booked/Sold inventory, show the customer whose booking has that
+    // exact closing status, not an earlier Reserved customer for the same unit.
+    if (["booked", "sold"].includes(status.toLowerCase()) && bookingStatus !== status.toLowerCase()) continue;
     const detail = customerDetails(booking);
     if (!detail.name && !detail.mobile) continue;
-    const status = plots[plotNumber] || "Available";
     const merged = { ...detail, status, reservedCustomers: reservedByPlot.get(plotNumber) || [] };
     details[plotNumber] = merged;
     for (const [id, mappedNumber] of plotNumberById) if (mappedNumber === plotNumber) details[id] = merged;

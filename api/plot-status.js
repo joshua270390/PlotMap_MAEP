@@ -1,5 +1,5 @@
 // Admin-only plot status updates. Keep the service-role key and admin PIN on the server.
-import { PROJECT_ID, PLOTS, BOOKINGS } from './_supabase.js';
+import { PROJECT_ID, PLOTS } from './_supabase.js';
 
 const allowed = new Set(['Available', 'Reserved', 'Booked', 'Sold']);
 const out = (res, code, body) => {
@@ -48,21 +48,6 @@ export default async function handler(req, res) {
   if (!Array.isArray(data) || data.length === 0)
     return out(res, 404, { ok: false, error: 'No plot matched this plot number and project.' });
 
-  // The dashboard booking status is the source of truth for public availability counts.
-  const plotId = data[0].id;
-  const bookingsTable = process.env.BOOKINGS_TABLE || BOOKINGS;
-  const bookingFilter = new URLSearchParams({ project_id: 'eq.' + PROJECT_ID, plot_id: 'eq.' + plotId });
-  const bookingResponse = await fetch(url + '/rest/v1/' + encodeURIComponent(bookingsTable) + '?' + bookingFilter.toString(), {
-    method: 'PATCH',
-    headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-    body: JSON.stringify({ status }),
-    signal: AbortSignal.timeout(10000),
-  });
-  if (!bookingResponse.ok) {
-    const bookingError = await bookingResponse.text();
-    console.error('[plot-status] Booking status sync failed:', bookingResponse.status, bookingError);
-    return out(res, 502, { ok: false, error: 'Plot status saved, but booking status sync failed.' });
-  }
   return out(res, 200, { ok: true, plot_number: plotNumber, status });
 }
 

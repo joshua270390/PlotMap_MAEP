@@ -95,6 +95,7 @@ export default function App() {
       </PlotMap>
       {unit != null && !form && (
         <UnitModal id={unit} ax={ax} status={status[unit]} setAd={setAd} onClose={closeUnit} onEnquire={() => setForm(true)}
+          reservedCustomers={plotDetails[ax.lbl(unit)]?.reservedCustomers || plotDetails[String(unit)]?.reservedCustomers || []}
           onViewMap={() => { const id = unit; setUnit(null); setSel(id); mapRef.current.focusOn(id); }} />
       )}
       {form && unit != null && <EnquiryModal id={unit} ax={ax} onClose={() => setForm(false)} />}

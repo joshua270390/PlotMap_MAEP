@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') { res.setHeader('Allow', 'GET'); return res.status(405).json({ ok: false }); }
   if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(500).json({ ok: false });
   const plotQuery = new URLSearchParams({ select: 'id,plot_number', project_id: 'eq.' + PROJECT_ID, limit: '2000' });
-  const bookingQuery = new URLSearchParams({ select: 'id,plot_id,status', project_id: 'eq.' + PROJECT_ID, order: 'id.desc', limit: '2000' });
+  const bookingQuery = new URLSearchParams({ select: 'id,plot_id,status,customer_name,phone', project_id: 'eq.' + PROJECT_ID, order: 'id.desc', limit: '2000' });
   const [plotResult, bookingResult] = await Promise.all([
     readTable(PLOTS, plotQuery.toString()),
     readTable(BOOKINGS, bookingQuery.toString()),
@@ -28,6 +28,7 @@ export default async function handler(req, res) {
     return res.status(502).json({ ok: false });
   }
   const plots = {};
+  const details = {};
   const plotNumberById = new Map();
   for (const row of plotResult.data || []) {
     const id = String(row.id);
@@ -41,10 +42,21 @@ export default async function handler(req, res) {
     if (seen.has(plotId) || !plotNumberById.has(plotId)) continue;
     seen.add(plotId);
     const status = String(booking.status || '');
-    plots[plotNumberById.get(plotId)] = allowed.has(status) ? status : 'Available';
+    const plotNumber = plotNumberById.get(plotId);
+    plots[plotNumber] = allowed.has(status) ? status : 'Available';
+    const digits = String(booking.phone || '').replace(/\\D/g, '');
+    const mobileDigits = digits.length >= 10 ? digits.slice(-10) : digits;
+    const maskedMobile = mobileDigits.length >= 4
+      ? mobileDigits.slice(0, 2) + 'xxxxxx' + mobileDigits.slice(-2)
+      : '';
+    details[plotNumber] = {
+      name: String(booking.customer_name || '').trim(),
+      mobile: maskedMobile,
+      status: plots[plotNumber],
+    };
   }
-  res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=60');
-  return res.status(200).json({ ok: true, plots });
+  res.setHeader('Cache-Control', 'no-store');
+  return res.status(200).json({ ok: true, plots, details });
 }
 
 export const config = { maxDuration: 15 };

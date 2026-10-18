@@ -174,12 +174,12 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
     setCustomerForm({ customer_name: '', phone: '', plot_id: '', status: 'Available' });
     setCustomerLoading(true);
     try {
-      const response = await fetch('/api/admin-data?view=bookings', { headers: { 'x-admin-pin': authPin }, cache: 'no-store' });
+      const response = await fetch('/api/admin-data?view=bookings', { headers: { 'x-admin-pin': authPin }, cache: 'no-store', signal: AbortSignal.timeout(15000) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load plot units.');
       setCustomerPlots(data.plots || []);
     } catch (error) {
-      setCustomerError(error.message || 'Could not load plot units.');
+      setCustomerError(error.name === 'TimeoutError' ? 'Loading units timed out. Please close the form and try again.' : (error.message || 'Could not load plot units.'));
     } finally { setCustomerLoading(false); }
   };
 
@@ -192,6 +192,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-pin': authPin },
         body: JSON.stringify(customerForm),
+        signal: AbortSignal.timeout(20000),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not add customer.');
@@ -202,12 +203,12 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
       setCustomerOpen(false);
       setNote({ t: data.warning || 'Customer added successfully. The record is saved to Supabase and will appear in the Bookings table.', ok: true });
     } catch (error) {
-      setCustomerError(error.message || 'Could not add customer.');
+      setCustomerError(error.name === 'TimeoutError' ? 'Saving timed out. Please check the Bookings page before retrying to avoid a duplicate.' : (error.message || 'Could not add customer.'));
     } finally { setCustomerBusy(false); }
   };
 
   const handleOverlayMouseDown = event => {
-    if (event.target === event.currentTarget && !customerBusy) setCustomerOpen(false);
+    if (event.target === event.currentTarget) setCustomerOpen(false);
   };
 
   return (
@@ -279,7 +280,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
     </div>
     {customerOpen && <div className="admin-customer-overlay" role="presentation" onMouseDown={handleOverlayMouseDown}>
       <form className="admin-customer-modal" onSubmit={saveCustomer}>
-        <button type="button" className="admin-customer-close" onClick={() => setCustomerOpen(false)} aria-label="Close" disabled={customerBusy}>×</button>
+        <button type="button" className="admin-customer-close" onClick={() => setCustomerOpen(false)} aria-label="Close" disabled={false}>×</button>
         <p className="admin-customer-eyebrow">MANUAL CUSTOMER ENTRY</p>
         <h2>Add Customer</h2>
         <p className="admin-customer-copy">Enter the customer details. After saving, the booking will be available in the Bookings page.</p>
@@ -293,7 +294,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
           <option value="Available">Availability</option><option value="Reserved">Reserved</option><option value="Booked">Booked</option><option value="Sold">Sold</option>
         </select></label>
         {customerError && <p className="admin-customer-error" role="alert">{customerError}</p>}
-        <div className="admin-customer-actions"><button type="button" className="admin-customer-cancel" onClick={() => setCustomerOpen(false)} disabled={customerBusy}>Cancel</button><button type="submit" className="admin-customer-submit" disabled={customerBusy || customerLoading || !customerPlots.length}>{customerBusy ? 'Saving…' : customerLoading ? 'Loading units…' : 'Add Customer'}</button></div>
+        <div className="admin-customer-actions"><button type="button" className="admin-customer-cancel" onClick={() => setCustomerOpen(false)}>Cancel</button><button type="submit" className="admin-customer-submit" disabled={customerBusy || customerLoading || !customerPlots.length}>{customerBusy ? 'Saving…' : customerLoading ? 'Loading units…' : 'Add Customer'}</button></div>
       </form>
     </div>}
     </>

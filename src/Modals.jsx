@@ -55,6 +55,17 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
               ? <div><button className="mbtn" type="button" onClick={onEnquire}>Booking enquiry</button></div>
               : <p>{sv === 'b' ? 'This plot is currently booked.' : 'This plot has been sold.'}</p>}
           </div>
+          {sv === 'r' && Array.isArray(details.reservedCustomers) && details.reservedCustomers.length > 0 && (
+            <section className="reserved-customer-list" aria-label="Customers who reserved this unit">
+              <h3>Already reserved by</h3>
+              <ul>{details.reservedCustomers.map((customer, index) => (
+                <li key={String(customer.name) + '-' + index}>
+                  <span>{customer.name}</span>{customer.mobile && <small>{customer.mobile}</small>}
+                </li>
+              ))}</ul>
+              <p>This unit is still open for enquiries until it is Booked or Sold.</p>
+            </section>
+          )}
           <div className="ub"><div className="uc">
             <div className="chips"><span className="u">Unit: {lb}</span><span className={sv}>Status: {NAMES[sv]}</span></div>
             <div className="ar"><b>{a} Sq.ft.</b> <span>&middot; {(a / 435.6).toFixed(2)} cents</span></div>

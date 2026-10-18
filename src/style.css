@@ -706,7 +706,7 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
 @media (max-width:1199px){
   .top{
     display:grid!important;
-    grid-template-columns:max-content minmax(0,1fr) minmax(130px,190px)!important;
+    grid-template-columns:max-content minmax(0,1fr) minmax(112px,170px)!important;
     grid-template-areas:"back title search" "legend legend legend"!important;
     align-items:center!important;
     gap:8px!important;
@@ -776,7 +776,7 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
 }
 @media(max-width:420px){
   .top{
-    grid-template-columns:max-content minmax(0,1fr) 132px!important;
+    grid-template-columns:max-content minmax(0,1fr) 112px!important;
     gap:5px!important;
   }
   .top>.map-back-button{padding:6px 7px!important;font-size:12px!important}

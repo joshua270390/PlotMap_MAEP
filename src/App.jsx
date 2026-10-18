@@ -8,6 +8,7 @@ import { addDm, loadAd, makeApi, saveAd } from './adminData.js';
 
 export default function App() {
   const [status, setStatus] = useState({});          // a=Available, r=Reserved, b=Booked, s=Sold (from Supabase)
+  const [plotDetails, setPlotDetails] = useState({});
   const [filt, setFilt] = useState(null);
   const [sel, setSel] = useState(null);              // selected plot (highlight / admin editor)
   const [selD, setSelD] = useState(null);            // selected dimension label (admin)
@@ -28,6 +29,7 @@ export default function App() {
       const m = {};
       P.forEach(([id]) => { const v = j.plots[String(id)]; if (v) m[id] = toStatus(v); });
       setStatus(m);
+      setPlotDetails(j.details || {});
     }).catch(() => {});   // no API (plain `vite` dev): every plot shows as Available
   }, []);
 
@@ -86,7 +88,7 @@ export default function App() {
 
   return (
     <>
-      <PlotMap ref={mapRef} ax={ax} status={status} filt={filt} setFilt={setFilt} sel={sel} selD={selD} setSel={setSel}
+      <PlotMap ref={mapRef} ax={ax} status={status} details={plotDetails} filt={filt} setFilt={setFilt} sel={sel} selD={selD} setSel={setSel}
         onTap={onTap} admin={admin} addMode={addMode} adminEnquiries={adminEnquiries}>
         <AdminPanel panel={panel} setPanel={setPanel} ax={ax} setAd={setAd} sel={sel} selD={selD} status={status} setStatus={setStatus}
           addMode={addMode} setAddMode={setAddMode} clearSel={clearSel} onAdminAuth={loadAdminEnquiries} onAdminExit={() => setAdminEnquiries([])} />

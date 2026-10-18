@@ -17,8 +17,8 @@ async function readTable(table, query) {
 export default async function handler(req, res) {
   if (req.method !== 'GET') { res.setHeader('Allow', 'GET'); return res.status(405).json({ ok: false }); }
   if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(500).json({ ok: false });
-  const plotQuery = new URLSearchParams({ select: 'id,plot_number', project_id: 'eq.' + PROJECT_ID, limit: '2000' });
-  const bookingQuery = new URLSearchParams({ select: 'id,plot_id,status,customer_name,phone', project_id: 'eq.' + PROJECT_ID, order: 'id.desc', limit: '2000' });
+  const plotQuery = new URLSearchParams({ select: 'id,plot_number,unit_number', project_id: 'eq.' + PROJECT_ID, limit: '2000' });
+  const bookingQuery = new URLSearchParams({ select: '*', project_id: 'eq.' + PROJECT_ID, order: 'id.desc', limit: '2000' });
   const [plotResult, bookingResult] = await Promise.all([
     readTable(PLOTS, plotQuery.toString()),
     readTable(BOOKINGS, bookingQuery.toString()),
@@ -32,8 +32,10 @@ export default async function handler(req, res) {
   const plotNumberById = new Map();
   for (const row of plotResult.data || []) {
     const id = String(row.id);
-    plotNumberById.set(id, String(row.plot_number));
-    plots[String(row.plot_number)] = 'Available';
+    const plotNumber = String(row.plot_number ?? row.unit_number ?? row.id);
+    plotNumberById.set(id, plotNumber);
+    plots[id] = 'Available';
+    plots[plotNumber] = 'Available';
   }
   const seen = new Set();
   const allowed = new Set(['Available', 'Reserved', 'Booked', 'Sold']);
@@ -41,19 +43,25 @@ export default async function handler(req, res) {
     const plotId = String(booking.plot_id);
     if (seen.has(plotId) || !plotNumberById.has(plotId)) continue;
     seen.add(plotId);
-    const status = String(booking.status || '');
+    const status = String(booking.status || '').trim().toLowerCase();
     const plotNumber = plotNumberById.get(plotId);
-    plots[plotNumber] = allowed.has(status) ? status : 'Available';
-    const digits = String(booking.phone || '').replace(/\D/g, '');
+    const normalized = ({ available: 'Available', reserved: 'Reserved', booked: 'Booked', sold: 'Sold' })[status] || 'Available';
+    plots[plotId] = normalized;
+    plots[plotNumber] = normalized;
+    const rawName = booking.customer_name ?? booking.name ?? booking.full_name ?? booking.customer ?? '';
+    const rawPhone = booking.phone ?? booking.phone_number ?? booking.mobile ?? booking.mobile_number ?? booking.contact_number ?? '';
+    const digits = String(rawPhone || '').replace(/\D/g, '');
     const mobileDigits = digits.length >= 10 ? digits.slice(-10) : digits;
     const maskedMobile = mobileDigits.length >= 4
       ? mobileDigits.slice(0, 2) + 'xxxxxx' + mobileDigits.slice(-2)
       : '';
-    details[plotNumber] = {
-      name: String(booking.customer_name || '').trim(),
+    const detail = {
+      name: String(rawName || '').trim(),
       mobile: maskedMobile,
-      status: plots[plotNumber],
+      status: normalized,
     };
+    details[plotId] = detail;
+    details[plotNumber] = detail;
   }
   res.setHeader('Cache-Control', 'no-store');
   return res.status(200).json({ ok: true, plots, details });

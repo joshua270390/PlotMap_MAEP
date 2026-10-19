@@ -833,3 +833,21 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
 .plot-status-unit{margin:14px 0 18px;color:#64748b;font-size:12px;font-weight:600}
 .plot-status-close{display:block;width:100%;min-height:43px;border:0;border-radius:10px;background:#176b55;color:#fff;font-weight:800}
 @media(max-width:480px){.plot-status-modal{width:calc(100% - 24px)!important}.plot-status-modal-content{padding:24px 18px}.plot-status-modal-content h2{font-size:20px}.plot-status-info>div{grid-template-columns:95px minmax(0,1fr)}}
+
+
+/* Contact number actions in the unit edit form */
+.unit-contact-settings{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;margin-bottom:12px}
+.unit-contact-fields{display:grid;gap:10px;min-width:0}
+.unit-contact-fields label{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600}
+.unit-contact-fields input{width:100%;min-width:0}
+.unit-contact-actions{display:flex;flex-direction:column;gap:8px;align-self:center}
+.unit-contact-actions button{white-space:nowrap;min-height:38px;font-size:12px;font-weight:700}
+.unit-contact-actions .mbtn{background:var(--acc);color:#fff;border-color:var(--acc)}
+.unit-apply-all{background:var(--surface);border:1px solid var(--acc);color:var(--acc)}
+.unit-confirm-overlay{z-index:1100;background:rgba(10,16,24,.68)}
+.unit-confirm-modal{max-width:420px;padding:24px}
+.unit-confirm-modal h3{font-size:20px;margin:0 0 12px}
+.unit-confirm-modal p{font-size:14px;line-height:1.55;margin:0 0 20px;color:var(--mute)}
+.unit-confirm-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.unit-confirm-actions .mbtn{background:var(--acc);color:#fff;border-color:var(--acc)}
+@media(max-width:480px){.unit-contact-settings{grid-template-columns:minmax(0,1fr)}.unit-contact-actions{display:grid;grid-template-columns:1fr 1fr}.unit-contact-actions button{white-space:normal}.unit-confirm-modal{padding:20px}}

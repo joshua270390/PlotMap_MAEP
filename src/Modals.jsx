@@ -22,16 +22,18 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
   const waDigits = String(details.whatsapp ?? PHONE).replace(/\D/g, '').replace(/^0+/, '').replace(/^91(?=\d{10}$)/, '');
   const draftArea = Number(draft.area);
   const applyContactDetails = () => {
-    const phone = draft.phone.trim(), whatsapp = draft.whatsapp.trim();
-    if (!phone || !whatsapp) { setEditError('Enter both contact and WhatsApp numbers.'); setConfirmApply(null); return; }
+    const field = confirmApply?.field;
+    const value = String(draft[field] || '').trim();
+    if (!value) { setEditError(`Enter a valid ${field === 'phone' ? 'Contact' : 'WhatsApp'} number.`); setConfirmApply(null); return; }
     setAd(old => {
       const plotDetails = { ...(old.plotDetails || {}) };
-      const ids = confirmApply === 'all' ? P.map(plot => String(plot[0])) : [String(id)];
-      ids.forEach(plotId => { plotDetails[plotId] = { ...(plotDetails[plotId] || {}), phone, whatsapp }; });
+      const ids = confirmApply.scope === 'all' ? P.map(plot => String(plot[0])) : [String(id)];
+      ids.forEach(plotId => { plotDetails[plotId] = { ...(plotDetails[plotId] || {}), [field]: value }; });
       return { ...old, plotDetails };
     });
     setConfirmApply(null); setEditError('');
   };
+  const askApply = (field, scope) => { setEditError(''); setConfirmApply({ field, scope }); };
   const saveDetails = () => {
     if (!(draftArea > 0) || !Number.isFinite(draftArea)) { setEditError('Enter a valid Sq.ft. value.'); return; }
     const phone = draft.phone.trim(), whatsapp = draft.whatsapp.trim();
@@ -87,13 +89,15 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
           {editing ? (
             <div className="unit-edit-form">
               <div className="unit-contact-settings">
-                <div className="unit-contact-fields">
+                <div className="unit-contact-row">
                   <label>Contact number<input type="tel" inputMode="tel" value={draft.phone} onChange={e => setDraft(v => ({ ...v, phone: e.target.value }))} /></label>
-                  <label>WhatsApp number<input type="tel" inputMode="tel" value={draft.whatsapp} onChange={e => setDraft(v => ({ ...v, whatsapp: e.target.value }))} /></label>
+                  <button className="mbtn" type="button" onClick={() => askApply('phone', 'single')}>Apply for this plot</button>
+                  <button className="unit-apply-all" type="button" onClick={() => askApply('phone', 'all')}>Apply to all</button>
                 </div>
-                <div className="unit-contact-actions">
-                  <button className="mbtn" type="button" onClick={() => { setEditError(''); setConfirmApply('single'); }}>Apply for this plot</button>
-                  <button className="unit-apply-all" type="button" onClick={() => { setEditError(''); setConfirmApply('all'); }}>Apply to all</button>
+                <div className="unit-contact-row">
+                  <label>WhatsApp number<input type="tel" inputMode="tel" value={draft.whatsapp} onChange={e => setDraft(v => ({ ...v, whatsapp: e.target.value }))} /></label>
+                  <button className="mbtn" type="button" onClick={() => askApply('whatsapp', 'single')}>Apply for this plot</button>
+                  <button className="unit-apply-all" type="button" onClick={() => askApply('whatsapp', 'all')}>Apply to all</button>
                 </div>
               </div>
               <label>Area (Sq.ft.)<input type="number" min="1" step="any" value={draft.area} onChange={e => setDraft(v => ({ ...v, area: e.target.value }))} /></label>
@@ -111,7 +115,7 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
         <div className="mo unit-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="unit-confirm-title">
           <div className="mb unit-confirm-modal">
             <h3 id="unit-confirm-title">Confirm contact number update</h3>
-            <p>{confirmApply === 'all' ? 'Are you sure you want to update the Contact number and WhatsApp number for ALL plots?' : `Are you sure you want to update the Contact number and WhatsApp number for plot ${lb} only?`}</p>
+            <p>{`Are you sure you want to update the ${confirmApply.field === 'phone' ? 'Contact number' : 'WhatsApp number'} ${confirmApply.scope === 'all' ? 'for ALL plots' : `for plot ${lb} only`}?`}</p>
             <div className="unit-confirm-actions">
               <button className="unit-edit-cancel" type="button" onClick={() => setConfirmApply(null)}>Cancel</button>
               <button className="mbtn" type="button" onClick={applyContactDetails}>Yes, apply</button>

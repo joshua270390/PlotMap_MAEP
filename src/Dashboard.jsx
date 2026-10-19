@@ -307,20 +307,24 @@ export default function Dashboard() {
               </section>
                 </div>
                 {page === 'dashboard' && (
-                  <article className="chart-panel chart-panel-donut">
-                    <div className="chart-heading"><div><span className="chart-eyebrow">INVENTORY MIX</span><h3>Plot availability</h3></div><span className="chart-menu-mark">•••</span></div>
-                    <div className="donut-layout">
-                      <div className="inventory-donut" style={{ background: P.length ? `conic-gradient(#18a779 0% ${plotCounts.Available / P.length * 100}%, #e8b34e ${plotCounts.Available / P.length * 100}% ${(plotCounts.Available + plotCounts.Reserved) / P.length * 100}%, #4e82d5 ${(plotCounts.Available + plotCounts.Reserved) / P.length * 100}% ${(plotCounts.Available + plotCounts.Reserved + plotCounts.Booked) / P.length * 100}%, #dd6572 ${(plotCounts.Available + plotCounts.Reserved + plotCounts.Booked) / P.length * 100}% 100%)` : 'conic-gradient(#e5eaf1 0% 100%)' }}>
-                        <div className="donut-hole"><strong>{P.length}</strong><span>Total plots</span></div>
-                      </div>
-                      <div className="chart-legend">
-                        <div><i className="legend-available" /><span>Available</span><strong>{plotCounts.Available}</strong></div>
-                        <div><i className="legend-reserved" /><span>Reserved</span><strong>{plotCounts.Reserved}</strong></div>
-                        <div><i className="legend-booked" /><span>Booked</span><strong>{plotCounts.Booked}</strong></div>
-                        <div><i className="legend-sold" /><span>Sold</span><strong>{plotCounts.Sold}</strong></div>
-                      </div>
+                  <div className="inventory-mix-widget">
+                    <div className="chart-heading inventory-mix-heading">
+                      <div><span className="chart-eyebrow">INVENTORY MIX</span><h3>Plot availability</h3></div>
                     </div>
-                  </article>
+                    <article className="chart-panel chart-panel-donut">
+                      <div className="donut-layout">
+                        <div className="inventory-donut" style={{ background: P.length ? `conic-gradient(#18a779 0% ${plotCounts.Available / P.length * 100}%, #e8b34e ${plotCounts.Available / P.length * 100}% ${(plotCounts.Available + plotCounts.Reserved) / P.length * 100}%, #4e82d5 ${(plotCounts.Available + plotCounts.Reserved) / P.length * 100}% ${(plotCounts.Available + plotCounts.Reserved + plotCounts.Booked) / P.length * 100}%, #dd6572 ${(plotCounts.Available + plotCounts.Reserved + plotCounts.Booked) / P.length * 100}% 100%)` : 'conic-gradient(#e5eaf1 0% 100%)' }}>
+                          <div className="donut-hole"><strong>{P.length}</strong><span>Total plots</span></div>
+                        </div>
+                        <div className="chart-legend">
+                          <div><i className="legend-available" /><span>Available</span><strong>{plotCounts.Available}</strong></div>
+                          <div><i className="legend-reserved" /><span>Reserved</span><strong>{plotCounts.Reserved}</strong></div>
+                          <div><i className="legend-booked" /><span>Booked</span><strong>{plotCounts.Booked}</strong></div>
+                          <div><i className="legend-sold" /><span>Sold</span><strong>{plotCounts.Sold}</strong></div>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
                 )}
               </div>
             </>

@@ -441,7 +441,7 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 /* Dashboard layout refinement: give recent enquiries more room and enlarge inventory donut. */
 @media(min-width:1101px){
   .dashboard-recent-layout:not(.dashboard-recent-layout-single){
-    grid-template-columns:minmax(0,2fr) minmax(360px,.95fr);
+    grid-template-columns:minmax(0,2.5fr) minmax(320px,.8fr);
     gap:24px;
   }
 }

@@ -21,3 +21,30 @@ The `/api` route is missing where the page is running. On Vercel, open `https://
 - The enquiry sends the plot number shown on the map, so a renamed plot must have the same `plot_number` in the database.
 - Price rows are hidden while `RATE` in `src/config.js` is 0.
 - Enquiry protection: same-site check, honeypot, validation, best-effort rate limit per instance. Errors are in Vercel > Logs.
+
+## Source structure
+
+The React source is organized by responsibility while preserving the existing app entry points and runtime behavior:
+
+```text
+src/
+  App.jsx                    # Plot-map app composition and top-level UI state
+  main.jsx                   # Existing route/entry selection
+  shared/
+    config.js                # Company/project display configuration
+  features/
+    plots/
+      data.js                # Plot, road and dimension data
+      plotUtils.js           # Plot status, geometry and formatting helpers
+      Modals.jsx             # Plot details, booking enquiry and status dialogs
+    map/
+      PlotMap.jsx             # Interactive SVG map and map interactions
+    admin/
+      AdminPanel.jsx          # Admin editing UI
+      adminData.js            # Admin state persistence and map editing operations
+    dashboard/
+      Dashboard.jsx           # Dashboard, booking list and plot-list UI
+      Dashboard.css           # Dashboard-specific styles
+  style.css                  # Shared map/global styles
+
+Legacy module files in `src/` remain as thin re-exports during the transition, so older imports continue to resolve.

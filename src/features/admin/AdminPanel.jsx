@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AD0, delDm, revertPlot, setDm, setPlot } from './features/admin/adminData.js';
-import { AREAS, POS, cents } from './features/plots/plotUtils.js';
+import { AD0, delDm, revertPlot, setDm, setPlot } from './adminData.js';
+import { AREAS, POS, cents } from '../plots/plotUtils.js';
 
 const num = v => parseFloat(v);
 

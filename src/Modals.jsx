@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { COMPANY, PHONE, PROJECT } from './config.js';
 import { NAMES, inr } from './plots.js';
+import { P } from './data.js';
 
 const backdrop = onClose => ({ onPointerDown: e => { if (e.target === e.currentTarget) onClose(); } });
 
@@ -10,6 +11,7 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ phone: details.phone ?? PHONE, whatsapp: details.whatsapp ?? PHONE, area: String(a) });
   const [editError, setEditError] = useState('');
+  const [confirmApply, setConfirmApply] = useState(null);
   useEffect(() => { closeRef.current && closeRef.current.focus(); }, []);
   useEffect(() => {
     const d = ax.ad.plotDetails?.[id] || {};
@@ -19,6 +21,17 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
   const phoneDigits = String(details.phone ?? PHONE).replace(/\D/g, '');
   const waDigits = String(details.whatsapp ?? PHONE).replace(/\D/g, '').replace(/^0+/, '').replace(/^91(?=\d{10}$)/, '');
   const draftArea = Number(draft.area);
+  const applyContactDetails = () => {
+    const phone = draft.phone.trim(), whatsapp = draft.whatsapp.trim();
+    if (!phone || !whatsapp) { setEditError('Enter both contact and WhatsApp numbers.'); setConfirmApply(null); return; }
+    setAd(old => {
+      const plotDetails = { ...(old.plotDetails || {}) };
+      const ids = confirmApply === 'all' ? P.map(plot => String(plot[0])) : [String(id)];
+      ids.forEach(plotId => { plotDetails[plotId] = { ...(plotDetails[plotId] || {}), phone, whatsapp }; });
+      return { ...old, plotDetails };
+    });
+    setConfirmApply(null); setEditError('');
+  };
   const saveDetails = () => {
     if (!(draftArea > 0) || !Number.isFinite(draftArea)) { setEditError('Enter a valid Sq.ft. value.'); return; }
     const phone = draft.phone.trim(), whatsapp = draft.whatsapp.trim();
@@ -73,8 +86,16 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
           </div></div>
           {editing ? (
             <div className="unit-edit-form">
-              <label>Contact number<input type="tel" inputMode="tel" value={draft.phone} onChange={e => setDraft(v => ({ ...v, phone: e.target.value }))} /></label>
-              <label>WhatsApp number<input type="tel" inputMode="tel" value={draft.whatsapp} onChange={e => setDraft(v => ({ ...v, whatsapp: e.target.value }))} /></label>
+              <div className="unit-contact-settings">
+                <div className="unit-contact-fields">
+                  <label>Contact number<input type="tel" inputMode="tel" value={draft.phone} onChange={e => setDraft(v => ({ ...v, phone: e.target.value }))} /></label>
+                  <label>WhatsApp number<input type="tel" inputMode="tel" value={draft.whatsapp} onChange={e => setDraft(v => ({ ...v, whatsapp: e.target.value }))} /></label>
+                </div>
+                <div className="unit-contact-actions">
+                  <button className="mbtn" type="button" onClick={() => { setEditError(''); setConfirmApply('single'); }}>Apply for this plot</button>
+                  <button className="unit-apply-all" type="button" onClick={() => { setEditError(''); setConfirmApply('all'); }}>Apply to all</button>
+                </div>
+              </div>
               <label>Area (Sq.ft.)<input type="number" min="1" step="any" value={draft.area} onChange={e => setDraft(v => ({ ...v, area: e.target.value }))} /></label>
               <p className="unit-edit-cent">= {draftArea > 0 && Number.isFinite(draftArea) ? (draftArea / 435.6).toFixed(2) : '0.00'} cent</p>
               {editError && <p className="unit-edit-error" role="alert">{editError}</p>}
@@ -86,6 +107,18 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
           <button className="mv" type="button" onClick={onViewMap}>&#128205; View on Map</button>
         </div>
       </div>
+      {confirmApply && (
+        <div className="mo unit-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="unit-confirm-title">
+          <div className="mb unit-confirm-modal">
+            <h3 id="unit-confirm-title">Confirm contact number update</h3>
+            <p>{confirmApply === 'all' ? 'Are you sure you want to update the Contact number and WhatsApp number for ALL plots?' : `Are you sure you want to update the Contact number and WhatsApp number for plot ${lb} only?`}</p>
+            <div className="unit-confirm-actions">
+              <button className="unit-edit-cancel" type="button" onClick={() => setConfirmApply(null)}>Cancel</button>
+              <button className="mbtn" type="button" onClick={applyContactDetails}>Yes, apply</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

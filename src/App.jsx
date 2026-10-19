@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PlotMap from './PlotMap.jsx';
 import AdminPanel from './AdminPanel.jsx';
 import { EnquiryModal, UnitModal, PlotStatusModal } from './Modals.jsx';
-import { P } from './data.js';
-import { toStatus } from './plots.js';
-import { addDm, loadAd, makeApi, saveAd } from './adminData.js';
+import { P } from './features/plots/data.js';
+import { toStatus } from './features/plots/plotUtils.js';
+import { addDm, loadAd, makeApi, saveAd } from './features/admin/adminData.js';
 
 export default function App() {
   const [status, setStatus] = useState({});          // a=Available, r=Reserved, b=Booked, s=Sold (from Supabase)

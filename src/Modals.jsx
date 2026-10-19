@@ -90,6 +90,37 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
   );
 }
 
+
+export function PlotStatusModal({ id, status, ax, customer = {}, onClose }) {
+  const lb = ax.lbl(id);
+  const sold = status === 's';
+  const heading = sold ? 'Sold' : 'Booked';
+  const closeRef = useRef(null);
+  useEffect(() => { closeRef.current?.focus(); }, []);
+  useEffect(() => {
+    const onKeyDown = event => { if (event.key === 'Escape') onClose(); };
+    addEventListener('keydown', onKeyDown);
+    return () => removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+  return (
+    <div className="mo plot-status-overlay" role="dialog" aria-modal="true" aria-labelledby="plot-status-title" {...backdrop(onClose)}>
+      <div className="mb plot-status-modal">
+        <button className="mx" ref={closeRef} type="button" aria-label="Close" onClick={onClose}>&times;</button>
+        <div className="plot-status-modal-content">
+          <span className={'plot-status-badge ' + (sold ? 'sold' : 'booked')}>{heading}</span>
+          <h2 id="plot-status-title">This plot is {heading} by:</h2>
+          <div className="plot-status-info">
+            <div><span>Name:</span><strong>{customer?.name || '—'}</strong></div>
+            <div><span>Mobile No:</span><strong>{customer?.mobile || '—'}</strong></div>
+          </div>
+          <p className="plot-status-unit">Unit: {lb}</p>
+          <button className="plot-status-close" type="button" onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const OK_MSG = [403, 404, 409, 422, 429];
 
 export function EnquiryModal({ id, ax, onClose }) {

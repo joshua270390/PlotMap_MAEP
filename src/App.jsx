@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PlotMap from './PlotMap.jsx';
 import AdminPanel from './AdminPanel.jsx';
-import { EnquiryModal, UnitModal } from './Modals.jsx';
+import { EnquiryModal, UnitModal, PlotStatusModal } from './Modals.jsx';
 import { P } from './data.js';
 import { toStatus } from './plots.js';
 import { addDm, loadAd, makeApi, saveAd } from './adminData.js';
@@ -13,6 +13,7 @@ export default function App() {
   const [sel, setSel] = useState(null);              // selected plot (highlight / admin editor)
   const [selD, setSelD] = useState(null);            // selected dimension label (admin)
   const [unit, setUnit] = useState(null);
+  const [closedPlot, setClosedPlot] = useState(null);
   const [form, setForm] = useState(false);
   const [ad, setAd] = useState(loadAd);              // admin edits, saved in this browser
   const [adminEnquiries, setAdminEnquiries] = useState([]);
@@ -59,11 +60,11 @@ export default function App() {
   useEffect(() => {
     const onKey = e => {
       if (e.key !== 'Escape') return;
-      if (form) setForm(false); else if (unit != null) closeUnit();
+      if (form) setForm(false); else if (unit != null) closeUnit(); else if (closedPlot != null) setClosedPlot(null);
     };
     addEventListener('keydown', onKey);
     return () => removeEventListener('keydown', onKey);
-  }, [form, unit, closeUnit]);
+  }, [form, unit, closedPlot, closeUnit]);
 
   const onTap = ({ id, dm, x, y }) => {
     if (admin) {
@@ -79,8 +80,10 @@ export default function App() {
       setForm(false);
       setUnit(null);
       setSel(null);
+      setClosedPlot({ id, status: plotStatus });
       return;
     }
+    setClosedPlot(null);
     setSel(id);
     setUnit(id);
     setForm(false);
@@ -93,6 +96,9 @@ export default function App() {
         <AdminPanel panel={panel} setPanel={setPanel} ax={ax} setAd={setAd} sel={sel} selD={selD} status={status} setStatus={setStatus}
           addMode={addMode} setAddMode={setAddMode} clearSel={clearSel} onAdminAuth={loadAdminEnquiries} onAdminExit={() => setAdminEnquiries([])} />
       </PlotMap>
+      {closedPlot != null && <PlotStatusModal id={closedPlot.id} status={closedPlot.status} ax={ax}
+        customer={plotDetails[ax.lbl(closedPlot.id)] || plotDetails[String(closedPlot.id)] || {}}
+        onClose={() => setClosedPlot(null)} />}
       {unit != null && !form && (
         <UnitModal id={unit} ax={ax} status={status[unit]} setAd={setAd} onClose={closeUnit} onEnquire={() => setForm(true)}
           reservedCustomers={plotDetails[ax.lbl(unit)]?.reservedCustomers || plotDetails[String(unit)]?.reservedCustomers || []}

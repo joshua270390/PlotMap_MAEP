@@ -262,7 +262,7 @@ export default function Dashboard() {
               ) : null}
               <div className={page === 'dashboard' ? "dashboard-recent-layout" : "dashboard-recent-layout dashboard-recent-layout-single"}>
                 <div className="dashboard-recent-main">
-              <div className="page-intro"><div><h2>{page === 'dashboard' ? 'Recent enquiries & bookings' : 'Bookings overview'}</h2><p>Review customer enquiries and manage unit availability.</p></div><div className="record-count"><strong>{bookings.length}</strong><span>Total bookings</span></div></div>
+              <div className="page-intro"><div><h2>{page === 'dashboard' ? 'Recent enquiries & bookings' : 'Bookings overview'}</h2><p>Review customer enquiries and manage unit availability.</p></div>{page !== 'dashboard' && <div className="record-count"><strong>{bookings.length}</strong><span>Total bookings</span></div>}</div>
               <section className="table-card">
                 <div className="table-toolbar">
                   <label className="search-field"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search customer, phone or unit…" /></label>

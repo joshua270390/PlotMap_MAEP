@@ -458,3 +458,17 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
   .dashboard-recent-layout .inventory-mix-widget .chart-panel-donut{max-width:340px}
   .inventory-mix-widget .inventory-donut{width:min(100%,185px);max-width:185px}
 }
+
+/* Match the inventory donut panel height to the recent enquiries table on desktop. */
+@media(min-width:1101px){
+  .dashboard-recent-layout:not(.dashboard-recent-layout-single){align-items:stretch}
+  .dashboard-recent-main{display:flex;flex-direction:column;min-height:0}
+  .dashboard-recent-main .table-card{flex:1 1 auto;min-height:420px}
+  .inventory-mix-widget{height:100%;display:flex;flex-direction:column;min-height:0}
+  .dashboard-recent-layout .inventory-mix-widget .chart-panel-donut{flex:1 1 auto;min-height:420px;box-sizing:border-box}
+}
+@media(max-width:1100px){
+  .dashboard-recent-main .table-card{min-height:0}
+  .dashboard-recent-layout .inventory-mix-widget .chart-panel-donut{min-height:0}
+}
+

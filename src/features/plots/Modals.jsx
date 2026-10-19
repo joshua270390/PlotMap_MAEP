@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { COMPANY, PHONE, PROJECT } from './shared/config.js';
-import { NAMES, inr } from './features/plots/plotUtils.js';
-import { P } from './features/plots/data.js';
+import { COMPANY, PHONE, PROJECT } from '../../shared/config.js';
+import { NAMES, inr } from './plotUtils.js';
+import { P } from './data.js';
 
 const backdrop = onClose => ({ onPointerDown: e => { if (e.target === e.currentTarget) onClose(); } });
 

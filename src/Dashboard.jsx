@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import './Dashboard.css';
-import { P, G } from './data.js';
+import { P, G } from './features/plots/data.js';
 
 const STATUSES = [
   { value: 'Available', label: 'Availability' },

@@ -502,3 +502,42 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
   .dashboard-recent-layout .dashboard-recent-main > .page-intro p{font-size:12px}
 }
 
+/* Final alignment: inventory card starts level with bookings table; larger centered donut. */
+@media(min-width:1101px){
+  .dashboard-recent-layout .inventory-mix-heading{
+    min-height:66px;
+    height:66px;
+    margin:0 0 22px;
+    padding:0 2px;
+    box-sizing:border-box;
+    align-items:flex-start;
+  }
+  .dashboard-recent-layout .inventory-mix-widget .chart-panel-donut{
+    margin-top:0;
+  }
+  .dashboard-recent-layout .inventory-mix-widget .donut-layout{
+    flex:1 1 auto;
+    justify-content:center;
+    gap:18px;
+  }
+  .dashboard-recent-layout .inventory-mix-widget .inventory-donut{
+    width:min(100%,260px);
+    max-width:260px;
+    flex:0 0 auto;
+  }
+}
+@media(max-width:1100px){
+  .dashboard-recent-layout .inventory-mix-widget .donut-layout{justify-content:center}
+  .dashboard-recent-layout .inventory-mix-widget .inventory-donut{
+    width:min(100%,230px);
+    max-width:230px;
+  }
+}
+@media(max-width:640px){
+  .dashboard-recent-layout .inventory-mix-heading{height:auto;min-height:0;margin-bottom:16px}
+  .dashboard-recent-layout .inventory-mix-widget .inventory-donut{
+    width:min(100%,205px);
+    max-width:205px;
+  }
+}
+

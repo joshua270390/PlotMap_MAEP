@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import PlotMap from './PlotMap.jsx';
-import AdminPanel from './AdminPanel.jsx';
-import { EnquiryModal, UnitModal, PlotStatusModal } from './Modals.jsx';
+import PlotMap from './features/map/PlotMap.jsx';
+import AdminPanel from './features/admin/AdminPanel.jsx';
+import { EnquiryModal, UnitModal, PlotStatusModal } from './features/plots/Modals.jsx';
 import { P } from './features/plots/data.js';
 import { toStatus } from './features/plots/plotUtils.js';
 import { addDm, loadAd, makeApi, saveAd } from './features/admin/adminData.js';

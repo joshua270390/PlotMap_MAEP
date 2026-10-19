@@ -1,7 +1,7 @@
 import { forwardRef, memo, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { P, G, LB } from './features/plots/data.js';
-import { COMPANY, LAYOUT, PROJECT } from './shared/config.js';
-import { NAMES, PM, cents, inr } from './features/plots/plotUtils.js';
+import { P, G, LB } from '../plots/data.js';
+import { COMPANY, LAYOUT, PROJECT } from '../../shared/config.js';
+import { NAMES, PM, cents, inr } from '../plots/plotUtils.js';
 
 const TREE = `<symbol id="tr1" viewBox="0 0 100 120"><ellipse cx="50" cy="111" rx="30" ry="7" fill="rgba(0,0,0,.24)"/><path class="tk" d="M44 112 L47 66 L53 66 L56 112Z"/><path class="tk" d="M50 88 L36 72 L40 70 L50 80Z"/><circle class="g1" cx="50" cy="46" r="34"/><circle class="g1" cx="25" cy="62" r="22"/><circle class="g1" cx="75" cy="62" r="22"/><circle class="g2" cx="48" cy="42" r="28"/><circle class="g2" cx="28" cy="57" r="16"/><circle class="g2" cx="72" cy="57" r="16"/><circle class="g3" cx="40" cy="32" r="13"/><circle class="g3" cx="63" cy="44" r="9"/><circle class="g3" cx="25" cy="52" r="7"/></symbol>`;
 

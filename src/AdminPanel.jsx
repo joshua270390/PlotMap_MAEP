@@ -170,7 +170,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
 
   useEffect(() => { if (initialAdminPin) setAuthPin(initialAdminPin); }, [initialAdminPin]);
 
-  if (panel === 'off') return <button id="admbtn" className="fl" type="button" onClick={() => setPanel('lock')}>Admin</button>;
+  if (panel === 'off') return <button id="admbtn" className="fl" type="button" onClick={() => { if (initialAdminPin) { setAuthPin(initialAdminPin); setPanel('tools'); } else setPanel('lock'); }}>Admin</button>;
 
   const unlock = async () => {
     if (authBusy || !pin) return;
@@ -182,6 +182,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || 'Wrong PIN.');
+      window.sessionStorage.setItem('maep_admin_pin', pin);
       setAuthPin(pin); setPin(''); setPanel('tools'); if (onAdminAuth) onAdminAuth(pin);
     } catch (error) {
       setPm(error.message || 'Admin authentication failed.');

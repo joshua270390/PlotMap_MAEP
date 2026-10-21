@@ -5,7 +5,7 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
   headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
 });
 const config = () => ({
-  url: (process.env.SUPABASE_URL || "").replace(/\\/+$/, ""),
+  url: (process.env.SUPABASE_URL || "").replace(/\/+$/, ""),
   key: (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || "").trim(),
   secret: process.env.USER_SESSION_SECRET || "",
   resendKey: process.env.RESEND_API_KEY || "",
@@ -13,7 +13,7 @@ const config = () => ({
   usersTable: process.env.USER_ACCESS_TABLE || "user_access",
   otpTable: process.env.USER_EMAIL_OTP_TABLE || "user_email_otps",
 });
-const validEmail = email => /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) && email.length <= 254;
+const validEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254;
 const hashOtp = (email, otp, secret) => createHmac("sha256", secret).update(email + ":" + otp).digest();
 const makeToken = (email, secret) => {
   const payload = Buffer.from(JSON.stringify({ email, exp: Date.now() + 8 * 60 * 60 * 1000 })).toString("base64url");

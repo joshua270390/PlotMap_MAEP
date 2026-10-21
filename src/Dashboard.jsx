@@ -261,6 +261,7 @@ export default function Dashboard() {
           <img className="login-logo" src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" />
           <h1>{authMode === 'register' ? 'Create User Account' : 'Sign in'}</h1>
           <p className="login-copy">{authMode === 'register' ? 'Create an account. Admin approval is required before access.' : 'Choose your role to continue.'}</p>
+          {role === 'user' && error.includes('User access is not configured') && <p className="dash-error login-config-error" role="alert">{error}</p>}
           <label htmlFor="login-role">Role</label>
           <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setAuthMode('login'); setError(''); setNotice(''); }}><option value="admin">Admin</option><option value="user">User</option></select>
           {role === 'user' && authMode === 'register' && <><label htmlFor="user-name">Full name</label><input id="user-name" value={userName} onChange={e => setUserName(e.target.value)} autoComplete="name" maxLength={120} required placeholder="Enter your full name" /></>}
@@ -268,7 +269,7 @@ export default function Dashboard() {
           <label htmlFor="admin-pin">{role === 'admin' ? 'Admin PIN' : 'PIN'}</label>
           <input id="admin-pin" type="password" inputMode="text" autoComplete={authMode === 'register' ? 'new-password' : 'current-password'} value={pin} onChange={e => setPin(e.target.value)} placeholder={role === 'admin' ? 'Enter your Admin PIN' : 'Enter your PIN'} required minLength={role === 'user' ? 6 : undefined} maxLength={32} />
           {role === 'user' && authMode === 'register' && <><label htmlFor="confirm-pin">Confirm PIN</label><input id="confirm-pin" type="password" value={confirmPin} onChange={e => setConfirmPin(e.target.value)} autoComplete="new-password" required minLength={6} maxLength={32} /></>}
-          {error && <p className="dash-error" role="alert">{error}</p>}{notice && <p className="dash-notice" role="status">{notice}</p>}
+          {error && !(role === 'user' && error.includes('User access is not configured')) && <p className="dash-error" role="alert">{error}</p>}{notice && <p className="dash-notice" role="status">{notice}</p>}
           <button className="primary-btn login-submit" disabled={saving}>{saving ? 'Please wait…' : authMode === 'register' ? 'Create account' : 'Sign in'} <span>→</span></button>
           {role === 'user' && <button type="button" className="profile-signout" onClick={() => { setAuthMode(authMode === 'register' ? 'login' : 'register'); setError(''); setNotice(''); }}>{authMode === 'register' ? 'Back to sign in' : 'Create a user account'}</button>}
         </form>
@@ -317,11 +318,16 @@ export default function Dashboard() {
 
           {page === 'users' && role === 'admin' ? (
             <section className="table-card user-management-card">
-              <div className="page-intro"><div><h2>User access management</h2><p>Approve registered users before they can sign in. PINs are stored as protected hashes.</p></div><button type="button" className="add-customer-btn" onClick={loadUsers} disabled={loading}>Refresh</button></div>
+              <div className="page-intro"><div><h2>User access management</h2><p>Approve registered users before they can sign in. PINs are stored as protected hashes.</p></div></div>
+              <div className="table-toolbar">
+                <label className="search-field"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, email or access status…" aria-label="Search user accounts" /></label>
+                <div className="booking-toolbar-actions"><button type="button" className="add-customer-btn" onClick={loadUsers} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button></div>
+              </div>
               {loading ? <div className="table-state">Loading user accounts…</div> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Name</th><th>Email</th><th>PIN</th><th>Access status</th><th>Registered</th><th>Action</th></tr></thead><tbody>
-                {users.map(user => <tr key={user.id}><td><strong>{user.name}</strong></td><td>{user.email}</td><td><span className="unit-pill">Protected</span></td><td><span className={'status-select status-' + user.status}>{user.status === 'approved' ? 'Approved' : user.status === 'revoked' ? 'Revoked' : 'Pending'}</span></td><td>{user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}</td><td><div className="row-actions">{user.status !== 'approved' && <button className="edit-btn" disabled={saving} onClick={() => updateUserAccess(user.id, 'approve')}>Approve</button>}{user.status !== 'revoked' && <button className="delete-btn" disabled={saving} onClick={() => updateUserAccess(user.id, 'revoke')}>Revoke</button>}</div></td></tr>)}
-                {!users.length && <tr><td colSpan="6" className="empty-cell">No user accounts registered yet.</td></tr>}
+                {users.filter(user => [user.name, user.email, user.status].some(value => String(value || '').toLowerCase().includes(search.toLowerCase().trim()))).map(user => <tr key={user.id}><td><strong>{user.name}</strong></td><td>{user.email}</td><td><span className="unit-pill">Protected</span></td><td><span className={'status-select status-' + user.status}>{user.status === 'approved' ? 'Approved' : user.status === 'revoked' ? 'Revoked' : 'Pending'}</span></td><td>{user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}</td><td><div className="row-actions">{user.status !== 'approved' && <button className="edit-btn" disabled={saving} onClick={() => updateUserAccess(user.id, 'approve')}>Approve</button>}{user.status !== 'revoked' && <button className="delete-btn" disabled={saving} onClick={() => updateUserAccess(user.id, 'revoke')}>Revoke</button>}</div></td></tr>)}
+                {!users.filter(user => [user.name, user.email, user.status].some(value => String(value || '').toLowerCase().includes(search.toLowerCase().trim()))).length && <tr><td colSpan="6" className="empty-cell">{users.length ? 'No user accounts match your search.' : 'No user accounts registered yet.'}</td></tr>}
               </tbody></table></div>}
+              <div className="table-footer">Showing {users.filter(user => [user.name, user.email, user.status].some(value => String(value || '').toLowerCase().includes(search.toLowerCase().trim()))).length} of {users.length} user accounts</div>
             </section>
           ) : page !== 'plots' ? (
             <>

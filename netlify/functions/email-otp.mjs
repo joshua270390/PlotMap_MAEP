@@ -1,4 +1,4 @@
-import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, randomInt, scryptSync, timingSafeEqual } from "node:crypto";
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -68,12 +68,21 @@ export default async function handler(request) {
   if (!validEmail(email)) return json({ ok: false, error: "Enter a valid email address." }, 422);
   try {
     if (action === "send") {
-      const userResult = await db(c, c.usersTable, "GET", new URLSearchParams({ select: "email,status", email: "eq." + email, limit: "1" }).toString());
-      if (!userResult.ok) return json({ ok: false, error: "Could not check account access. Please try again." }, 502);
-      const user = userResult.data?.[0];
-      // Keep account existence and approval state private; only approved accounts receive a code.
-      if (!user || user.status !== "approved") {
-        return json({ ok: true, message: "If this email belongs to an approved account, an OTP has been sent." });
+      const userResult = await db(c, c.usersTable, "GET", new URLSearchParams({ select: "id,email,status", email: "eq." + email, limit: "1" }).toString());
+      if (!userResult.ok) return json({ ok: false, error: "Could not check or create the user account. Please try again." }, 502);
+      let user = userResult.data?.[0];
+      // Email OTP is the registration method: no name, PIN, or Admin approval is required.
+      if (!user) {
+        const randomSalt = randomBytes(16).toString("hex");
+        const randomUnusedPin = randomBytes(32).toString("hex");
+        const pinHash = randomSalt + ":" + scryptSync(randomUnusedPin, randomSalt, 64).toString("hex");
+        const created = await db(c, c.usersTable, "POST", "", { name: email, email, pin_hash: pinHash, status: "approved" });
+        if (!created.ok) return json({ ok: false, error: "Could not create your account. Please try again or contact the site administrator." }, 502);
+        user = created.data?.[0] || { email, status: "approved" };
+      } else if (user.status !== "approved") {
+        const activated = await db(c, c.usersTable, "PATCH", new URLSearchParams({ email: "eq." + email }).toString(), { status: "approved", updated_at: new Date().toISOString() });
+        if (!activated.ok) return json({ ok: false, error: "Could not activate your email account. Please try again." }, 502);
+        user.status = "approved";
       }
       const previous = await db(c, c.otpTable, "GET", new URLSearchParams({ select: "sent_at", email: "eq." + email, limit: "1" }).toString());
       if (!previous.ok) return json({ ok: false, error: "Email OTP storage is not ready. Please contact Admin." }, 503);
@@ -97,7 +106,7 @@ export default async function handler(request) {
         await db(c, c.otpTable, "DELETE", new URLSearchParams({ email: "eq." + email }).toString());
         return json({ ok: false, error: "Could not send the email OTP. Please try again later." }, 502);
       }
-      return json({ ok: true, message: "If this email belongs to an approved account, an OTP has been sent." });
+      return json({ ok: true, message: "If the email is valid, a sign-in code has been sent. New accounts are created automatically." });
     }
     if (action === "verify") {
       const otp = String(body?.otp || "");

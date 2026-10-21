@@ -1,6 +1,6 @@
 # Email OTP login setup (PlotMap_MAEP)
 
-This change switches **approved User sign-in** to email OTP. Admin authentication remains the existing Admin PIN flow. User registration and Admin approval remain unchanged.
+This change switches **User sign-in and registration** to email OTP. The first successful OTP request creates a user account automatically; there is no name, PIN, confirmation PIN, or Admin approval step. Admin authentication remains the existing Admin PIN flow.
 
 ## 1. Create the OTP table in Supabase
 
@@ -36,16 +36,16 @@ Do not paste API keys into chat or commit them to the repository. After setting 
 
 ## 3. Behaviour and protections
 
-- Only users whose `user_access.status` is `approved` can receive a code and sign in.
+- Entering an email and requesting an OTP automatically creates the account if needed and marks it approved. The email must be accessible to the user to complete sign-in.
 - OTP is six digits, expires after five minutes, and is stored as an HMAC hash.
 - A 60-second resend cooldown and five failed verification attempts are enforced.
 - OTP records are deleted after successful verification, expiry, or too many failed attempts.
-- Admin PIN authentication, user registration, Admin approvals, session verification, plots, bookings, and dashboard code paths remain in place.
+- Admin PIN authentication, server-side session verification, plots, bookings, dashboard, and Admin user management remain in place. The Users page shows Email ID, Registration Date, and a Delete action; deletion requires a confirmation popup.
 
 ## 4. Test after deployment
 
-1. Register a test User and approve it in the Admin > Users page.
-2. Choose User, enter that approved email, and click **Get OTP**.
-3. Check inbox and spam/junk folders; enter the six-digit code and click **Sign in**.
-4. Verify an unapproved account cannot sign in.
+1. Choose User, enter an email address, and click **Get OTP**.
+2. Check inbox and spam/junk folders; enter the six-digit code and click **Sign in**. A new account should be created automatically.
+3. Open Admin > Users and verify the list shows Email ID, Registration Date, and Delete only.
+4. Click Delete, cancel once to verify the confirmation works, then confirm on a test account and refresh the list.
 5. Verify Admin still signs in with the existing Admin PIN.

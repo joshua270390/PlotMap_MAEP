@@ -25,7 +25,7 @@ export default function Dashboard() {
   }, []);
   const [pin, setPin] = useState('');
   const [loggedIn, setLoggedIn] = useState(false);
-  const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : 'dashboard'; });
+  const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard'; });
   const [bookings, setBookings] = useState([]);
   const [plots, setPlots] = useState([]);
   const [mapPlotStatuses, setMapPlotStatuses] = useState({});
@@ -122,7 +122,7 @@ export default function Dashboard() {
     // Only the Bookings page loads live records from the API.
     if (loggedIn && page !== 'plots') loadData('bookings', pin);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, loggedIn]);
+  }, [page, loggedIn, role]);
 
   async function saveBooking(values, rowId, statusOnly = false) {
     setSaving(true); setError(''); setNotice('');

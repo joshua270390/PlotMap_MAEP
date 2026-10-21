@@ -30,7 +30,6 @@ export default function Dashboard() {
   const [userPhone, setUserPhone] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
-  const [confirmPin, setConfirmPin] = useState('');
   const [deleteUserTarget, setDeleteUserTarget] = useState(null);
   const [users, setUsers] = useState([]);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -312,7 +311,7 @@ export default function Dashboard() {
           {role === 'user' ? <>
             <label htmlFor="user-mobile">Mobile Number</label>
             <input id="user-mobile" type="tel" inputMode="tel" autoComplete="tel" value={userPhone} onChange={e => { setUserPhone(e.target.value); setOtpSent(false); setOtpCode(''); }} placeholder="Enter mobile number" required maxLength={16} />
-            {otpSent && <><label htmlFor="user-otp">OTP</label><input id="user-otp" type="text" inputMode="numeric" autoComplete="one-time-code" value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\\D/g, '').slice(0, 8))} placeholder="Enter OTP" required minLength={4} maxLength={8} /></>}
+            {otpSent && <><label htmlFor="user-otp">OTP</label><input id="user-otp" type="text" inputMode="numeric" autoComplete="one-time-code" value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 8))} placeholder="Enter OTP" required minLength={4} maxLength={8} /></>}
             {!otpSent ? <button type="button" className="primary-btn login-submit" onClick={sendUserCode} disabled={saving || !userPhone.trim()}>{saving ? 'Sending code…' : 'Get Code'} <span>→</span></button> : <button className="primary-btn login-submit" disabled={saving || !otpCode.trim()}>{saving ? 'Verifying…' : authMode === 'register' ? 'Create account' : 'Sign in'} <span>→</span></button>}
           </> : <><label htmlFor="admin-pin">Admin PIN</label><input id="admin-pin" type="password" inputMode="text" autoComplete="current-password" value={pin} onChange={e => setPin(e.target.value)} placeholder="Enter your Admin PIN" required maxLength={32} /><button className="primary-btn login-submit" disabled={saving}>{saving ? 'Please wait…' : 'Sign in'} <span>→</span></button></>}
           {error && !(role === 'user' && error.includes('User access is not configured')) && <p className="dash-error" role="alert">{error}</p>}{notice && <p className="dash-notice" role="status">{notice}</p>}

@@ -27,8 +27,11 @@ export default function Dashboard() {
   const [role, setRole] = useState('admin');
   const [authMode, setAuthMode] = useState('login');
   const [userName, setUserName] = useState('');
-  const [userEmail, setUserEmail] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
+  const [userPhone, setUserPhone] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpChallengeToken, setOtpChallengeToken] = useState('');
+  const [deleteUserTarget, setDeleteUserTarget] = useState(null);
   const [users, setUsers] = useState([]);
   const [loggedIn, setLoggedIn] = useState(false);
   const [authChecking, setAuthChecking] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_token') || window.sessionStorage.getItem('maep_admin_pin')));
@@ -144,16 +147,28 @@ export default function Dashboard() {
     } finally { setLoading(false); }
   }
 
+  async function sendUserCode() {
+    setSaving(true); setError(''); setNotice('');
+    try {
+      const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'send-code', purpose: authMode === 'register' ? 'register' : 'login', mobile_number: userPhone }), cache: 'no-store' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not send OTP.');
+      setOtpSent(true); setOtpChallengeToken(data.challenge_token || ''); setOtpCode(''); setNotice('OTP sent to your mobile number.');
+    } catch (e) { setError(e.message || 'Could not send OTP.'); }
+    finally { setSaving(false); }
+  }
+
   async function login() {
     setSaving(true); setError('');
     try {
       if (role === 'user') {
-        const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'login', email: userEmail, pin }), cache: 'no-store' });
+        if (!otpSent) { await sendUserCode(); return; }
+        const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'verify-code', purpose: 'login', mobile_number: userPhone, code: otpCode, challenge_token: otpChallengeToken }), cache: 'no-store' });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.ok) throw new Error(data.error || 'User sign in failed.');
         window.sessionStorage.setItem('maep_user_token', data.token);
         window.sessionStorage.removeItem('maep_admin_pin');
-        setUserName(data.name || 'User'); setLoggedIn(true); setAuthChecking(false); setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); setNotice('Welcome. You can view plot lists and submit enquiries.');
+        setUserName(data.name || userPhone); setLoggedIn(true); setAuthChecking(false); setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); setNotice('Welcome. You can view plot lists and submit enquiries.');
         return;
       }
       const response = await fetch('/api/admin-auth', {
@@ -175,11 +190,11 @@ export default function Dashboard() {
   async function registerUser() {
     setSaving(true); setError(''); setNotice('');
     try {
-      if (pin !== confirmPin) throw new Error('PIN and Confirm PIN do not match.');
-      const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'register', name: userName, email: userEmail, pin }), cache: 'no-store' });
+      if (!otpSent) { await sendUserCode(); return; }
+      const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'verify-code', purpose: 'register', mobile_number: userPhone, code: otpCode, challenge_token: otpChallengeToken }), cache: 'no-store' });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not create account.');
-      setAuthMode('login'); setRole('user'); setPin(''); setConfirmPin(''); setNotice(data.message || 'Account created. Wait for Admin approval.');
+      setAuthMode('login'); setRole('user'); setOtpSent(false); setOtpChallengeToken(''); setOtpCode(''); setUserPhone(''); setNotice('Mobile verified. Account created. You can now sign in using OTP.');
     } catch (e) { setError(e.message || 'Could not create account.'); }
     finally { setSaving(false); }
   }
@@ -195,15 +210,15 @@ export default function Dashboard() {
     finally { setLoading(false); }
   }
 
-  async function updateUserAccess(id, action) {
+  async function deleteUser(user) {
     setSaving(true); setError(''); setNotice('');
     try {
-      const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin }, body: JSON.stringify({ action, id }), cache: 'no-store' });
+      const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin }, body: JSON.stringify({ action: 'delete', id: user.id }), cache: 'no-store' });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not update user access.');
-      setNotice(action === 'approve' ? 'User approved.' : 'User access revoked.');
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not delete user account.');
+      setDeleteUserTarget(null); setNotice('User account deleted.');
       await loadUsers();
-    } catch (e) { setError(e.message || 'Could not update user access.'); }
+    } catch (e) { setError(e.message || 'Could not delete user account.'); }
     finally { setSaving(false); }
   }
 
@@ -290,18 +305,18 @@ export default function Dashboard() {
         <form className="login-card" onSubmit={e => { e.preventDefault(); authMode === 'register' ? registerUser() : login(); }}>
           <img className="login-logo" src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" />
           <h1>{authMode === 'register' ? 'Create User Account' : 'Sign in'}</h1>
-          <p className="login-copy">{authMode === 'register' ? 'Create an account. Admin approval is required before access.' : 'Choose your role to continue.'}</p>
+          <p className="login-copy">{role === 'user' ? (authMode === 'register' ? 'Verify your mobile number to create an account.' : 'Sign in securely using a one-time password (OTP).') : 'Enter your Admin PIN to continue.'}</p>
           {role === 'user' && error.includes('User access is not configured') && <p className="dash-error login-config-error" role="alert">{error}</p>}
           <label htmlFor="login-role">Role</label>
-          <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setAuthMode('login'); setError(''); setNotice(''); }}><option value="admin">Admin</option><option value="user">User</option></select>
-          {role === 'user' && authMode === 'register' && <><label htmlFor="user-name">Full name</label><input id="user-name" value={userName} onChange={e => setUserName(e.target.value)} autoComplete="name" maxLength={120} required placeholder="Enter your full name" /></>}
-          {role === 'user' && <><label htmlFor="user-email">Email</label><input id="user-email" type="email" value={userEmail} onChange={e => setUserEmail(e.target.value)} autoComplete="email" required placeholder="Enter your email" /></>}
-          <label htmlFor="admin-pin">{role === 'admin' ? 'Admin PIN' : 'PIN'}</label>
-          <input id="admin-pin" type="password" inputMode="text" autoComplete={authMode === 'register' ? 'new-password' : 'current-password'} value={pin} onChange={e => setPin(e.target.value)} placeholder={role === 'admin' ? 'Enter your Admin PIN' : 'Enter your PIN'} required minLength={role === 'user' ? 6 : undefined} maxLength={32} />
-          {role === 'user' && authMode === 'register' && <><label htmlFor="confirm-pin">Confirm PIN</label><input id="confirm-pin" type="password" value={confirmPin} onChange={e => setConfirmPin(e.target.value)} autoComplete="new-password" required minLength={6} maxLength={32} /></>}
+          <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setAuthMode('login'); setOtpSent(false); setOtpCode(''); setError(''); setNotice(''); }}><option value="admin">Admin</option><option value="user">User</option></select>
+          {role === 'user' ? <>
+            <label htmlFor="user-mobile">Mobile Number</label>
+            <input id="user-mobile" type="tel" inputMode="tel" autoComplete="tel" value={userPhone} onChange={e => { setUserPhone(e.target.value); setOtpSent(false); setOtpCode(''); }} placeholder="Enter mobile number" required maxLength={16} />
+            {otpSent && <><label htmlFor="user-otp">OTP</label><input id="user-otp" type="text" inputMode="numeric" autoComplete="one-time-code" value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 8))} placeholder="Enter OTP" required minLength={4} maxLength={8} /></>}
+            {!otpSent ? <button type="button" className="primary-btn login-submit" onClick={sendUserCode} disabled={saving || !userPhone.trim()}>{saving ? 'Sending code…' : 'Get Code'} <span>→</span></button> : <button className="primary-btn login-submit" disabled={saving || !otpCode.trim()}>{saving ? 'Verifying…' : authMode === 'register' ? 'Create account' : 'Sign in'} <span>→</span></button>}
+          </> : <><label htmlFor="admin-pin">Admin PIN</label><input id="admin-pin" type="password" inputMode="text" autoComplete="current-password" value={pin} onChange={e => setPin(e.target.value)} placeholder="Enter your Admin PIN" required maxLength={32} /><button className="primary-btn login-submit" disabled={saving}>{saving ? 'Please wait…' : 'Sign in'} <span>→</span></button></>}
           {error && !(role === 'user' && error.includes('User access is not configured')) && <p className="dash-error" role="alert">{error}</p>}{notice && <p className="dash-notice" role="status">{notice}</p>}
-          <button className="primary-btn login-submit" disabled={saving}>{saving ? 'Please wait…' : authMode === 'register' ? 'Create account' : 'Sign in'} <span>→</span></button>
-          {role === 'user' && <button type="button" className="profile-signout" onClick={() => { setAuthMode(authMode === 'register' ? 'login' : 'register'); setError(''); setNotice(''); }}>{authMode === 'register' ? 'Back to sign in' : 'Create a user account'}</button>}
+          {role === 'user' && <button type="button" className="profile-signout" onClick={() => { setAuthMode(authMode === 'register' ? 'login' : 'register'); setOtpSent(false); setOtpCode(''); setError(''); setNotice(''); }}>{authMode === 'register' ? 'Back to sign in' : 'Create a user account'}</button>}
         </form>
       </main>
     );
@@ -348,14 +363,14 @@ export default function Dashboard() {
 
           {page === 'users' && role === 'admin' ? (
             <section className="table-card user-management-card">
-              <div className="page-intro"><div><h2>User access management</h2><p>Approve registered users before they can sign in. PINs are stored as protected hashes.</p></div></div>
+              <div className="page-intro"><div><h2>Registered users</h2><p>Manage verified mobile numbers registered for plot access.</p></div></div>
               <div className="table-toolbar">
-                <label className="search-field"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, email or access status…" aria-label="Search user accounts" /></label>
+                <label className="search-field"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search mobile number…" aria-label="Search user accounts by mobile number" /></label>
                 <div className="booking-toolbar-actions"><button type="button" className="add-customer-btn" onClick={loadUsers} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button></div>
               </div>
-              {loading ? <div className="table-state">Loading user accounts…</div> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Name</th><th>Email</th><th>PIN</th><th>Access status</th><th>Registered</th><th>Action</th></tr></thead><tbody>
-                {users.filter(user => [user.name, user.email, user.status].some(value => String(value || '').toLowerCase().includes(search.toLowerCase().trim()))).map(user => <tr key={user.id}><td><strong>{user.name}</strong></td><td>{user.email}</td><td><span className="unit-pill">Protected</span></td><td><span className={'status-select status-' + user.status}>{user.status === 'approved' ? 'Approved' : user.status === 'revoked' ? 'Revoked' : 'Pending'}</span></td><td>{user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}</td><td><div className="row-actions">{user.status !== 'approved' && <button className="edit-btn" disabled={saving} onClick={() => updateUserAccess(user.id, 'approve')}>Approve</button>}{user.status !== 'revoked' && <button className="delete-btn" disabled={saving} onClick={() => updateUserAccess(user.id, 'revoke')}>Revoke</button>}</div></td></tr>)}
-                {!users.filter(user => [user.name, user.email, user.status].some(value => String(value || '').toLowerCase().includes(search.toLowerCase().trim()))).length && <tr><td colSpan="6" className="empty-cell">{users.length ? 'No user accounts match your search.' : 'No user accounts registered yet.'}</td></tr>}
+              {loading ? <div className="table-state">Loading user accounts…</div> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Mobile Number</th><th>Registration Date</th><th>Action</th></tr></thead><tbody>
+                {users.filter(user => String(user.mobile_number || '').toLowerCase().includes(search.toLowerCase().trim())).map(user => <tr key={user.id}><td><strong>{user.mobile_number || '—'}</strong></td><td>{user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}</td><td><div className="row-actions"><button className="delete-btn" disabled={saving} onClick={() => setDeleteUserTarget(user)}>Delete</button></div></td></tr>)}
+                {!users.filter(user => String(user.mobile_number || '').toLowerCase().includes(search.toLowerCase().trim())).length && <tr><td colSpan="3" className="empty-cell">{users.length ? 'No user accounts match your search.' : 'No user accounts registered yet.'}</td></tr>}
               </tbody></table></div>}
               <div className="table-footer">Showing {users.filter(user => [user.name, user.email, user.status].some(value => String(value || '').toLowerCase().includes(search.toLowerCase().trim()))).length} of {users.length} user accounts</div>
             </section>
@@ -512,6 +527,15 @@ export default function Dashboard() {
           {error && <p className="dash-error">{error}</p>}
           <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setEdit(null)}>Cancel</button><button className="primary-btn" disabled={saving}>{saving ? 'Saving…' : edit.id == null ? 'Add customer' : 'Save changes'}</button></div>
         </form>
+      </div>}
+      {deleteUserTarget && <div className="edit-overlay confirm-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) setDeleteUserTarget(null); }}>
+        <section className="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="delete-user-confirm-title" aria-describedby="delete-user-confirm-copy">
+          <div className="confirm-icon" aria-hidden="true">!</div>
+          <button type="button" className="modal-close" onClick={() => setDeleteUserTarget(null)} aria-label="Close" disabled={saving}>×</button>
+          <p className="eyebrow">CONFIRM ACTION</p><h2 id="delete-user-confirm-title">Delete registered user?</h2>
+          <p id="delete-user-confirm-copy">Are you sure you want to delete mobile number <strong>{deleteUserTarget.mobile_number}</strong>? This action cannot be undone.</p>
+          <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setDeleteUserTarget(null)} disabled={saving}>Cancel</button><button type="button" className="confirm-delete-btn" onClick={() => deleteUser(deleteUserTarget)} disabled={saving}>{saving ? 'Deleting…' : 'Yes, delete'}</button></div>
+        </section>
       </div>}
       {deleteTarget && <div className="edit-overlay confirm-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) setDeleteTarget(null); }}>
         <section className="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="delete-confirm-title" aria-describedby="delete-confirm-copy">

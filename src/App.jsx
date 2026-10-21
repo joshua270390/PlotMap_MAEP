@@ -21,6 +21,7 @@ export default function App() {
   const [checkingUserSession, setCheckingUserSession] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_token')));
   const [panel, setPanel] = useState('off');         // 'off' | 'lock' | 'tools'
   const [adminPin, setAdminPin] = useState('');
+  const [adminAuthenticated, setAdminAuthenticated] = useState(false);
   const [addMode, setAddMode] = useState(false);
   const mapRef = useRef(null);
   const ax = useMemo(() => makeApi(ad), [ad]);
@@ -106,16 +107,25 @@ export default function App() {
         if (cancelled) return;
         if (response.ok && data.ok) {
           setAdminPin(savedPin);
-          setPanel('tools');
+          setAdminAuthenticated(true);
           loadAdminEnquiries(savedPin);
         } else {
           window.sessionStorage.removeItem('maep_admin_pin');
+          setAdminPin('');
+          setAdminAuthenticated(false);
         }
       } catch {
         // Keep the saved PIN for a temporary network failure; do not unlock without verification.
       }
     })();
     return () => { cancelled = true; };
+  }, [loadAdminEnquiries]);
+
+  const handleAdminAuth = useCallback(adminPinValue => {
+    window.sessionStorage.setItem('maep_admin_pin', adminPinValue);
+    setAdminPin(adminPinValue);
+    setAdminAuthenticated(true);
+    loadAdminEnquiries(adminPinValue);
   }, [loadAdminEnquiries]);
 
   const clearSel = useCallback(() => { setSel(null); setSelD(null); setAddMode(false); }, []);
@@ -157,13 +167,13 @@ export default function App() {
       <PlotMap ref={mapRef} ax={ax} status={status} details={plotDetails} filt={filt} setFilt={setFilt} sel={sel} selD={selD} setSel={setSel}
         onTap={onTap} admin={admin} addMode={addMode} adminEnquiries={adminEnquiries}>
         {!userMode && !checkingUserSession && <AdminPanel panel={panel} setPanel={setPanel} ax={ax} setAd={setAd} sel={sel} selD={selD} status={status} setStatus={setStatus} initialAdminPin={adminPin}
-          addMode={addMode} setAddMode={setAddMode} clearSel={clearSel} onAdminAuth={loadAdminEnquiries} onAdminExit={() => setAdminEnquiries([])} />}
+          addMode={addMode} setAddMode={setAddMode} clearSel={clearSel} onAdminAuth={handleAdminAuth} onAdminExit={() => setAdminEnquiries([])} />}
       </PlotMap>
       {closedPlot != null && <PlotStatusModal id={closedPlot.id} status={closedPlot.status} ax={ax}
         customer={plotDetails[ax.lbl(closedPlot.id)] || plotDetails[String(closedPlot.id)] || {}}
         onClose={() => setClosedPlot(null)} />}
       {unit != null && !form && (
-        <UnitModal id={unit} ax={ax} status={status[unit]} setAd={setAd} admin={admin} onClose={closeUnit} onEnquire={() => setForm(true)}
+        <UnitModal id={unit} ax={ax} status={status[unit]} setAd={setAd} admin={adminAuthenticated} onClose={closeUnit} onEnquire={() => setForm(true)}
           reservedCustomers={plotDetails[ax.lbl(unit)]?.reservedCustomers || plotDetails[String(unit)]?.reservedCustomers || []}
           onViewMap={() => { const id = unit; setUnit(null); setSel(id); mapRef.current.focusOn(id); }} />
       )}

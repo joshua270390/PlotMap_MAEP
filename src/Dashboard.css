@@ -543,9 +543,10 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 
 
 
-/* User access refinements: tighter label-to-control spacing and setup feedback below the account title. */
+/* User access refinements: consistent spacing between login fields and submit button. */
 .login-card label{margin:9px 0 4px}
-.login-card input,.login-card select{margin-top:3px}
+.login-card input,.login-card select{margin-top:0}
+.login-card .login-submit{margin-top:9px}
 .login-config-error{margin:8px 0 12px;padding:9px 11px;border:1px solid #f0c9cc;border-radius:9px;background:#fff5f5;line-height:1.5;overflow-wrap:anywhere}
 .user-management-card .page-intro{padding:20px 20px 0;margin-bottom:15px}
 .user-management-card .table-toolbar{margin-top:0}

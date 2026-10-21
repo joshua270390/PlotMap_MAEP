@@ -23,7 +23,7 @@ function verifyOtpChallenge(token,mobileNumber,purpose,code,secret){try{
 }catch{return false}}
 async function sendTwoFactorOtp(c,mobileNumber,code){
  if(!c.twoFactorKey)return{ok:false,error:"SMS OTP is not configured. Set TWOFACTOR_API_KEY in Netlify."};
- const phone=mobileNumber.replace(/^\\+/,"");
+ const phone=mobileNumber.replace(/^\\+91/,"").replace(/^\\+/,"");
  const url="https://2factor.in/API/V1/"+encodeURIComponent(c.twoFactorKey)+"/SMS/"+encodeURIComponent(phone)+"/"+encodeURIComponent(code);
  const response=await fetch(url,{method:"POST",signal:AbortSignal.timeout(15000)});const raw=await response.text();let data=null;try{data=JSON.parse(raw)}catch{}
  const status=String(data?.Status||data?.status||"");

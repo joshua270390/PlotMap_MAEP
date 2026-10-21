@@ -111,6 +111,10 @@ export default function Dashboard() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Admin login failed.');
       window.sessionStorage.setItem('maep_admin_pin', pin);
+      // After a successful sign-in, always land on the dashboard root.
+      // Replace the sign-in URL so Back does not return to the login form.
+      window.history.replaceState({}, '', '/');
+      setPage('dashboard');
       setLoggedIn(true); setNotice('Welcome to the admin dashboard.');
       await loadData('bookings', pin);
     } catch (e) { setError(e.message || 'Could not sign in.'); }

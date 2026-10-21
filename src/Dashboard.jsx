@@ -305,7 +305,7 @@ export default function Dashboard() {
             {profileOpen && <div className="profile-menu" role="menu">
               <strong className="profile-role">{role === 'admin' ? 'Administrator' : userName || 'User'}</strong>
               <span className="profile-company">Mary Ann Elite Properties</span>
-              <span className="profile-session"><i />Connected to admin session</span>
+              <span className="profile-session"><i />{role === 'admin' ? 'Connected to admin session' : 'Approved user session'}</span>
               <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_token'); setLoggedIn(false); setPin(''); setUserEmail(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); setAuthMode('login'); }}>Sign out</button>
             </div>}
           </div>

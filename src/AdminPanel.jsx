@@ -154,7 +154,7 @@ function DmEditor({ k, ax, setAd, onGone }) {
   );
 }
 
-export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addMode, setAddMode, clearSel, status, setStatus, onAdminAuth, onAdminExit }) {
+export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addMode, setAddMode, clearSel, status, setStatus, onAdminAuth, onAdminExit, initialAdminPin = '' }) {
   const [pin, setPin] = useState(''), [authPin, setAuthPin] = useState(''), [pm, setPm] = useState(''), [note, setNote] = useState(null), [rst, setRst] = useState(false), [authBusy, setAuthBusy] = useState(false);
   const [rate, setRate] = useState(ax.ad.rate || '');
   const [isClosing, setIsClosing] = useState(false);
@@ -167,6 +167,8 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
   const [customerError, setCustomerError] = useState('');
   const [customerNotice, setCustomerNotice] = useState('');
   const file = useRef(null), rt = useRef(0);
+
+  useEffect(() => { if (initialAdminPin) setAuthPin(initialAdminPin); }, [initialAdminPin]);
 
   if (panel === 'off') return <button id="admbtn" className="fl" type="button" onClick={() => setPanel('lock')}>Admin</button>;
 

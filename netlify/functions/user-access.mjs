@@ -7,7 +7,7 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
 const cfg = () => ({
   adminPin: process.env.ADMIN_PIN || "",
   url: (process.env.SUPABASE_URL || "").replace(/\/+$/, ""),
-  key: (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || "").trim(),
+  key: (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim(),
   secret: process.env.USER_SESSION_SECRET || "",
   table: process.env.USER_ACCESS_TABLE || "user_access",
 });
@@ -53,7 +53,7 @@ async function db(c, method, query = "", body, prefer = "return=representation")
 export default async function handler(request) {
   if (request.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405);
   const c = cfg();
-  if (!c.url || !c.key || !c.secret) return json({ ok: false, error: "User access is not configured. Set Supabase URL/key and USER_SESSION_SECRET in Netlify." }, 500);
+  if (!c.url || !c.key || !c.secret) return json({ ok: false, error: "User access is not configured. Set SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and USER_SESSION_SECRET in Netlify." }, 500);
   let body; try { body = await request.json(); } catch { return json({ ok: false, error: "Invalid request." }, 400); }
   const action = String(body?.action || "");
   try {

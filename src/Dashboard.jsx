@@ -47,6 +47,27 @@ export default function Dashboard() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Keep the rendered dashboard page aligned with browser Back/Forward navigation.
+  // Returning from a dashboard route to '/' must remount the PlotMap app, not leave stale dashboard UI.
+  useEffect(() => {
+    const syncRoute = () => {
+      const path = window.location.pathname.replace(/\\/+$/, '') || '/';
+      if (role === 'user') {
+        if (path !== '/plot_lists') window.history.replaceState({}, '', '/plot_lists');
+        setPage('plots');
+        return;
+      }
+      const routes = ['/dashboard', '/bookings', '/plot_lists', '/users'];
+      if (!routes.includes(path)) {
+        window.location.reload();
+        return;
+      }
+      setPage(path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard');
+    };
+    window.addEventListener('popstate', syncRoute);
+    return () => window.removeEventListener('popstate', syncRoute);
+  }, [role]);
+
   // Restore and verify saved Admin or approved User sessions after a refresh.
   useEffect(() => {
     const savedUserToken = window.sessionStorage.getItem('maep_user_token');

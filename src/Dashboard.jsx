@@ -24,6 +24,12 @@ export default function Dashboard() {
     return () => document.body.classList.remove('dashboard-mode');
   }, []);
   const [pin, setPin] = useState('');
+  const [role, setRole] = useState('admin');
+  const [authMode, setAuthMode] = useState('login');
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [users, setUsers] = useState([]);
   const [loggedIn, setLoggedIn] = useState(false);
   const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard'; });
   const [bookings, setBookings] = useState([]);
@@ -41,8 +47,22 @@ export default function Dashboard() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Restore the admin session after a refresh in the same browser tab.
+  // Restore and verify saved Admin or approved User sessions after a refresh.
   useEffect(() => {
+    const savedUserToken = window.sessionStorage.getItem('maep_user_token');
+    if (savedUserToken) {
+      let cancelled = false;
+      (async () => {
+        try {
+          const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-user-session': savedUserToken }, body: JSON.stringify({ action: 'verify' }), cache: 'no-store' });
+          const data = await response.json().catch(() => ({}));
+          if (cancelled) return;
+          if (response.ok && data.ok) { setRole('user'); setUserName(data.name || 'User'); setLoggedIn(true); setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); }
+          else { window.sessionStorage.removeItem('maep_user_token'); setError(data.error || 'Please sign in again.'); }
+        } catch { if (!cancelled) setError('Could not verify your user session. Please sign in again.'); }
+      })();
+      return () => { cancelled = true; };
+    }
     const savedPin = window.sessionStorage.getItem('maep_admin_pin');
     if (!savedPin) return;
     let cancelled = false;
@@ -104,6 +124,15 @@ export default function Dashboard() {
   async function login() {
     setSaving(true); setError('');
     try {
+      if (role === 'user') {
+        const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'login', email: userEmail, pin }), cache: 'no-store' });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) throw new Error(data.error || 'User sign in failed.');
+        window.sessionStorage.setItem('maep_user_token', data.token);
+        window.sessionStorage.removeItem('maep_admin_pin');
+        setUserName(data.name || 'User'); setLoggedIn(true); setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); setNotice('Welcome. You can view plot lists and submit enquiries.');
+        return;
+      }
       const response = await fetch('/api/admin-auth', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin }),
@@ -117,10 +146,45 @@ export default function Dashboard() {
     finally { setSaving(false); }
   }
 
+  async function registerUser() {
+    setSaving(true); setError(''); setNotice('');
+    try {
+      if (pin !== confirmPin) throw new Error('PIN and Confirm PIN do not match.');
+      const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'register', name: userName, email: userEmail, pin }), cache: 'no-store' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not create account.');
+      setAuthMode('login'); setRole('user'); setPin(''); setConfirmPin(''); setNotice(data.message || 'Account created. Wait for Admin approval.');
+    } catch (e) { setError(e.message || 'Could not create account.'); }
+    finally { setSaving(false); }
+  }
+
+  async function loadUsers() {
+    setLoading(true); setError('');
+    try {
+      const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin }, body: JSON.stringify({ action: 'list' }), cache: 'no-store' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load user accounts.');
+      setUsers(data.users || []);
+    } catch (e) { setError(e.message || 'Could not load user accounts.'); }
+    finally { setLoading(false); }
+  }
+
+  async function updateUserAccess(id, action) {
+    setSaving(true); setError(''); setNotice('');
+    try {
+      const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin }, body: JSON.stringify({ action, id }), cache: 'no-store' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not update user access.');
+      setNotice(action === 'approve' ? 'User approved.' : 'User access revoked.');
+      await loadUsers();
+    } catch (e) { setError(e.message || 'Could not update user access.'); }
+    finally { setSaving(false); }
+  }
+
   useEffect(() => {
-    // The Plot lists page is intentionally a static design for now.
-    // Only the Bookings page loads live records from the API.
-    if (loggedIn && page !== 'plots') loadData('bookings', pin);
+    if (loggedIn && role === 'user' && page !== 'plots') { setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return; }
+    if (loggedIn && role === 'admin' && page === 'users') loadUsers();
+    else if (loggedIn && role === 'admin' && page !== 'plots') loadData('bookings', pin);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, loggedIn, role]);
 
@@ -193,15 +257,20 @@ export default function Dashboard() {
   if (!loggedIn) {
     return (
       <main className="dash-login">
-        <form className="login-card" onSubmit={e => { e.preventDefault(); login(); }}>
+        <form className="login-card" onSubmit={e => { e.preventDefault(); authMode === 'register' ? registerUser() : login(); }}>
           <img className="login-logo" src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" />
-          <p className="eyebrow">ADMINISTRATOR ACCESS</p>
-          <h1>Admin Dashboard</h1>
-          <p className="login-copy">Sign in to manage bookings and plot availability.</p>
-          <label htmlFor="admin-pin">Admin PIN</label>
-          <input id="admin-pin" type="password" inputMode="text" autoComplete="current-password" value={pin} onChange={e => setPin(e.target.value)} placeholder="Enter your Admin PIN" required />
-          {error && <p className="dash-error" role="alert">{error}</p>}
-          <button className="primary-btn login-submit" disabled={saving}>{saving ? 'Checking…' : 'Sign in'} <span>→</span></button>
+          <h1>{authMode === 'register' ? 'Create User Account' : 'Sign in'}</h1>
+          <p className="login-copy">{authMode === 'register' ? 'Create an account. Admin approval is required before access.' : 'Choose your role to continue.'}</p>
+          <label htmlFor="login-role">Role</label>
+          <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setAuthMode('login'); setError(''); setNotice(''); }}><option value="admin">Admin</option><option value="user">User</option></select>
+          {role === 'user' && authMode === 'register' && <><label htmlFor="user-name">Full name</label><input id="user-name" value={userName} onChange={e => setUserName(e.target.value)} autoComplete="name" maxLength={120} required placeholder="Enter your full name" /></>}
+          {role === 'user' && <><label htmlFor="user-email">Email</label><input id="user-email" type="email" value={userEmail} onChange={e => setUserEmail(e.target.value)} autoComplete="email" required placeholder="Enter your email" /></>}
+          <label htmlFor="admin-pin">{role === 'admin' ? 'Admin PIN' : 'PIN'}</label>
+          <input id="admin-pin" type="password" inputMode="text" autoComplete={authMode === 'register' ? 'new-password' : 'current-password'} value={pin} onChange={e => setPin(e.target.value)} placeholder={role === 'admin' ? 'Enter your Admin PIN' : 'Enter your PIN'} required minLength={role === 'user' ? 6 : undefined} maxLength={32} />
+          {role === 'user' && authMode === 'register' && <><label htmlFor="confirm-pin">Confirm PIN</label><input id="confirm-pin" type="password" value={confirmPin} onChange={e => setConfirmPin(e.target.value)} autoComplete="new-password" required minLength={6} maxLength={32} /></>}
+          {error && <p className="dash-error" role="alert">{error}</p>}{notice && <p className="dash-notice" role="status">{notice}</p>}
+          <button className="primary-btn login-submit" disabled={saving}>{saving ? 'Please wait…' : authMode === 'register' ? 'Create account' : 'Sign in'} <span>→</span></button>
+          {role === 'user' && <button type="button" className="profile-signout" onClick={() => { setAuthMode(authMode === 'register' ? 'login' : 'register'); setError(''); setNotice(''); }}>{authMode === 'register' ? 'Back to sign in' : 'Create a user account'}</button>}
         </form>
       </main>
     );
@@ -217,26 +286,27 @@ export default function Dashboard() {
           </a>
           <button type="button" className="dashboard-sidebar-close" aria-label="Close navigation menu" onClick={() => setSidebarOpen(false)}>×</button>
         </div>
-        <button className={'nav-item' + (page === 'dashboard' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/dashboard'); setPage('dashboard'); setSidebarOpen(false); }}><span className="nav-icon">▦</span> Dashboard</button>
-        <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); setSidebarOpen(false); }}>
+        {role === 'admin' && <button className={'nav-item' + (page === 'dashboard' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/dashboard'); setPage('dashboard'); setSidebarOpen(false); }}><span className="nav-icon">▦</span> Dashboard</button>}
+        {role === 'admin' && <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); setSidebarOpen(false); }}>
           <span className="nav-icon">▤</span> Bookings
-        </button>
+        </button>}
         <button className={'nav-item' + (page === 'plots' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/plot_lists'); setPage('plots'); setSidebarOpen(false); }}>
           <span className="nav-icon">▦</span> Plot lists
         </button>
+        {role === 'admin' && <button className={'nav-item' + (page === 'users' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/users'); setPage('users'); setSidebarOpen(false); }}><span className="nav-icon">♙</span> Users</button>}
       </aside>
 
       <main className="dashboard-main">
         <header className="dashboard-topbar">
           <div className="dashboard-mobile-brand-row"><a className="dashboard-mobile-brand" href="/dashboard" aria-label="Mary Ann dashboard home"><img src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" /></a><button type="button" className="dashboard-menu-toggle" aria-label="Open navigation menu" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(true)}><span></span><span></span><span></span></button></div>
-          <div className="dashboard-heading-group"><h1>{page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : 'Plot lists'}</h1></div>
+          <div className="dashboard-heading-group"><h1>{page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : page === 'users' ? 'Users' : 'Plot lists'}</h1></div>
           <div className="topbar-actions profile-wrap">
             <button type="button" className="topbar-avatar profile-trigger" aria-label="Open administrator menu" aria-expanded={profileOpen} onClick={() => setProfileOpen(open => !open)}>MA</button>
             {profileOpen && <div className="profile-menu" role="menu">
-              <strong className="profile-role">Administrator</strong>
+              <strong className="profile-role">{role === 'admin' ? 'Administrator' : userName || 'User'}</strong>
               <span className="profile-company">Mary Ann Elite Properties</span>
               <span className="profile-session"><i />Connected to admin session</span>
-              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); window.sessionStorage.removeItem('maep_admin_pin'); setLoggedIn(false); setPin(''); setBookings([]); setPlots([]); setError(''); setNotice(''); }}>Sign out</button>
+              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_token'); setLoggedIn(false); setPin(''); setUserEmail(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); setAuthMode('login'); }}>Sign out</button>
             </div>}
           </div>
         </header>
@@ -245,7 +315,15 @@ export default function Dashboard() {
           {page !== 'plots' && error && <div className="alert alert-error" role="alert">{error}</div>}
           {page !== 'plots' && notice && <div className="alert alert-success" role="status">{notice}</div>}
 
-          {page !== 'plots' ? (
+          {page === 'users' && role === 'admin' ? (
+            <section className="table-card user-management-card">
+              <div className="page-intro"><div><h2>User access management</h2><p>Approve registered users before they can sign in. PINs are stored as protected hashes.</p></div><button type="button" className="add-customer-btn" onClick={loadUsers} disabled={loading}>Refresh</button></div>
+              {loading ? <div className="table-state">Loading user accounts…</div> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Name</th><th>Email</th><th>PIN</th><th>Access status</th><th>Registered</th><th>Action</th></tr></thead><tbody>
+                {users.map(user => <tr key={user.id}><td><strong>{user.name}</strong></td><td>{user.email}</td><td><span className="unit-pill">Protected</span></td><td><span className={'status-select status-' + user.status}>{user.status === 'approved' ? 'Approved' : user.status === 'revoked' ? 'Revoked' : 'Pending'}</span></td><td>{user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}</td><td><div className="row-actions">{user.status !== 'approved' && <button className="edit-btn" disabled={saving} onClick={() => updateUserAccess(user.id, 'approve')}>Approve</button>}{user.status !== 'revoked' && <button className="delete-btn" disabled={saving} onClick={() => updateUserAccess(user.id, 'revoke')}>Revoke</button>}</div></td></tr>)}
+                {!users.length && <tr><td colSpan="6" className="empty-cell">No user accounts registered yet.</td></tr>}
+              </tbody></table></div>}
+            </section>
+          ) : page !== 'plots' ? (
             <>
               {page === 'dashboard' ? (
                 <>

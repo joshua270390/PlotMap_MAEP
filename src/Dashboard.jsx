@@ -30,6 +30,7 @@ export default function Dashboard() {
   const [userPhone, setUserPhone] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+  const [otpChallengeToken, setOtpChallengeToken] = useState('');
   const [deleteUserTarget, setDeleteUserTarget] = useState(null);
   const [users, setUsers] = useState([]);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -152,7 +153,7 @@ export default function Dashboard() {
       const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'send-code', purpose: authMode === 'register' ? 'register' : 'login', mobile_number: userPhone }), cache: 'no-store' });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not send OTP.');
-      setOtpSent(true); setOtpCode(''); setNotice('OTP sent to your mobile number.');
+      setOtpSent(true); setOtpChallengeToken(data.challenge_token || ''); setOtpCode(''); setNotice('OTP sent to your mobile number.');
     } catch (e) { setError(e.message || 'Could not send OTP.'); }
     finally { setSaving(false); }
   }
@@ -162,7 +163,7 @@ export default function Dashboard() {
     try {
       if (role === 'user') {
         if (!otpSent) { await sendUserCode(); return; }
-        const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'verify-code', purpose: 'login', mobile_number: userPhone, code: otpCode }), cache: 'no-store' });
+        const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'verify-code', purpose: 'login', mobile_number: userPhone, code: otpCode, challenge_token: otpChallengeToken }), cache: 'no-store' });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.ok) throw new Error(data.error || 'User sign in failed.');
         window.sessionStorage.setItem('maep_user_token', data.token);
@@ -190,10 +191,10 @@ export default function Dashboard() {
     setSaving(true); setError(''); setNotice('');
     try {
       if (!otpSent) { await sendUserCode(); return; }
-      const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'verify-code', purpose: 'register', mobile_number: userPhone, code: otpCode }), cache: 'no-store' });
+      const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'verify-code', purpose: 'register', mobile_number: userPhone, code: otpCode, challenge_token: otpChallengeToken }), cache: 'no-store' });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not create account.');
-      setAuthMode('login'); setRole('user'); setOtpSent(false); setOtpCode(''); setUserPhone(''); setNotice('Mobile verified. Account created. You can now sign in using OTP.');
+      setAuthMode('login'); setRole('user'); setOtpSent(false); setOtpChallengeToken(''); setOtpCode(''); setUserPhone(''); setNotice('Mobile verified. Account created. You can now sign in using OTP.');
     } catch (e) { setError(e.message || 'Could not create account.'); }
     finally { setSaving(false); }
   }

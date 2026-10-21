@@ -77,6 +77,12 @@ export default function Dashboard() {
     const syncPageFromUrl = () => {
       const rawPath = window.location.pathname;
       const path = rawPath.length > 1 && rawPath.endsWith('/') ? rawPath.slice(0, -1) : rawPath;
+      // Leaving the dashboard route (for example, Back to /) must remount
+      // the app-level route so the PlotMap home page is rendered.
+      if (!['/dashboard', '/bookings', '/plot_lists'].includes(path)) {
+        window.location.reload();
+        return;
+      }
       setPage(path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : 'dashboard');
       setSidebarOpen(false);
     };

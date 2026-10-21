@@ -75,7 +75,8 @@ export default function Dashboard() {
   // Keep React's visible page in sync with browser Back/Forward navigation.
   useEffect(() => {
     const syncPageFromUrl = () => {
-      const path = window.location.pathname.replace(/\\/+$/, '') || '/';
+      const rawPath = window.location.pathname;
+      const path = rawPath.length > 1 && rawPath.endsWith('/') ? rawPath.slice(0, -1) : rawPath;
       setPage(path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : 'dashboard');
       setSidebarOpen(false);
     };

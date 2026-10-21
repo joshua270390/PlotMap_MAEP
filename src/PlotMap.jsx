@@ -216,7 +216,7 @@ const PlotMap = forwardRef(function PlotMap({ status, details = {}, filt, setFil
   return (
     <main id="vp" ref={vpRef}>
       <div className="top" ref={topRef}>
-        <button type="button" className="map-back-button" onClick={() => { if (window.history.length > 1 && document.referrer && new URL(document.referrer).origin === window.location.origin) window.history.back(); else window.location.assign("/dashboard"); }} aria-label="Go back to previous page">← Back</button>
+        <button type="button" className="map-back-button" onClick={() => { if (window.sessionStorage.getItem("maep_user_token")) { window.location.assign("/plot_lists"); return; } if (window.history.length > 1 && document.referrer && new URL(document.referrer).origin === window.location.origin) window.history.back(); else window.location.assign("/dashboard"); }} aria-label="Go back to previous page">← Back</button>
         <div className="brand fl" aria-label={COMPANY}>
           <div className="brand-copy">
             <b>{PROJECT}</b>

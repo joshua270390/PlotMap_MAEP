@@ -22,7 +22,6 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
   const waDigits = String(details.whatsapp ?? PHONE).replace(/\D/g, '').replace(/^0+/, '').replace(/^91(?=\d{10}$)/, '');
   const draftArea = Number(draft.area);
   const applyContactDetails = () => {
-    if (!admin) return;
     const field = confirmApply?.field;
     const value = String(draft[field] || '').trim();
     if (!value) { setEditError(`Enter a valid ${field === 'phone' ? 'Contact' : 'WhatsApp'} number.`); setConfirmApply(null); return; }
@@ -34,9 +33,8 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
     });
     setConfirmApply(null); setEditError('');
   };
-  const askApply = (field, scope) => { if (!admin) return; setEditError(''); setConfirmApply({ field, scope }); };
+  const askApply = (field, scope) => { setEditError(''); setConfirmApply({ field, scope }); };
   const saveDetails = () => {
-    if (!admin) return;
     if (!(draftArea > 0) || !Number.isFinite(draftArea)) { setEditError('Enter a valid Sq.ft. value.'); return; }
     const phone = draft.phone.trim(), whatsapp = draft.whatsapp.trim();
     if (!phone || !whatsapp) { setEditError('Enter both contact and WhatsApp numbers.'); return; }

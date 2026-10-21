@@ -17,11 +17,45 @@ export default function App() {
   const [form, setForm] = useState(false);
   const [ad, setAd] = useState(loadAd);              // admin edits, saved in this browser
   const [adminEnquiries, setAdminEnquiries] = useState([]);
+  const [userMode, setUserMode] = useState(false);
+  const [checkingUserSession, setCheckingUserSession] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_token')));
   const [panel, setPanel] = useState('off');         // 'off' | 'lock' | 'tools'
   const [addMode, setAddMode] = useState(false);
   const mapRef = useRef(null);
   const ax = useMemo(() => makeApi(ad), [ad]);
   const admin = panel === 'tools';
+
+  useEffect(() => {
+    const token = window.sessionStorage.getItem('maep_user_token');
+    if (!token) { setCheckingUserSession(false); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch('/api/user-access', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-user-session': token },
+          body: JSON.stringify({ action: 'verify' }),
+          cache: 'no-store',
+        });
+        const data = await response.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!response.ok || !data.ok) {
+          window.sessionStorage.removeItem('maep_user_token');
+          window.location.replace('/dashboard');
+          return;
+        }
+        setUserMode(true);
+      } catch {
+        if (!cancelled) {
+          window.sessionStorage.removeItem('maep_user_token');
+          window.location.replace('/dashboard');
+        }
+      } finally {
+        if (!cancelled) setCheckingUserSession(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => { saveAd(ad); }, [ad]);
   useEffect(() => {
@@ -93,8 +127,8 @@ export default function App() {
     <>
       <PlotMap ref={mapRef} ax={ax} status={status} details={plotDetails} filt={filt} setFilt={setFilt} sel={sel} selD={selD} setSel={setSel}
         onTap={onTap} admin={admin} addMode={addMode} adminEnquiries={adminEnquiries}>
-        <AdminPanel panel={panel} setPanel={setPanel} ax={ax} setAd={setAd} sel={sel} selD={selD} status={status} setStatus={setStatus}
-          addMode={addMode} setAddMode={setAddMode} clearSel={clearSel} onAdminAuth={loadAdminEnquiries} onAdminExit={() => setAdminEnquiries([])} />
+        {!userMode && !checkingUserSession && <AdminPanel panel={panel} setPanel={setPanel} ax={ax} setAd={setAd} sel={sel} selD={selD} status={status} setStatus={setStatus}
+          addMode={addMode} setAddMode={setAddMode} clearSel={clearSel} onAdminAuth={loadAdminEnquiries} onAdminExit={() => setAdminEnquiries([])} />}
       </PlotMap>
       {closedPlot != null && <PlotStatusModal id={closedPlot.id} status={closedPlot.status} ax={ax}
         customer={plotDetails[ax.lbl(closedPlot.id)] || plotDetails[String(closedPlot.id)] || {}}

@@ -4,7 +4,7 @@ import App from './App.jsx';
 import Dashboard from './Dashboard.jsx';
 import './style.css';
 
-const dashboardPaths = ['/', '/dashboard', '/bookings', '/plot_lists'];
+const dashboardPaths = ['/dashboard', '/bookings', '/plot_lists'];
 const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
 const isDashboard = dashboardPaths.includes(currentPath);
 createRoot(document.getElementById('root')).render(

@@ -28,6 +28,8 @@ export default function Dashboard() {
   const [authMode, setAuthMode] = useState('login');
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
+  const [emailOtp, setEmailOtp] = useState('');
+  const [otpRequested, setOtpRequested] = useState(false);
   const [confirmPin, setConfirmPin] = useState('');
   const [users, setUsers] = useState([]);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -144,11 +146,23 @@ export default function Dashboard() {
     } finally { setLoading(false); }
   }
 
+  async function requestEmailOtp() {
+    setSaving(true); setError(''); setNotice('');
+    try {
+      const response = await fetch('/api/email-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'send', email: userEmail }), cache: 'no-store' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not request an email OTP.');
+      setOtpRequested(true); setEmailOtp('');
+      setNotice(data.message || 'If this email belongs to an approved account, an OTP has been sent.');
+    } catch (e) { setError(e.message || 'Could not request an email OTP.'); }
+    finally { setSaving(false); }
+  }
+
   async function login() {
     setSaving(true); setError('');
     try {
       if (role === 'user') {
-        const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'login', email: userEmail, pin }), cache: 'no-store' });
+        const response = await fetch('/api/email-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'verify', email: userEmail, otp: emailOtp }), cache: 'no-store' });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.ok) throw new Error(data.error || 'User sign in failed.');
         window.sessionStorage.setItem('maep_user_token', data.token);
@@ -179,7 +193,7 @@ export default function Dashboard() {
       const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'register', name: userName, email: userEmail, pin }), cache: 'no-store' });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not create account.');
-      setAuthMode('login'); setRole('user'); setPin(''); setConfirmPin(''); setNotice(data.message || 'Account created. Wait for Admin approval.');
+      setAuthMode('login'); setRole('user'); setPin(''); setConfirmPin(''); setEmailOtp(''); setOtpRequested(false); setNotice(data.message || 'Account created. Wait for Admin approval.');
     } catch (e) { setError(e.message || 'Could not create account.'); }
     finally { setSaving(false); }
   }
@@ -293,14 +307,13 @@ export default function Dashboard() {
           <p className="login-copy">{authMode === 'register' ? 'Create an account. Admin approval is required before access.' : 'Choose your role to continue.'}</p>
           {role === 'user' && error.includes('User access is not configured') && <p className="dash-error login-config-error" role="alert">{error}</p>}
           <label htmlFor="login-role">Role</label>
-          <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setAuthMode('login'); setError(''); setNotice(''); }}><option value="admin">Admin</option><option value="user">User</option></select>
+          <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setAuthMode('login'); setError(''); setNotice(''); setEmailOtp(''); setOtpRequested(false); setPin(''); }}><option value="admin">Admin</option><option value="user">User</option></select>
           {role === 'user' && authMode === 'register' && <><label htmlFor="user-name">Full name</label><input id="user-name" value={userName} onChange={e => setUserName(e.target.value)} autoComplete="name" maxLength={120} required placeholder="Enter your full name" /></>}
-          {role === 'user' && <><label htmlFor="user-email">Email</label><input id="user-email" type="email" value={userEmail} onChange={e => setUserEmail(e.target.value)} autoComplete="email" required placeholder="Enter your email" /></>}
-          <label htmlFor="admin-pin">{role === 'admin' ? 'Admin PIN' : 'PIN'}</label>
-          <input id="admin-pin" type="password" inputMode="text" autoComplete={authMode === 'register' ? 'new-password' : 'current-password'} value={pin} onChange={e => setPin(e.target.value)} placeholder={role === 'admin' ? 'Enter your Admin PIN' : 'Enter your PIN'} required minLength={role === 'user' ? 6 : undefined} maxLength={32} />
-          {role === 'user' && authMode === 'register' && <><label htmlFor="confirm-pin">Confirm PIN</label><input id="confirm-pin" type="password" value={confirmPin} onChange={e => setConfirmPin(e.target.value)} autoComplete="new-password" required minLength={6} maxLength={32} /></>}
+          {role === 'user' && <><label htmlFor="user-email">Email address</label>{authMode === 'login' ? <div className="email-otp-row"><input id="user-email" type="email" value={userEmail} onChange={e => { setUserEmail(e.target.value); setOtpRequested(false); setEmailOtp(''); setNotice(''); }} autoComplete="email" required placeholder="Enter your email address" /><button type="button" className="primary-btn email-otp-request" onClick={requestEmailOtp} disabled={saving || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(userEmail.trim())}>{saving ? 'Please wait…' : 'Get OTP'}</button></div> : <input id="user-email" type="email" value={userEmail} onChange={e => setUserEmail(e.target.value)} autoComplete="email" required placeholder="Enter your email address" />}</>}
+          {role === 'user' && authMode === 'login' && otpRequested && <><label htmlFor="email-otp">Email OTP</label><input id="email-otp" type="text" inputMode="numeric" autoComplete="one-time-code" value={emailOtp} onChange={e => setEmailOtp(e.target.value.replace(/\\D/g, '').slice(0, 6))} required pattern="[0-9]{6}" maxLength={6} placeholder="Enter the 6-digit OTP" /><p className="login-copy otp-help">Enter the code sent to your email. It expires in 5 minutes.</p></>}
+          {(role === 'admin' || authMode === 'register') && <><label htmlFor="admin-pin">{role === 'admin' ? 'Admin PIN' : 'Create PIN'}</label><input id="admin-pin" type="password" inputMode="text" autoComplete={authMode === 'register' ? 'new-password' : 'current-password'} value={pin} onChange={e => setPin(e.target.value)} placeholder={role === 'admin' ? 'Enter your Admin PIN' : 'Create a PIN'} required minLength={role === 'user' ? 6 : undefined} maxLength={32} />{role === 'user' && authMode === 'register' && <><label htmlFor="confirm-pin">Confirm PIN</label><input id="confirm-pin" type="password" value={confirmPin} onChange={e => setConfirmPin(e.target.value)} autoComplete="new-password" required minLength={6} maxLength={32} /></>}</>}
           {error && !(role === 'user' && error.includes('User access is not configured')) && <p className="dash-error" role="alert">{error}</p>}{notice && <p className="dash-notice" role="status">{notice}</p>}
-          <button className="primary-btn login-submit" disabled={saving}>{saving ? 'Please wait…' : authMode === 'register' ? 'Create account' : 'Sign in'} <span>→</span></button>
+          {(role === 'admin' || authMode === 'register' || otpRequested) && <button className="primary-btn login-submit" disabled={saving || (role === 'user' && authMode === 'login' && !/^[0-9]{6}$/.test(emailOtp))}>{saving ? 'Please wait…' : authMode === 'register' ? 'Create account' : 'Sign in'} <span>→</span></button>}
           {role === 'user' && <button type="button" className="profile-signout" onClick={() => { setAuthMode(authMode === 'register' ? 'login' : 'register'); setError(''); setNotice(''); }}>{authMode === 'register' ? 'Back to sign in' : 'Create a user account'}</button>}
         </form>
       </main>

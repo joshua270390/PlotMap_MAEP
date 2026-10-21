@@ -1,12 +1,35 @@
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, randomInt, scryptSync, timingSafeEqual } from "node:crypto";
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store"}});
-const cfg=()=>({adminPin:process.env.ADMIN_PIN||"",url:(process.env.SUPABASE_URL||"").replace(/\/+$/,""),key:(process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_KEY||"").trim(),secret:process.env.USER_SESSION_SECRET||"",table:process.env.USER_ACCESS_TABLE||"user_access",twilioSid:process.env.TWILIO_ACCOUNT_SID||"",twilioToken:process.env.TWILIO_AUTH_TOKEN||"",verifySid:process.env.TWILIO_VERIFY_SERVICE_SID||""});
+const cfg=()=>({adminPin:process.env.ADMIN_PIN||"",url:(process.env.SUPABASE_URL||"").replace(/\/+$/,""),key:(process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_KEY||"").trim(),secret:process.env.USER_SESSION_SECRET||"",table:process.env.USER_ACCESS_TABLE||"user_access",twoFactorKey:(process.env.TWOFACTOR_API_KEY||"").trim()});
 const hashPin=pin=>{const salt=randomBytes(16).toString("hex");return salt+":"+scryptSync(pin,salt,64).toString("hex")};
 const makeToken=(mobileNumber,secret)=>{const payload=Buffer.from(JSON.stringify({mobileNumber,exp:Date.now()+8*60*60*1000})).toString("base64url");return payload+"."+createHmac("sha256",secret).update(payload).digest("base64url")};
 const readToken=(token,secret)=>{try{const [payload,sig]=String(token||"").split(".");if(!payload||!sig)return null;const expected=createHmac("sha256",secret).update(payload).digest();const actual=Buffer.from(sig,"base64url");if(actual.length!==expected.length||!timingSafeEqual(actual,expected))return null;const data=JSON.parse(Buffer.from(payload,"base64url").toString("utf8"));return data.exp>Date.now()?data:null}catch{return null}};
 function normalizeMobile(value){let mobile=String(value||"").trim().replace(/[\s().-]/g,"");if(/^\d{10}$/.test(mobile))mobile="+91"+mobile;else if(/^91\d{10}$/.test(mobile))mobile="+"+mobile;return /^\+[1-9]\d{7,14}$/.test(mobile)?mobile:""}
 async function db(c,method,query="",body,prefer="return=representation"){const response=await fetch(c.url+"/rest/v1/"+c.table+(query?"?"+query:""),{method,headers:{apikey:c.key,Authorization:"Bearer "+c.key,Accept:"application/json",...(body!==undefined?{"Content-Type":"application/json",Prefer:prefer}:{})},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(10000)});const raw=await response.text();let data=null;try{data=raw?JSON.parse(raw):null}catch{}return response.ok?{ok:true,data}:{ok:false,status:response.status,error:data?.message||"Database request failed"}}
-async function twilio(c,endpoint,fields){if(!c.twilioSid||!c.twilioToken||!c.verifySid)return{ok:false,error:"SMS OTP is not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_VERIFY_SERVICE_SID in Netlify."};const response=await fetch("https://verify.twilio.com/v2/Services/"+encodeURIComponent(c.verifySid)+"/"+endpoint,{method:"POST",headers:{Authorization:"Basic "+Buffer.from(c.twilioSid+":"+c.twilioToken).toString("base64"),"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams(fields),signal:AbortSignal.timeout(10000)});const data=await response.json().catch(()=>({}));if(!response.ok){if(response.status===404)return{ok:false,error:"OTP service is not configured correctly. Check the Twilio Verify Service SID."};if(/max send attempts|too many requests|rate limit/i.test(String(data.message||"")))return{ok:false,error:"Too many OTP requests. Please wait a few minutes and try again."};return{ok:false,error:"Could not process OTP. Check the mobile number and try again."}}return{ok:true,data}}
+function makeOtpChallenge(mobileNumber,purpose,code,secret){
+ const exp=Date.now()+5*60*1000;
+ const codeMac=createHmac("sha256",secret).update("otp:"+mobileNumber+":"+purpose+":"+code+":"+exp).digest("base64url");
+ const payload=Buffer.from(JSON.stringify({mobileNumber,purpose,exp,codeMac})).toString("base64url");
+ const sig=createHmac("sha256",secret).update(payload).digest("base64url");return payload+"."+sig;
+}
+function verifyOtpChallenge(token,mobileNumber,purpose,code,secret){try{
+ const [payload,sig]=String(token||"").split(".");if(!payload||!sig)return false;
+ const expectedSig=createHmac("sha256",secret).update(payload).digest();const actualSig=Buffer.from(sig,"base64url");
+ if(actualSig.length!==expectedSig.length||!timingSafeEqual(actualSig,expectedSig))return false;
+ const data=JSON.parse(Buffer.from(payload,"base64url").toString("utf8"));
+ if(data.mobileNumber!==mobileNumber||data.purpose!==purpose||!Number.isFinite(data.exp)||data.exp<Date.now())return false;
+ const expectedMac=createHmac("sha256",secret).update("otp:"+mobileNumber+":"+purpose+":"+code+":"+data.exp).digest();const actualMac=Buffer.from(String(data.codeMac||""),"base64url");
+ return actualMac.length===expectedMac.length&&timingSafeEqual(actualMac,expectedMac);
+}catch{return false}}
+async function sendTwoFactorOtp(c,mobileNumber,code){
+ if(!c.twoFactorKey)return{ok:false,error:"SMS OTP is not configured. Set TWOFACTOR_API_KEY in Netlify."};
+ const phone=mobileNumber.replace(/^\\+/,"");
+ const url="https://2factor.in/API/V1/"+encodeURIComponent(c.twoFactorKey)+"/SMS/"+encodeURIComponent(phone)+"/"+encodeURIComponent(code);
+ const response=await fetch(url,{method:"POST",signal:AbortSignal.timeout(15000)});const raw=await response.text();let data=null;try{data=JSON.parse(raw)}catch{}
+ const status=String(data?.Status||data?.status||"");
+ if(!response.ok||/error|fail/i.test(status)||/^error/i.test(raw.trim())){console.error("[user-access] 2Factor OTP request failed:",response.status,status||"provider error");return{ok:false,error:/limit|balance|credit/i.test(raw)?"OTP could not be sent. Check your 2Factor OTP balance and account status.":"Could not send OTP. Check the mobile number and 2Factor account setup."}}
+ return{ok:true};
+}
 async function findUser(c,mobileNumber){return db(c,"GET",new URLSearchParams({select:"id,mobile_number,created_at,status",mobile_number:"eq."+mobileNumber,limit:"1"}).toString())}
 export default async function handler(request){
  if(request.method!=="POST")return json({ok:false,error:"Method not allowed"},405);
@@ -21,14 +44,13 @@ export default async function handler(request){
    const registered=Array.isArray(existing.data)&&existing.data.length>0;
    if(purpose==="register"&&registered)return json({ok:false,error:"Mobile number already used. Please sign in instead."},409);
    if(purpose==="login"&&!registered)return json({ok:false,error:"This mobile number is not registered. Please create an account first."},404);
-   const sent=await twilio(c,"Verifications",{To:mobileNumber,Channel:"sms"});if(!sent.ok)return json({ok:false,error:sent.error},502);
-   return json({ok:true,message:"OTP sent."});
+   const code=String(randomInt(100000,1000000));const sent=await sendTwoFactorOtp(c,mobileNumber,code);if(!sent.ok)return json({ok:false,error:sent.error},502);
+   return json({ok:true,message:"OTP sent.",challenge_token:makeOtpChallenge(mobileNumber,purpose,code,c.secret)});
   }
   if(action==="verify-code"){
    const mobileNumber=normalizeMobile(body.mobile_number),purpose=String(body.purpose||""),code=String(body.code||"").trim();
    if(!mobileNumber||!/^\d{4,8}$/.test(code)||!["register","login"].includes(purpose))return json({ok:false,error:"Enter the mobile number and valid OTP."},422);
-   const verified=await twilio(c,"VerificationCheck",{To:mobileNumber,Code:code});if(!verified.ok)return json({ok:false,error:verified.error},502);
-   if(verified.data?.status!=="approved")return json({ok:false,error:"Incorrect or expired OTP. Please try again."},401);
+   if(!verifyOtpChallenge(body.challenge_token,mobileNumber,purpose,code,c.secret))return json({ok:false,error:"Incorrect or expired OTP. Please request a new code and try again."},401);
    const existing=await findUser(c,mobileNumber);if(!existing.ok)return json({ok:false,error:"Could not verify the account. Please try again."},502);
    const user=Array.isArray(existing.data)?existing.data[0]:null;
    if(purpose==="register"){

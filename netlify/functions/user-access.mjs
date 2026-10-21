@@ -63,7 +63,7 @@ export default async function handler(request) {
       const pin = String(body.pin || "");
       if (name.length < 2 || name.length > 120) return json({ ok: false, error: "Enter your full name." }, 422);
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return json({ ok: false, error: "Enter a valid email address." }, 422);
-      if (!/^[A-Za-z0-9!@#$%^&*()_+\-=]{6,32}$/.test(pin)) return json({ ok: false, error: "PIN must be 6–32 characters and may include letters, numbers, or symbols." }, 422);
+      if (!/^[\x21-\x7E]{6,32}$/.test(pin)) return json({ ok: false, error: "PIN must be 6–32 characters and may include letters, numbers, or symbols." }, 422);
       const existing = await db(c, "GET", new URLSearchParams({ select: "id", email: "eq." + email, limit: "1" }).toString());
       if (!existing.ok) return json({ ok: false, error: "Could not verify registration. Please try again." }, 502);
       if (existing.data?.length) return json({ ok: false, error: "An account with this email already exists." }, 409);

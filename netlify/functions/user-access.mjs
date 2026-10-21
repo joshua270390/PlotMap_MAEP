@@ -7,7 +7,7 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
 const cfg = () => ({
   adminPin: process.env.ADMIN_PIN || "",
   url: (process.env.SUPABASE_URL || "").replace(/\/+$/, ""),
-  key: (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim(),
+  key: (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || "").trim(),
   secret: process.env.USER_SESSION_SECRET || "",
   table: process.env.USER_ACCESS_TABLE || "user_access",
 });

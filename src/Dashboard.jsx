@@ -25,6 +25,7 @@ export default function Dashboard() {
   }, []);
   const [pin, setPin] = useState('');
   const [loggedIn, setLoggedIn] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : 'dashboard'; });
   const [bookings, setBookings] = useState([]);
   const [plots, setPlots] = useState([]);
@@ -44,7 +45,7 @@ export default function Dashboard() {
   // Restore the admin session after a refresh in the same browser tab.
   useEffect(() => {
     const savedPin = window.sessionStorage.getItem('maep_admin_pin');
-    if (!savedPin) return;
+    if (!savedPin) { setCheckingSession(false); return; }
     let cancelled = false;
     (async () => {
       try {
@@ -64,9 +65,22 @@ export default function Dashboard() {
         }
       } catch {
         if (!cancelled) setError('Could not verify the saved admin session. Please sign in again.');
+      } finally {
+        if (!cancelled) setCheckingSession(false);
       }
     })();
     return () => { cancelled = true; };
+  }, []);
+
+  // Keep React's visible page in sync with browser Back/Forward navigation.
+  useEffect(() => {
+    const syncPageFromUrl = () => {
+      const path = window.location.pathname.replace(/\\/+$/, '') || '/';
+      setPage(path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : 'dashboard');
+      setSidebarOpen(false);
+    };
+    window.addEventListener('popstate', syncPageFromUrl);
+    return () => window.removeEventListener('popstate', syncPageFromUrl);
   }, []);
 
   const plotById = useMemo(() => new Map(plots.map(plot => [String(plot.id), plot])), [plots]);
@@ -193,6 +207,10 @@ export default function Dashboard() {
     const matchesStatus = statusFilter === 'All' || normalizedStatus(row.status) === statusFilter;
     return matchesSearch && matchesStatus;
   }), [bookings, plotById, search, statusFilter]);
+
+  if (checkingSession) {
+    return <main className="dash-login"><div className="login-card" role="status" aria-live="polite"><img className="login-logo" src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" /><p className="login-copy">Restoring your admin session…</p></div></main>;
+  }
 
   if (!loggedIn) {
     return (

@@ -541,3 +541,14 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
   }
 }
 
+
+
+/* User access refinements: tighter label-to-control spacing and setup feedback below the account title. */
+.login-card label{margin:9px 0 4px}
+.login-card input,.login-card select{margin-top:3px}
+.login-config-error{margin:8px 0 12px;padding:9px 11px;border:1px solid #f0c9cc;border-radius:9px;background:#fff5f5;line-height:1.5;overflow-wrap:anywhere}
+.user-management-card .page-intro{padding:20px 20px 0;margin-bottom:15px}
+.user-management-card .table-toolbar{margin-top:0}
+.user-management-card .table-footer{display:flex;align-items:center;justify-content:flex-end;padding:13px 20px;border-top:1px solid var(--dash-line);color:var(--dash-muted);font-size:11px}
+.user-management-card .table-toolbar .search-field{flex:1;min-width:180px}
+@media(max-width:640px){.user-management-card .page-intro{padding:17px 14px 0}.user-management-card .table-footer{padding:12px 14px}}

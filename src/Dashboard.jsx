@@ -31,7 +31,7 @@ export default function Dashboard() {
   const [confirmPin, setConfirmPin] = useState('');
   const [users, setUsers] = useState([]);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard'; });
+      const path = window.location.pathname.replace(/\/+$/, '') || '/';
   const [bookings, setBookings] = useState([]);
   const [plots, setPlots] = useState([]);
   const [mapPlotStatuses, setMapPlotStatuses] = useState({});

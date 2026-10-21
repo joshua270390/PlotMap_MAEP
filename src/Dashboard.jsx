@@ -30,6 +30,7 @@ export default function Dashboard() {
   const [userEmail, setUserEmail] = useState('');
   const [emailOtp, setEmailOtp] = useState('');
   const [otpRequested, setOtpRequested] = useState(false);
+  const [userDeleteTarget, setUserDeleteTarget] = useState(null);
   const [confirmPin, setConfirmPin] = useState('');
   const [users, setUsers] = useState([]);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -209,6 +210,17 @@ export default function Dashboard() {
     finally { setLoading(false); }
   }
 
+  async function deleteUserAccount(user) {
+    setSaving(true); setError(''); setNotice('');
+    try {
+      const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin }, body: JSON.stringify({ action: 'delete', id: user.id }), cache: 'no-store' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not delete user account.');
+      setUserDeleteTarget(null); setNotice('User account deleted.'); await loadUsers();
+    } catch (e) { setError(e.message || 'Could not delete user account.'); }
+    finally { setSaving(false); }
+  }
+
   async function updateUserAccess(id, action) {
     setSaving(true); setError(''); setNotice('');
     try {
@@ -301,20 +313,18 @@ export default function Dashboard() {
   if (!loggedIn) {
     return (
       <main className="dash-login">
-        <form className="login-card" onSubmit={e => { e.preventDefault(); authMode === 'register' ? registerUser() : login(); }}>
+        <form className="login-card" onSubmit={e => { e.preventDefault(); login(); }}>
           <img className="login-logo" src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" />
           <h1>{authMode === 'register' ? 'Create User Account' : 'Sign in'}</h1>
-          <p className="login-copy">{authMode === 'register' ? 'Create an account. Admin approval is required before access.' : 'Choose your role to continue.'}</p>
+          <p className="login-copy">{role === 'admin' ? 'Sign in with your Admin PIN.' : 'Enter your email address and verify the one-time code to continue.'}</p>
           {role === 'user' && error.includes('User access is not configured') && <p className="dash-error login-config-error" role="alert">{error}</p>}
           <label htmlFor="login-role">Role</label>
           <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setAuthMode('login'); setError(''); setNotice(''); setEmailOtp(''); setOtpRequested(false); setPin(''); }}><option value="admin">Admin</option><option value="user">User</option></select>
-          {role === 'user' && authMode === 'register' && <><label htmlFor="user-name">Full name</label><input id="user-name" value={userName} onChange={e => setUserName(e.target.value)} autoComplete="name" maxLength={120} required placeholder="Enter your full name" /></>}
           {role === 'user' && <><label htmlFor="user-email">Email address</label>{authMode === 'login' ? <div className="email-otp-row"><input id="user-email" type="email" value={userEmail} onChange={e => { setUserEmail(e.target.value); setOtpRequested(false); setEmailOtp(''); setNotice(''); }} autoComplete="email" required placeholder="Enter your email address" /><button type="button" className="primary-btn email-otp-request" onClick={requestEmailOtp} disabled={saving || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail.trim())}>{saving ? 'Please wait…' : 'Get OTP'}</button></div> : <input id="user-email" type="email" value={userEmail} onChange={e => setUserEmail(e.target.value)} autoComplete="email" required placeholder="Enter your email address" />}</>}
           {role === 'user' && authMode === 'login' && otpRequested && <><label htmlFor="email-otp">Email OTP</label><input id="email-otp" type="text" inputMode="numeric" autoComplete="one-time-code" value={emailOtp} onChange={e => setEmailOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} required pattern="[0-9]{6}" maxLength={6} placeholder="Enter the 6-digit OTP" /><p className="login-copy otp-help">Enter the code sent to your email. It expires in 5 minutes.</p></>}
-          {(role === 'admin' || authMode === 'register') && <><label htmlFor="admin-pin">{role === 'admin' ? 'Admin PIN' : 'Create PIN'}</label><input id="admin-pin" type="password" inputMode="text" autoComplete={authMode === 'register' ? 'new-password' : 'current-password'} value={pin} onChange={e => setPin(e.target.value)} placeholder={role === 'admin' ? 'Enter your Admin PIN' : 'Create a PIN'} required minLength={role === 'user' ? 6 : undefined} maxLength={32} />{role === 'user' && authMode === 'register' && <><label htmlFor="confirm-pin">Confirm PIN</label><input id="confirm-pin" type="password" value={confirmPin} onChange={e => setConfirmPin(e.target.value)} autoComplete="new-password" required minLength={6} maxLength={32} /></>}</>}
+          {role === 'admin' && <><label htmlFor="admin-pin">Admin PIN</label><input id="admin-pin" type="password" inputMode="text" autoComplete="current-password" value={pin} onChange={e => setPin(e.target.value)} placeholder="Enter your Admin PIN" required maxLength={32} /></>}
           {error && !(role === 'user' && error.includes('User access is not configured')) && <p className="dash-error" role="alert">{error}</p>}{notice && <p className="dash-notice" role="status">{notice}</p>}
-          {(role === 'admin' || authMode === 'register' || otpRequested) && <button className="primary-btn login-submit" disabled={saving || (role === 'user' && authMode === 'login' && !/^[0-9]{6}$/.test(emailOtp))}>{saving ? 'Please wait…' : authMode === 'register' ? 'Create account' : 'Sign in'} <span>→</span></button>}
-          {role === 'user' && <button type="button" className="profile-signout" onClick={() => { setAuthMode(authMode === 'register' ? 'login' : 'register'); setError(''); setNotice(''); }}>{authMode === 'register' ? 'Back to sign in' : 'Create a user account'}</button>}
+          {(role === 'admin' || otpRequested) && <button className="primary-btn login-submit" disabled={saving || (role === 'user' && !/^[0-9]{6}$/.test(emailOtp))}>{saving ? 'Please wait…' : 'Sign in'} <span>→</span></button>}
         </form>
       </main>
     );
@@ -361,16 +371,16 @@ export default function Dashboard() {
 
           {page === 'users' && role === 'admin' ? (
             <section className="table-card user-management-card">
-              <div className="page-intro"><div><h2>User access management</h2><p>Approve registered users before they can sign in. PINs are stored as protected hashes.</p></div></div>
+              <div className="page-intro"><div><h2>Users</h2><p>Accounts are created automatically when a user verifies their email OTP. No PIN or Admin approval is required.</p></div></div>
               <div className="table-toolbar">
-                <label className="search-field"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, email or access status…" aria-label="Search user accounts" /></label>
+                <label className="search-field"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search email address…" aria-label="Search user accounts" /></label>
                 <div className="booking-toolbar-actions"><button type="button" className="add-customer-btn" onClick={loadUsers} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button></div>
               </div>
-              {loading ? <div className="table-state">Loading user accounts…</div> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Name</th><th>Email</th><th>PIN</th><th>Access status</th><th>Registered</th><th>Action</th></tr></thead><tbody>
-                {users.filter(user => [user.name, user.email, user.status].some(value => String(value || '').toLowerCase().includes(search.toLowerCase().trim()))).map(user => <tr key={user.id}><td><strong>{user.name}</strong></td><td>{user.email}</td><td><span className="unit-pill">Protected</span></td><td><span className={'status-select status-' + user.status}>{user.status === 'approved' ? 'Approved' : user.status === 'revoked' ? 'Revoked' : 'Pending'}</span></td><td>{user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}</td><td><div className="row-actions">{user.status !== 'approved' && <button className="edit-btn" disabled={saving} onClick={() => updateUserAccess(user.id, 'approve')}>Approve</button>}{user.status !== 'revoked' && <button className="delete-btn" disabled={saving} onClick={() => updateUserAccess(user.id, 'revoke')}>Revoke</button>}</div></td></tr>)}
-                {!users.filter(user => [user.name, user.email, user.status].some(value => String(value || '').toLowerCase().includes(search.toLowerCase().trim()))).length && <tr><td colSpan="6" className="empty-cell">{users.length ? 'No user accounts match your search.' : 'No user accounts registered yet.'}</td></tr>}
+              {loading ? <div className="table-state">Loading users…</div> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Email ID</th><th>Registration Date</th><th>Action</th></tr></thead><tbody>
+                {users.filter(user => String(user.email || '').toLowerCase().includes(search.toLowerCase().trim())).map(user => <tr key={user.id}><td><strong>{user.email}</strong></td><td>{user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}</td><td><div className="row-actions"><button className="delete-btn" disabled={saving} onClick={() => setUserDeleteTarget(user)}>Delete</button></div></td></tr>)}
+                {!users.filter(user => String(user.email || '').toLowerCase().includes(search.toLowerCase().trim())).length && <tr><td colSpan="3" className="empty-cell">{users.length ? 'No user accounts match your search.' : 'No users registered yet.'}</td></tr>}
               </tbody></table></div>}
-              <div className="table-footer">Showing {users.filter(user => [user.name, user.email, user.status].some(value => String(value || '').toLowerCase().includes(search.toLowerCase().trim()))).length} of {users.length} user accounts</div>
+              <div className="table-footer">Showing {users.filter(user => String(user.email || '').toLowerCase().includes(search.toLowerCase().trim())).length} of {users.length} users</div>
             </section>
           ) : page !== 'plots' ? (
             <>
@@ -525,6 +535,16 @@ export default function Dashboard() {
           {error && <p className="dash-error">{error}</p>}
           <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setEdit(null)}>Cancel</button><button className="primary-btn" disabled={saving}>{saving ? 'Saving…' : edit.id == null ? 'Add customer' : 'Save changes'}</button></div>
         </form>
+      </div>}
+      {userDeleteTarget && <div className="edit-overlay confirm-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) setUserDeleteTarget(null); }}>
+        <section className="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="user-delete-confirm-title" aria-describedby="user-delete-confirm-copy">
+          <div className="confirm-icon" aria-hidden="true">!</div>
+          <button type="button" className="modal-close" onClick={() => setUserDeleteTarget(null)} aria-label="Close" disabled={saving}>×</button>
+          <p className="eyebrow">CONFIRM ACTION</p>
+          <h2 id="user-delete-confirm-title">Delete user account?</h2>
+          <p id="user-delete-confirm-copy">Are you sure you want to delete <strong>{userDeleteTarget.email}</strong>? This action cannot be undone.</p>
+          <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setUserDeleteTarget(null)} disabled={saving}>Cancel</button><button type="button" className="confirm-delete-btn" onClick={() => deleteUserAccount(userDeleteTarget)} disabled={saving}>{saving ? 'Deleting…' : 'Yes, delete'}</button></div>
+        </section>
       </div>}
       {deleteTarget && <div className="edit-overlay confirm-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) setDeleteTarget(null); }}>
         <section className="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="delete-confirm-title" aria-describedby="delete-confirm-copy">

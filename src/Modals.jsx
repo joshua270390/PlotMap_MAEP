@@ -5,7 +5,7 @@ import { P } from './data.js';
 
 const backdrop = onClose => ({ onPointerDown: e => { if (e.target === e.currentTarget) onClose(); } });
 
-export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap, reservedCustomers = [] }) {
+export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap, reservedCustomers = [], admin = false }) {
   const a = ax.areaOf(id), lb = ax.lbl(id), sv = status || 'a', closeRef = useRef(null);
   const details = ax.ad.plotDetails?.[id] || {};
   const [editing, setEditing] = useState(false);
@@ -22,6 +22,7 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
   const waDigits = String(details.whatsapp ?? PHONE).replace(/\D/g, '').replace(/^0+/, '').replace(/^91(?=\d{10}$)/, '');
   const draftArea = Number(draft.area);
   const applyContactDetails = () => {
+    if (!admin) return;
     const field = confirmApply?.field;
     const value = String(draft[field] || '').trim();
     if (!value) { setEditError(`Enter a valid ${field === 'phone' ? 'Contact' : 'WhatsApp'} number.`); setConfirmApply(null); return; }
@@ -33,8 +34,9 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
     });
     setConfirmApply(null); setEditError('');
   };
-  const askApply = (field, scope) => { setEditError(''); setConfirmApply({ field, scope }); };
+  const askApply = (field, scope) => { if (!admin) return; setEditError(''); setConfirmApply({ field, scope }); };
   const saveDetails = () => {
+    if (!admin) return;
     if (!(draftArea > 0) || !Number.isFinite(draftArea)) { setEditError('Enter a valid Sq.ft. value.'); return; }
     const phone = draft.phone.trim(), whatsapp = draft.whatsapp.trim();
     if (!phone || !whatsapp) { setEditError('Enter both contact and WhatsApp numbers.'); return; }
@@ -86,7 +88,7 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
             <div className="ar"><b>{a} Sq.ft.</b> <span>&middot; {(a / 435.6).toFixed(2)} cents</span></div>
             {ax.rate > 0 && <><hr /><div className="pr"><i>Actual Price</i><b>{inr(a * ax.rate)}</b></div></>}
           </div></div>
-          {editing ? (
+          {admin && editing ? (
             <div className="unit-edit-form">
               <div className="unit-contact-settings">
                 <div className="unit-contact-row">
@@ -105,9 +107,9 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
               {editError && <p className="unit-edit-error" role="alert">{editError}</p>}
               <div className="unit-edit-actions"><button className="mbtn" type="button" onClick={saveDetails}>Save changes</button><button className="unit-edit-cancel" type="button" onClick={() => { setEditing(false); setEditError(''); }}>Cancel</button></div>
             </div>
-          ) : (
+          ) : admin ? (
             <button className="unit-edit-trigger" type="button" onClick={() => { setDraft({ phone: details.phone ?? PHONE, whatsapp: details.whatsapp ?? PHONE, area: String(a) }); setEditing(true); }}>Edit unit details</button>
-          )}
+          ) : null}
           <button className="mv" type="button" onClick={onViewMap}>&#128205; View on Map</button>
         </div>
       </div>

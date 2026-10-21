@@ -31,6 +31,7 @@ export default function Dashboard() {
   const [confirmPin, setConfirmPin] = useState('');
   const [users, setUsers] = useState([]);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [authChecking, setAuthChecking] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_token') || window.sessionStorage.getItem('maep_admin_pin')));
   const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard'; });
   const [bookings, setBookings] = useState([]);
   const [plots, setPlots] = useState([]);
@@ -81,11 +82,12 @@ export default function Dashboard() {
           if (response.ok && data.ok) { setRole('user'); setUserName(data.name || 'User'); setLoggedIn(true); setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); }
           else { window.sessionStorage.removeItem('maep_user_token'); setError(data.error || 'Please sign in again.'); }
         } catch { if (!cancelled) setError('Could not verify your user session. Please sign in again.'); }
+      finally { if (!cancelled) setAuthChecking(false); }
       })();
       return () => { cancelled = true; };
     }
     const savedPin = window.sessionStorage.getItem('maep_admin_pin');
-    if (!savedPin) return;
+    if (!savedPin) { setAuthChecking(false); return; }
     let cancelled = false;
     (async () => {
       try {
@@ -105,7 +107,7 @@ export default function Dashboard() {
         }
       } catch {
         if (!cancelled) setError('Could not verify the saved admin session. Please sign in again.');
-      }
+      } finally { if (!cancelled) setAuthChecking(false); }
     })();
     return () => { cancelled = true; };
   }, []);
@@ -151,7 +153,7 @@ export default function Dashboard() {
         if (!response.ok || !data.ok) throw new Error(data.error || 'User sign in failed.');
         window.sessionStorage.setItem('maep_user_token', data.token);
         window.sessionStorage.removeItem('maep_admin_pin');
-        setUserName(data.name || 'User'); setLoggedIn(true); setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); setNotice('Welcome. You can view plot lists and submit enquiries.');
+        setUserName(data.name || 'User'); setLoggedIn(true); setAuthChecking(false); setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); setNotice('Welcome. You can view plot lists and submit enquiries.');
         return;
       }
       const response = await fetch('/api/admin-auth', {
@@ -164,7 +166,7 @@ export default function Dashboard() {
       // Keep successful Admin sign-in on the dedicated dashboard route.
       window.history.replaceState({}, '', '/dashboard');
       setPage('dashboard');
-      setLoggedIn(true); setNotice('Welcome to the admin dashboard.');
+      setLoggedIn(true); setAuthChecking(false); setNotice('Welcome to the admin dashboard.');
       await loadData('bookings', pin);
     } catch (e) { setError(e.message || 'Could not sign in.'); }
     finally { setSaving(false); }
@@ -277,6 +279,10 @@ export default function Dashboard() {
     const matchesStatus = statusFilter === 'All' || normalizedStatus(row.status) === statusFilter;
     return matchesSearch && matchesStatus;
   }), [bookings, plotById, search, statusFilter]);
+
+  if (authChecking) {
+    return <main className="dash-login"><div className="login-card" role="status"><p className="login-copy">Checking your session…</p></div></main>;
+  }
 
   if (!loggedIn) {
     return (

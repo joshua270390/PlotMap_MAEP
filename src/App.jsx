@@ -20,6 +20,7 @@ export default function App() {
   const [userMode, setUserMode] = useState(false);
   const [checkingUserSession, setCheckingUserSession] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_token')));
   const [panel, setPanel] = useState('off');         // 'off' | 'lock' | 'tools'
+  const [adminPin, setAdminPin] = useState('');
   const [addMode, setAddMode] = useState(false);
   const mapRef = useRef(null);
   const ax = useMemo(() => makeApi(ad), [ad]);
@@ -89,6 +90,34 @@ export default function App() {
     }
   }, []);
 
+  // Restore the Admin Studio session when an Admin opens the map from the dashboard.
+  useEffect(() => {
+    if (window.sessionStorage.getItem('maep_user_token')) return;
+    const savedPin = window.sessionStorage.getItem('maep_admin_pin');
+    if (!savedPin) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch('/api/admin-auth', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin: savedPin }), cache: 'no-store',
+        });
+        const data = await response.json().catch(() => ({}));
+        if (cancelled) return;
+        if (response.ok && data.ok) {
+          setAdminPin(savedPin);
+          setPanel('tools');
+          loadAdminEnquiries(savedPin);
+        } else {
+          window.sessionStorage.removeItem('maep_admin_pin');
+        }
+      } catch {
+        // Keep the saved PIN for a temporary network failure; do not unlock without verification.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [loadAdminEnquiries]);
+
   const clearSel = useCallback(() => { setSel(null); setSelD(null); setAddMode(false); }, []);
   const closeUnit = useCallback(() => { setUnit(null); setSel(null); }, []);
   useEffect(() => {
@@ -127,7 +156,7 @@ export default function App() {
     <>
       <PlotMap ref={mapRef} ax={ax} status={status} details={plotDetails} filt={filt} setFilt={setFilt} sel={sel} selD={selD} setSel={setSel}
         onTap={onTap} admin={admin} addMode={addMode} adminEnquiries={adminEnquiries}>
-        {!userMode && !checkingUserSession && <AdminPanel panel={panel} setPanel={setPanel} ax={ax} setAd={setAd} sel={sel} selD={selD} status={status} setStatus={setStatus}
+        {!userMode && !checkingUserSession && <AdminPanel panel={panel} setPanel={setPanel} ax={ax} setAd={setAd} sel={sel} selD={selD} status={status} setStatus={setStatus} initialAdminPin={adminPin}
           addMode={addMode} setAddMode={setAddMode} clearSel={clearSel} onAdminAuth={loadAdminEnquiries} onAdminExit={() => setAdminEnquiries([])} />}
       </PlotMap>
       {closedPlot != null && <PlotStatusModal id={closedPlot.id} status={closedPlot.status} ax={ax}

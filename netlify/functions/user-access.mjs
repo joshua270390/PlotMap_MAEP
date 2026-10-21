@@ -88,14 +88,18 @@ export default async function handler(request) {
       if (!user || user.status !== "approved") return json({ ok: false, error: "User access is not approved." }, 403);
       return json({ ok: true, role: "user", name: user.name });
     }
-    if (action === "list" || action === "approve" || action === "revoke" || action === "pending") {
+    if (action === "list" || action === "approve" || action === "revoke" || action === "pending" || action === "delete") {
       if (!c.adminPin || request.headers.get("x-admin-pin") !== c.adminPin) return json({ ok: false, error: "Admin authentication failed." }, 401);
       if (action === "list" || action === "pending") {
         const result = await db(c, "GET", new URLSearchParams({ select: "id,name,email,status,created_at,updated_at", order: "created_at.desc", limit: "1000" }).toString());
         return result.ok ? json({ ok: true, users: result.data || [] }) : json({ ok: false, error: "Could not load user accounts." }, 502);
       }
       const id = String(body.id || "");
-      if (!/^\d+$/.test(id)) return json({ ok: false, error: "Invalid user id." }, 422);
+      if (!/^\\d+$/.test(id)) return json({ ok: false, error: "Invalid user id." }, 422);
+      if (action === "delete") {
+        const removed = await db(c, "DELETE", new URLSearchParams({ id: "eq." + id }).toString(), undefined, "return=minimal");
+        return removed.ok ? json({ ok: true, deleted: true }) : json({ ok: false, error: "Could not delete the user account." }, 502);
+      }
       const status = action === "approve" ? "approved" : "revoked";
       const result = await db(c, "PATCH", new URLSearchParams({ id: "eq." + id }).toString(), { status, updated_at: new Date().toISOString() });
       return result.ok ? json({ ok: true, status }) : json({ ok: false, error: "Could not update user access." }, 502);

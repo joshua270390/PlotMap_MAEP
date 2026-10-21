@@ -31,7 +31,7 @@ export default function Dashboard() {
   const [confirmPin, setConfirmPin] = useState('');
   const [users, setUsers] = useState([]);
   const [loggedIn, setLoggedIn] = useState(false);
-      const path = window.location.pathname.replace(/\/+$/, '') || '/';
+  const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard'; });
   const [bookings, setBookings] = useState([]);
   const [plots, setPlots] = useState([]);
   const [mapPlotStatuses, setMapPlotStatuses] = useState({});
@@ -51,7 +51,7 @@ export default function Dashboard() {
   // Returning from a dashboard route to '/' must remount the PlotMap app, not leave stale dashboard UI.
   useEffect(() => {
     const syncRoute = () => {
-      const path = window.location.pathname.replace(/\\/+$/, '') || '/';
+      const path = window.location.pathname.replace(/\/+$/, '') || '/';
       if (role === 'user') {
         if (path !== '/plot_lists') window.history.replaceState({}, '', '/plot_lists');
         setPage('plots');

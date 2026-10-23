@@ -561,3 +561,8 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 .email-otp-request{flex:none;white-space:nowrap;margin-top:7px;padding:12px 14px}
 .otp-help{margin:2px 0 14px}
 @media(max-width:380px){.email-otp-row{gap:6px}.email-otp-request{padding:11px 9px;font-size:11px}}
+
+
+/* Profile dropdown avatar image */
+.profile-trigger{padding:0;border:0;overflow:hidden;cursor:pointer;background:transparent;}
+.profile-trigger .topbar-avatar-image{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;}

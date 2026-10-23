@@ -23,15 +23,15 @@ const css = `
 .sa .card .brand-logo{width:42px;height:42px;object-fit:contain;flex:none}
 .sa .card b{font:800 19px/1.1 "Bricolage Grotesque","Instrument Sans",system-ui,sans-serif;display:block;letter-spacing:-.02em;white-space:nowrap}
 .sa .card small{font-size:12px;color:#667085;display:block;margin-top:4px}
-.sa .legend{align-self:stretch;position:static;width:auto;padding:6px 8px 9px;display:flex;flex-direction:column;justify-content:center;gap:7px;flex:1 1 auto;min-width:0;background:linear-gradient(135deg,#07533e,#033b2d);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:14px;box-shadow:0 8px 22px rgba(0,35,25,.2)}
-.sa .legend .lrow{display:flex;align-items:center;justify-content:space-around;gap:7px;flex-wrap:nowrap}
-.sa .legend .chip{display:flex;align-items:center;gap:7px;min-width:0;color:#fff;font-size:12px;font-weight:600;white-space:nowrap}
+.sa .legend{align-self:stretch;position:static;width:auto;padding:6px 8px 9px;display:flex;flex-direction:column;justify-content:center;gap:7px;flex:0 1 auto;min-width:0;background:linear-gradient(135deg,#07533e,#033b2d);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:14px;box-shadow:0 8px 22px rgba(0,35,25,.2)}
+.sa .legend .lrow{display:flex;align-items:center;justify-content:space-around;gap:2px;flex-wrap:nowrap}
+.sa .legend .chip{display:flex;align-items:center;gap:7px;min-width:0;color:#fff;font-size:15px;font-weight:600;white-space:nowrap;padding:7px 11px}
 .sa .legend .chip i{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-radius:50%;box-sizing:border-box;flex:none}
 .sa .legend .chip:first-child i{background:#fff!important}
 .sa .legend .chip:nth-child(2) i{background:#f28c28!important}
 .sa .legend .chip:nth-child(3) i{background:#d99a1c!important}
 .sa .legend .chip:nth-child(4) i{background:#b4313f!important}
-.sa .legend .chip .c{color:#fff;font-weight:800}
+.sa .legend .chip .c{color:#fff;font-weight:800;margin-left:4px}
 .sa .search{display:flex;align-items:center;padding:0 13px;min-height:44px;width:190px;flex:0 1 210px;min-width:145px;margin-left:auto}
 .sa .search input{border:0;outline:0;font:500 14px/1.3 "Instrument Sans",system-ui,sans-serif;padding:10px 0;width:100%;background:transparent;color:#1b2433;min-width:0}
 .sa .search input::placeholder{color:#667085}
@@ -47,9 +47,9 @@ const css = `
 .sa .panel h3{margin:0 0 10px;font:800 22px/1.1 "Bricolage Grotesque","Instrument Sans",system-ui,sans-serif}
 .sa .panel dl{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;margin:0;font-size:13px}.sa .panel dt{color:#667085}.sa .panel dd{margin:0;text-align:right;font-weight:700}
 .sa .panel button{margin-top:12px;border:0;background:#07533e;color:#fff;border-radius:9px;padding:9px 14px;font:700 13px "Instrument Sans",system-ui,sans-serif;cursor:pointer}
-@media(max-width:1250px){.sa .top{flex-wrap:wrap;align-items:center}.sa .card{flex:1 1 220px}.sa .legend{order:3;flex:1 1 100%;width:100%;min-height:48px}.sa .search{margin-left:auto;flex:0 1 220px}.sa .legend .lrow{justify-content:space-between}}
+@media(max-width:1250px){.sa .top{flex-wrap:wrap;align-items:center}.sa .card{flex:1 1 220px}.sa .legend{order:2;flex:1 1 100%;width:100%;min-height:48px}.sa .search{order:3;margin-left:0;flex:1 1 100%;width:100%}.sa .legend .lrow{justify-content:space-between}}
 @media(max-width:991px){.sa .back{display:none!important}}
-@media(max-width:600px){.sa .top{left:8px;right:8px;top:8px;gap:6px}.sa .card{min-width:0;flex:1 1 calc(100% - 140px);min-height:48px;padding:5px 8px;gap:7px}.sa .card .brand-logo{width:32px;height:32px}.sa .card b{font-size:15px;white-space:normal}.sa .card small{font-size:10px;margin-top:3px}.sa .legend{order:3;flex:1 1 100%;width:100%;padding:8px 9px;gap:5px;border-radius:12px;min-height:40px}.sa .legend .lrow{justify-content:space-between;gap:5px}.sa .legend .chip{gap:4px;font-size:10px}.sa .legend .chip i{width:10px;height:10px;border-width:1.5px}.sa .search{order:4;flex:1 1 100%;width:100%;min-width:0;min-height:40px;padding:0 11px}.sa .search input{padding:9px 0;font-size:13px}.sa .admin{right:8px;bottom:calc(154px + env(safe-area-inset-bottom,0px));padding:8px 11px;font-size:12px}.sa .zoom{right:8px;bottom:8px}.sa .zoom button{width:40px;height:40px}.sa .panel{left:8px;bottom:8px;max-width:calc(100vw - 64px);min-width:0;padding:13px}.sa .panel h3{font-size:19px}}
+@media(max-width:600px){.sa .top{left:8px;right:8px;top:8px;gap:6px}.sa .card{min-width:0;flex:1 1 calc(100% - 140px);min-height:48px;padding:5px 8px;gap:7px}.sa .card .brand-logo{width:32px;height:32px}.sa .card b{font-size:15px;white-space:normal}.sa .card small{font-size:10px;margin-top:3px}.sa .legend{order:3;flex:1 1 100%;width:100%;padding:8px 9px;gap:5px;border-radius:12px;min-height:40px}.sa .legend .lrow{justify-content:space-between;gap:5px}.sa .legend .chip{gap:5px;font-size:14px;padding:5px 7px}.sa .legend .chip i{width:10px;height:10px;border-width:1.5px}.sa .search{order:4;flex:1 1 100%;width:100%;min-width:0;min-height:40px;padding:0 11px}.sa .search input{padding:9px 0;font-size:13px}.sa .admin{right:8px;bottom:calc(154px + env(safe-area-inset-bottom,0px));padding:8px 11px;font-size:12px}.sa .zoom{right:8px;bottom:8px}.sa .zoom button{width:40px;height:40px}.sa .panel{left:8px;bottom:8px;max-width:calc(100vw - 64px);min-width:0;padding:13px}.sa .panel h3{font-size:19px}}
 `;
 
 

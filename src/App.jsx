@@ -18,7 +18,7 @@ export default function App() {
   const [ad, setAd] = useState(loadAd);              // admin edits, saved in this browser
   const [adminEnquiries, setAdminEnquiries] = useState([]);
   const [userMode, setUserMode] = useState(false);
-  const [checkingUserSession, setCheckingUserSession] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_mode') === 'true' || window.sessionStorage.getItem('maep_user_token')));
+  const [checkingUserSession, setCheckingUserSession] = useState(() => window.sessionStorage.getItem('maep_user_mode') === 'true');
   const [panel, setPanel] = useState('off');         // 'off' | 'lock' | 'tools'
   const [adminPin, setAdminPin] = useState('');
   const [adminAuthenticated, setAdminAuthenticated] = useState(false);
@@ -35,35 +35,7 @@ export default function App() {
       setCheckingUserSession(false);
       return;
     }
-    const token = window.sessionStorage.getItem('maep_user_token');
-    if (!token) { setCheckingUserSession(false); return; }
-    let cancelled = false;
-    (async () => {
-      try {
-        const response = await fetch('/api/user-access', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-user-session': token },
-          body: JSON.stringify({ action: 'verify' }),
-          cache: 'no-store',
-        });
-        const data = await response.json().catch(() => ({}));
-        if (cancelled) return;
-        if (!response.ok || !data.ok) {
-          window.sessionStorage.removeItem('maep_user_token');
-          window.location.replace('/dashboard');
-          return;
-        }
-        setUserMode(true);
-      } catch {
-        if (!cancelled) {
-          window.sessionStorage.removeItem('maep_user_token');
-          window.location.replace('/dashboard');
-        }
-      } finally {
-        if (!cancelled) setCheckingUserSession(false);
-      }
-    })();
-    return () => { cancelled = true; };
+    setCheckingUserSession(false);
   }, []);
 
   useEffect(() => { saveAd(ad); }, [ad]);
@@ -100,7 +72,7 @@ export default function App() {
 
   // Restore the Admin Studio session when an Admin opens the map from the dashboard.
   useEffect(() => {
-    if (window.sessionStorage.getItem('maep_user_mode') === 'true' || window.sessionStorage.getItem('maep_user_token')) return;
+    if (window.sessionStorage.getItem('maep_user_mode') === 'true') return;
     const savedPin = window.sessionStorage.getItem('maep_admin_pin');
     if (!savedPin) return;
     let cancelled = false;

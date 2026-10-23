@@ -26,11 +26,9 @@ export default function Dashboard() {
   const [pin, setPin] = useState('');
   const [role, setRole] = useState('admin');
   const [userName, setUserName] = useState('');
-  const [userDeleteTarget, setUserDeleteTarget] = useState(null);
-  const [users, setUsers] = useState([]);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [authChecking, setAuthChecking] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_mode') || window.sessionStorage.getItem('maep_user_token') || window.sessionStorage.getItem('maep_admin_pin')));
-  const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard'; });
+  const [authChecking, setAuthChecking] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_mode') || window.sessionStorage.getItem('maep_admin_pin')));
+  const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : 'dashboard'; });
   const [bookings, setBookings] = useState([]);
   const [plots, setPlots] = useState([]);
   const [mapPlotStatuses, setMapPlotStatuses] = useState({});
@@ -56,12 +54,12 @@ export default function Dashboard() {
         setPage('plots');
         return;
       }
-      const routes = ['/dashboard', '/bookings', '/plot_lists', '/users'];
+      const routes = ['/dashboard', '/bookings', '/plot_lists'];
       if (!routes.includes(path)) {
         window.location.reload();
         return;
       }
-      setPage(path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard');
+      setPage(path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : 'dashboard');
     };
     window.addEventListener('popstate', syncRoute);
     return () => window.removeEventListener('popstate', syncRoute);
@@ -75,21 +73,6 @@ export default function Dashboard() {
       if (window.location.pathname !== '/plot_lists') window.history.replaceState({}, '', '/plot_lists');
       setAuthChecking(false);
       return;
-    }
-    const savedUserToken = window.sessionStorage.getItem('maep_user_token');
-    if (savedUserToken) {
-      let cancelled = false;
-      (async () => {
-        try {
-          const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-user-session': savedUserToken }, body: JSON.stringify({ action: 'verify' }), cache: 'no-store' });
-          const data = await response.json().catch(() => ({}));
-          if (cancelled) return;
-          if (response.ok && data.ok) { setRole('user'); setUserName(data.name || 'User'); setLoggedIn(true); setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); }
-          else { window.sessionStorage.removeItem('maep_user_token'); setError(data.error || 'Please sign in again.'); }
-        } catch { if (!cancelled) setError('Could not verify your user session. Please sign in again.'); }
-      finally { if (!cancelled) setAuthChecking(false); }
-      })();
-      return () => { cancelled = true; };
     }
     const savedPin = window.sessionStorage.getItem('maep_admin_pin');
     if (!savedPin) { setAuthChecking(false); return; }
@@ -155,7 +138,7 @@ export default function Dashboard() {
       if (role === 'user') {
         // Public User mode intentionally requires no email, OTP, PIN, or approval.
         window.sessionStorage.setItem('maep_user_mode', 'true');
-        window.sessionStorage.removeItem('maep_user_token');
+        
         window.sessionStorage.removeItem('maep_admin_pin');
         setUserName('User'); setLoggedIn(true); setAuthChecking(false); setPage('plots');
         window.history.replaceState({}, '', '/plot_lists');
@@ -178,44 +161,9 @@ export default function Dashboard() {
     finally { setSaving(false); }
   }
 
-  async function loadUsers() {
-    setLoading(true); setError('');
-    try {
-      const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin }, body: JSON.stringify({ action: 'list' }), cache: 'no-store' });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load user accounts.');
-      setUsers(data.users || []);
-    } catch (e) { setError(e.message || 'Could not load user accounts.'); }
-    finally { setLoading(false); }
-  }
-
-  async function deleteUserAccount(user) {
-    setSaving(true); setError(''); setNotice('');
-    try {
-      const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin }, body: JSON.stringify({ action: 'delete', id: user.id }), cache: 'no-store' });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not delete user account.');
-      setUserDeleteTarget(null); setNotice('User account deleted.'); await loadUsers();
-    } catch (e) { setError(e.message || 'Could not delete user account.'); }
-    finally { setSaving(false); }
-  }
-
-  async function updateUserAccess(id, action) {
-    setSaving(true); setError(''); setNotice('');
-    try {
-      const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin }, body: JSON.stringify({ action, id }), cache: 'no-store' });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not update user access.');
-      setNotice(action === 'approve' ? 'User approved.' : 'User access revoked.');
-      await loadUsers();
-    } catch (e) { setError(e.message || 'Could not update user access.'); }
-    finally { setSaving(false); }
-  }
-
   useEffect(() => {
     if (loggedIn && role === 'user' && page !== 'plots') { setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return; }
-    if (loggedIn && role === 'admin' && page === 'users') loadUsers();
-    else if (loggedIn && role === 'admin' && page !== 'plots') loadData('bookings', pin);
+    if (loggedIn && role === 'admin' && page !== 'plots') loadData('bookings', pin);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, loggedIn, role]);
 
@@ -323,20 +271,19 @@ export default function Dashboard() {
         <button className={'nav-item' + (page === 'plots' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/plot_lists'); setPage('plots'); setSidebarOpen(false); }}>
           <span className="nav-icon">▦</span> Plot lists
         </button>
-        {role === 'admin' && <button className={'nav-item' + (page === 'users' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/users'); setPage('users'); setSidebarOpen(false); }}><span className="nav-icon">♙</span> Users</button>}
-      </aside>
+              </aside>
 
       <main className="dashboard-main">
         <header className="dashboard-topbar">
           <div className="dashboard-mobile-brand-row"><a className="dashboard-mobile-brand" href="/dashboard" aria-label="Mary Ann dashboard home"><img src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" /></a><button type="button" className="dashboard-menu-toggle" aria-label="Open navigation menu" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(true)}><span></span><span></span><span></span></button></div>
-          <div className="dashboard-heading-group"><h1>{page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : page === 'users' ? 'Users' : 'Plot lists'}</h1></div>
+          <div className="dashboard-heading-group"><h1>{page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : 'Plot lists'}</h1></div>
           <div className="topbar-actions profile-wrap">
             <button type="button" className="topbar-avatar profile-trigger" aria-label={role === 'admin' ? 'Open administrator menu' : 'Open user menu'} aria-expanded={profileOpen} onClick={() => setProfileOpen(open => !open)}><img className="topbar-avatar-image" src="/user-avatar.svg" alt="" /></button>
             {profileOpen && <div className="profile-menu" role="menu">
               <strong className="profile-role">{role === 'admin' ? 'Administrator' : userName || 'User'}</strong>
               {role === 'admin' && <span className="profile-company">Mary Ann Elite Properties</span>}
               <span className="profile-session"><i />{role === 'admin' ? 'Connected to admin session' : 'Approved user session'}</span>
-              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_token'); window.sessionStorage.removeItem('maep_user_mode'); setLoggedIn(false); setPin(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); setAuthMode('login'); }}>Sign out</button>
+              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_mode'); setLoggedIn(false); setPin(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); setAuthMode('login'); }}>Sign out</button>
             </div>}
           </div>
         </header>
@@ -345,20 +292,7 @@ export default function Dashboard() {
           {page !== 'plots' && error && <div className="alert alert-error" role="alert">{error}</div>}
           {page !== 'plots' && notice && <div className="alert alert-success" role="status">{notice}</div>}
 
-          {page === 'users' && role === 'admin' ? (
-            <section className="table-card user-management-card">
-              <div className="page-intro"><div><h2>Users</h2><p>Accounts are created automatically when a user verifies their email OTP. No PIN or Admin approval is required.</p></div></div>
-              <div className="table-toolbar">
-                <label className="search-field"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search email address…" aria-label="Search user accounts" /></label>
-                <div className="booking-toolbar-actions"><button type="button" className="add-customer-btn" onClick={loadUsers} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button></div>
-              </div>
-              {loading ? <div className="table-state">Loading users…</div> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Email ID</th><th>Registration Date</th><th>Action</th></tr></thead><tbody>
-                {users.filter(user => String(user.email || '').toLowerCase().includes(search.toLowerCase().trim())).map(user => <tr key={user.id}><td><strong>{user.email}</strong></td><td>{user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}</td><td><div className="row-actions"><button className="delete-btn" disabled={saving} onClick={() => setUserDeleteTarget(user)}>Delete</button></div></td></tr>)}
-                {!users.filter(user => String(user.email || '').toLowerCase().includes(search.toLowerCase().trim())).length && <tr><td colSpan="3" className="empty-cell">{users.length ? 'No user accounts match your search.' : 'No users registered yet.'}</td></tr>}
-              </tbody></table></div>}
-              <div className="table-footer">Showing {users.filter(user => String(user.email || '').toLowerCase().includes(search.toLowerCase().trim())).length} of {users.length} users</div>
-            </section>
-          ) : page !== 'plots' ? (
+          {page !== 'plots' ? (
             <>
               {page === 'dashboard' ? (
                 <>
@@ -511,16 +445,6 @@ export default function Dashboard() {
           {error && <p className="dash-error">{error}</p>}
           <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setEdit(null)}>Cancel</button><button className="primary-btn" disabled={saving}>{saving ? 'Saving…' : edit.id == null ? 'Add customer' : 'Save changes'}</button></div>
         </form>
-      </div>}
-      {userDeleteTarget && <div className="edit-overlay confirm-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) setUserDeleteTarget(null); }}>
-        <section className="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="user-delete-confirm-title" aria-describedby="user-delete-confirm-copy">
-          <div className="confirm-icon" aria-hidden="true">!</div>
-          <button type="button" className="modal-close" onClick={() => setUserDeleteTarget(null)} aria-label="Close" disabled={saving}>×</button>
-          <p className="eyebrow">CONFIRM ACTION</p>
-          <h2 id="user-delete-confirm-title">Delete user account?</h2>
-          <p id="user-delete-confirm-copy">Are you sure you want to delete <strong>{userDeleteTarget.email}</strong>? This action cannot be undone.</p>
-          <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setUserDeleteTarget(null)} disabled={saving}>Cancel</button><button type="button" className="confirm-delete-btn" onClick={() => deleteUserAccount(userDeleteTarget)} disabled={saving}>{saving ? 'Deleting…' : 'Yes, delete'}</button></div>
-        </section>
       </div>}
       {deleteTarget && <div className="edit-overlay confirm-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) setDeleteTarget(null); }}>
         <section className="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="delete-confirm-title" aria-describedby="delete-confirm-copy">

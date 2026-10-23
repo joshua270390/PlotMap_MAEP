@@ -12,29 +12,33 @@ const LABEL = { available: "Availability", reserved: "Reserved", booked: "Booked
 const FILL = { available: "#ffffff", reserved: "#f39c3d", booked: "#e0a526", sold: "#c0392b" };
 
 const css = `
-.sa{position:fixed;inset:0;overflow:hidden;font-family:'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif;background-color:#e8e3d8;background-image:radial-gradient(#b9b3a4 1px,transparent 1px);background-size:22px 22px;color:#12332a;touch-action:none;user-select:none}
+.sa{position:fixed;inset:0;overflow:hidden;font-family:"Instrument Sans",system-ui,sans-serif;background-color:#f1f4ee;background-image:radial-gradient(rgba(20,35,26,.13) 1px,transparent 1px);background-size:26px 26px;color:#14231a;touch-action:none;user-select:none}
 .sa *{box-sizing:border-box}
-.sa .top{position:absolute;z-index:5;top:12px;left:12px;right:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;pointer-events:none}
+.sa .top{position:absolute;z-index:5;top:12px;left:12px;right:auto;width:276px;max-width:calc(100% - 24px);display:flex;flex-direction:column;gap:9px;align-items:stretch;pointer-events:none}
 .sa .top>*{pointer-events:auto}
-.sa .back,.sa .card,.sa .search,.sa .admin,.sa .zoom button{background:#fff;border:1px solid #d9d4c7;border-radius:12px;box-shadow:0 2px 8px #0002;font:inherit;color:inherit}
-.sa .back{padding:12px 14px;cursor:pointer;font-weight:600}
-.sa .card{padding:8px 14px;line-height:1.2}.sa .card b{font-size:17px;display:block}.sa .card small{font-size:12px;color:#5b6b66}
-.sa .bar{background:#0c4a3b;color:#fff;border-radius:12px;padding:14px 18px;display:flex;gap:18px;flex-wrap:wrap;font-size:14px;font-weight:600}
-.sa .bar span{display:flex;gap:7px;align-items:center}
-.sa .dot{width:13px;height:13px;border-radius:50%;display:inline-block;border:1px solid #0004}
-.sa .search{margin-left:auto;display:flex;align-items:center;padding:0 14px;min-width:220px}
-.sa .search input{border:0;outline:0;font:inherit;padding:13px 0;width:100%;background:transparent}
+.sa .back,.sa .card,.sa .search,.sa .admin,.sa .zoom button{background:rgba(255,255,255,.94);border:1px solid #d3dccf;border-radius:14px;box-shadow:0 6px 22px rgba(0,0,0,.12);font:inherit;color:#14231a}
+.sa .back{align-self:flex-start;padding:9px 13px;cursor:pointer;font-weight:600}
+.sa .card{display:flex;align-items:center;gap:12px;padding:12px 14px;line-height:1.2}
+.sa .card .brand-logo{width:42px;height:42px;object-fit:contain;flex:none}
+.sa .card b{font-size:18px;display:block;font-weight:800;letter-spacing:-.02em}
+.sa .card small{font-size:12px;color:#5a6b5f;display:block;margin-top:4px}
+.sa .bar{background:rgba(255,255,255,.94);color:#14231a;border:1px solid #d3dccf;border-radius:14px;padding:11px 13px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;font-weight:600;box-shadow:0 6px 22px rgba(0,0,0,.12)}
+.sa .bar span{display:flex;gap:7px;align-items:center;white-space:nowrap}
+.sa .dot{width:11px;height:11px;border-radius:4px;display:inline-block;border:1px solid #0002;flex:none}
+.sa .search{display:flex;align-items:center;padding:0 13px;min-height:44px;width:100%}
+.sa .search input{border:0;outline:0;font:inherit;padding:12px 0;width:100%;background:transparent;color:#14231a;min-width:0}
+.sa .search input::placeholder{color:#5a6b5f}
 .sa svg.map{position:absolute;inset:0;width:100%;height:100%;cursor:grab}
 .sa svg.map:active{cursor:grabbing}
-.sa .plot{cursor:pointer}.sa .plot:hover rect{stroke:#0c7be0;stroke-width:2}
-.sa .admin{position:absolute;right:14px;bottom:200px;z-index:5;padding:14px 18px;font-weight:700;cursor:pointer}
-.sa .admin.on{background:#0c4a3b;color:#fff}
-.sa .zoom{position:absolute;right:14px;bottom:80px;z-index:5;display:flex;flex-direction:column;gap:2px}
-.sa .zoom button{width:46px;height:46px;font-size:22px;cursor:pointer}
-.sa .panel{position:absolute;z-index:6;left:50%;bottom:16px;transform:translateX(-50%);background:#fff;border-radius:14px;box-shadow:0 4px 18px #0004;padding:12px 16px;min-width:270px;max-width:92vw}
-.sa .panel h3{margin:0 0 6px;font-size:16px}.sa .panel dl{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;margin:0;font-size:13px}
-.sa .panel dd{margin:0;text-align:right;font-weight:600}.sa .panel button{margin-top:8px;border:0;background:#0c4a3b;color:#fff;border-radius:8px;padding:7px 12px;font:inherit;cursor:pointer}
-@media(max-width:700px){.sa .search{margin-left:0;flex:1}}
+.sa .plot{cursor:pointer}.sa .plot:hover rect{stroke:#1f6b34;stroke-width:2}
+.sa .admin{position:absolute;left:12px;bottom:18px;z-index:5;padding:11px 15px;font-weight:700;cursor:pointer}
+.sa .admin.on{background:#1f6b34;color:#fff;border-color:#1f6b34}
+.sa .zoom{position:absolute;right:12px;bottom:18px;z-index:5;display:flex;flex-direction:column;gap:6px}
+.sa .zoom button{width:42px;height:42px;font-size:22px;cursor:pointer;padding:0}
+.sa .panel{position:absolute;z-index:6;left:12px;bottom:72px;transform:none;background:rgba(255,255,255,.97);border:1px solid #d3dccf;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.18);padding:14px 16px;min-width:270px;max-width:min(360px,calc(100vw - 24px));color:#14231a}
+.sa .panel h3{margin:0 0 8px;font-size:16px}.sa .panel dl{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;margin:0;font-size:13px}
+.sa .panel dd{margin:0;text-align:right;font-weight:600}.sa .panel button{margin-top:10px;border:0;background:#1f6b34;color:#fff;border-radius:9px;padding:8px 12px;font:inherit;cursor:pointer}
+@media(max-width:700px){.sa .top{top:8px;left:8px;width:228px;gap:7px}.sa .card{padding:9px 10px;gap:9px}.sa .card .brand-logo{width:34px;height:34px}.sa .card b{font-size:15px}.sa .bar{padding:9px;font-size:11px;gap:8px}.sa .search{min-height:40px}.sa .admin{left:8px;bottom:8px;padding:9px 12px}.sa .zoom{right:8px;bottom:8px}.sa .zoom button{width:38px;height:38px}.sa .panel{left:8px;bottom:58px;max-width:calc(100vw - 16px)}}
 `;
 
 
@@ -128,8 +132,8 @@ export default function ShanmugaAvenuePlotMap() {
     <div className="sa">
       <style>{css}</style>
       <div className="top">
-        <button className="back" onClick={() => history.back()}>← Back</button>
-        <div className="card"><b>{SITE.name}</b><small>{SITE.place}</small></div>
+        <button className="back" onClick={() => { if (document.referrer && new URL(document.referrer).origin === window.location.origin) history.back(); else window.location.assign("/plot_lists"); }}>← Back</button>
+        <div className="card"><img className="brand-logo" src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" /><div><b>{SITE.name}</b><small>{SITE.place}</small></div></div>
         <div className="bar">
           {STATUS.map((s) => (
             <span key={s}><i className="dot" style={{ background: FILL[s] }} />{LABEL[s]} {counts[s]}</span>

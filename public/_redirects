@@ -1,5 +1,4 @@
 /api/admin-auth  /.netlify/functions/admin-auth  200
-/api/user-access  /.netlify/functions/user-access  200
 /api/admin-data  /.netlify/functions/admin-data  200
 /api/plot-status  /.netlify/functions/plot-status  200
 /api/plots  /.netlify/functions/plots  200

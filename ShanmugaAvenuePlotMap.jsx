@@ -9,40 +9,50 @@ const ROADS = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA8oAAAW+CAYAAAC/DNn
 const CENT = 435.6;
 const STATUS = ["available", "reserved", "booked", "sold"];
 const LABEL = { available: "Availability", reserved: "Reserved", booked: "Booked", sold: "Sold" };
-const FILL = { available: "#ffffff", reserved: "#f39c3d", booked: "#e0a526", sold: "#c0392b" };
+const FILL = { available: "#f6f1e5", reserved: "#f28c28", booked: "#d99a1c", sold: "#b4313f" };
 
 const css = `
-.sa{position:fixed;inset:0;overflow:hidden;font-family:"Instrument Sans",system-ui,sans-serif;background:#f1f4ee radial-gradient(rgba(20,35,26,.13) 1px,transparent 1px);background-size:26px 26px;color:#14231a;touch-action:none;user-select:none}
+.sa{position:fixed;inset:0;overflow:hidden;isolation:isolate;font-family:"Instrument Sans",system-ui,sans-serif;background:#e8e4dc radial-gradient(rgba(27,36,51,.13) 1px,transparent 1.2px);background-size:26px 26px;color:#1b2433;touch-action:none;user-select:none}
 .sa *{box-sizing:border-box}
-.sa .top{position:absolute;z-index:5;top:12px;left:12px;right:12px;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;pointer-events:none}
+.sa .top{position:absolute;z-index:5;top:12px;left:12px;right:12px;display:flex;align-items:stretch;gap:10px;flex-wrap:nowrap;pointer-events:none}
 .sa .top>*{pointer-events:auto}
-.sa .back,.sa .card,.sa .search,.sa .admin,.sa .zoom button{background:rgba(255,253,249,.96);border:1px solid rgba(27,36,51,.12);border-radius:12px;box-shadow:0 5px 18px rgba(15,35,28,.12);font:inherit;color:#14231a}
-.sa .back{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;padding:0 14px;cursor:pointer;font-size:14px;font-weight:700;white-space:nowrap}
+.sa .back,.sa .card,.sa .approval-marks,.sa .search,.sa .admin,.sa .zoom button{font:inherit;color:#1b2433;background:rgba(255,253,249,.96);border:1px solid #d8d2c5;border-radius:12px;box-shadow:0 6px 22px rgba(0,0,0,.12)}
+.sa .back{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;padding:0 14px;cursor:pointer;font-size:14px;font-weight:700;white-space:nowrap;background:linear-gradient(135deg,#fff,#edf8f1);color:#07533e;border-color:rgba(6,78,59,.2);flex:none}
 .sa .back:hover{background:linear-gradient(135deg,#e7f8ed,#d4f0df)}
-.sa .card{display:flex;align-items:center;gap:10px;padding:8px 12px;line-height:1.2;min-height:58px;min-width:220px}
-.sa .card .brand-logo{width:40px;height:40px;object-fit:contain;flex:none}
-.sa .card b{font-size:17px;display:block;font-weight:800;letter-spacing:-.02em}
+.sa .card{display:flex;align-items:center;gap:10px;padding:7px 13px;line-height:1.15;min-height:58px;min-width:210px;flex:0 1 auto}
+.sa .card .brand-logo{width:42px;height:42px;object-fit:contain;flex:none}
+.sa .card b{font:800 19px/1.1 "Bricolage Grotesque","Instrument Sans",system-ui,sans-serif;display:block;letter-spacing:-.02em;white-space:nowrap}
 .sa .card small{font-size:12px;color:#667085;display:block;margin-top:4px}
-.sa .bar{background:linear-gradient(135deg,#07533e,#033b2d);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:16px;flex:0 0 auto;width:max-content;max-width:100%;flex-wrap:nowrap;font-size:13px;font-weight:600;box-shadow:0 8px 22px rgba(0,35,25,.2);min-height:58px}
-.sa .bar span{display:flex;gap:7px;align-items:center;white-space:nowrap;flex:none}
-.sa .dot{width:11px;height:11px;border-radius:4px;display:inline-block;border:1px solid #ffffff55;flex:none}
-.sa .search{display:flex;align-items:center;padding:0 13px;min-height:44px;width:190px;min-width:150px;margin-left:auto}
-.sa .search input{border:0;outline:0;font:inherit;padding:10px 0;width:100%;background:transparent;color:#14231a;min-width:0}
+.sa .approval-marks{display:flex;align-items:center;gap:7px;padding:5px 8px;min-height:58px;flex:none}
+.sa .campus-badge,.sa .dtcp-badge{height:44px;display:flex;align-items:center;justify-content:center;gap:7px;padding:4px 8px;border:1px solid #d8d2c5;border-radius:9px;background:#fffdf9;color:#1b2433;flex:none}
+.sa .campus-symbol{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:#e3eee4;color:#07533e;font-size:22px;font-weight:800}
+.sa .campus-badge b{display:block;font:800 11px/1.1 "Instrument Sans",system-ui,sans-serif;letter-spacing:.07em}
+.sa .campus-badge small{display:block;margin-top:3px;font-size:9px;letter-spacing:.1em;color:#667085}
+.sa .dtcp-badge{width:78px;padding:3px 6px}
+.sa .dtcp-badge img{display:block;width:100%;height:36px;object-fit:contain}
+.sa .bar{background:linear-gradient(135deg,#07533e,#033b2d);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:14px;padding:8px 10px;display:flex;align-items:center;justify-content:space-around;gap:10px;flex:1 1 350px;min-width:0;min-height:58px;font-size:12px;font-weight:600;box-shadow:0 8px 22px rgba(0,35,25,.2)}
+.sa .bar span{display:flex;gap:6px;align-items:center;white-space:nowrap;flex:0 1 auto}
+.sa .dot{width:14px;height:14px;border-radius:50%;display:inline-block;border:2px solid #fff;flex:none}
+.sa .search{display:flex;align-items:center;padding:0 13px;min-height:44px;width:190px;flex:0 1 210px;min-width:145px;margin-left:auto}
+.sa .search input{border:0;outline:0;font:500 14px/1.3 "Instrument Sans",system-ui,sans-serif;padding:10px 0;width:100%;background:transparent;color:#1b2433;min-width:0}
 .sa .search input::placeholder{color:#667085}
 .sa svg.map{position:absolute;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}
 .sa svg.map:active{cursor:grabbing}
-.sa .plot{cursor:pointer}.sa .plot:hover rect{stroke:#1f6b34;stroke-width:2}
-.sa .admin{position:absolute;right:12px;bottom:calc(172px + env(safe-area-inset-bottom,0px));z-index:5;padding:10px 14px;font-weight:600;cursor:pointer}
+.sa .plot{cursor:pointer}.sa .plot:hover rect{stroke:#1d3557;stroke-width:2}
+.sa .admin{position:absolute;right:12px;bottom:calc(172px + env(safe-area-inset-bottom,0px));z-index:5;padding:10px 14px;font-weight:700;cursor:pointer;border-radius:12px}
 .sa .admin.on{background:#07533e;color:#fff;border-color:#07533e}
-.sa .zoom{position:absolute;right:14px;bottom:18px;z-index:5;display:flex;flex-direction:column;gap:7px}
-.sa .zoom button{width:42px;height:42px;font-size:22px;cursor:pointer;padding:0}
-.sa .panel{position:absolute;z-index:6;left:14px;bottom:76px;background:rgba(255,253,249,.98);border:1px solid rgba(27,36,51,.12);border-radius:16px;box-shadow:0 8px 24px rgba(15,35,28,.18);padding:14px 16px;min-width:270px;max-width:min(360px,calc(100vw - 28px));color:#14231a}
-.sa .panel h3{margin:0 0 8px;font-size:16px}.sa .panel dl{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;margin:0;font-size:13px}
-.sa .panel dd{margin:0;text-align:right;font-weight:600}.sa .panel button{margin-top:10px;border:0;background:#07533e;color:#fff;border-radius:9px;padding:8px 12px;font:inherit;cursor:pointer}
-@media(max-width:900px){.sa .top{left:10px;right:10px;top:10px;gap:8px}.sa .card{min-width:190px;flex:0 1 auto}.sa .bar{order:3;flex:0 0 auto;width:max-content;max-width:100%;min-height:42px;justify-content:flex-start;flex-wrap:wrap}.sa .search{margin-left:auto;flex:0 1 220px;min-width:170px;width:auto}}
-@media(max-width:600px){.sa .top{left:8px;right:8px;top:8px;gap:6px}.sa .back{min-height:38px;padding:0 10px}.sa .card{min-width:0;flex:1;min-height:42px;padding:5px 8px;gap:7px}.sa .card .brand-logo{width:30px;height:30px}.sa .card b{font-size:13px}.sa .card small{font-size:10px;margin-top:2px}.sa .bar{order:3;width:100%;flex:1 1 100%;padding:7px 9px;gap:8px;font-size:10px;border-radius:10px;min-height:36px}.sa .dot{width:9px;height:9px}.sa .search{order:4;flex:1 1 100%;width:100%;min-width:0;min-height:36px;padding:0 10px}.sa .search input{padding:8px 0;font-size:13px}.sa .admin{right:8px;bottom:calc(150px + env(safe-area-inset-bottom,0px));padding:8px 11px;font-size:12px}.sa .zoom{right:8px;bottom:8px;gap:5px}.sa .zoom button{width:36px;height:36px}.sa .panel{left:8px;bottom:55px;max-width:calc(100vw - 16px);min-width:0}}
-.sa .approval-marks{display:flex;align-items:center;gap:10px;flex:none;min-height:58px}.sa .campus-badge,.sa .dtcp-badge{height:58px;display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 11px;border:1px solid #d8d2c5;border-radius:12px;background:rgba(255,253,249,.96);box-shadow:0 6px 22px rgba(0,0,0,.10);color:#1b2433;flex:none}.sa .campus-symbol{display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:#e5f0df;color:#28633a;font-size:25px;font-weight:800}.sa .campus-badge b{display:block;font-size:12px;letter-spacing:.07em;line-height:1.1}.sa .campus-badge small{display:block;margin-top:3px;font-size:9px;letter-spacing:.12em;color:#667085}.sa .dtcp-badge{width:92px;padding:4px 7px}.sa .dtcp-badge img{display:block;width:100%;height:48px;object-fit:contain}.sa .top{gap:10px;align-items:center}.sa .bar{flex-shrink:0}@media(max-width:820px){.sa .top{align-items:center;flex-wrap:wrap}.sa .approval-marks{order:2;min-height:44px;gap:6px}.sa .campus-badge,.sa .dtcp-badge{height:44px;padding:4px 7px;border-radius:9px}.sa .campus-symbol{width:27px;height:27px;font-size:20px}.sa .campus-badge b{font-size:10px}.sa .campus-badge small{font-size:8px}.sa .dtcp-badge{width:72px}.sa .dtcp-badge img{height:36px}.sa .bar{order:3}.sa .search{order:4}}@media(max-width:520px){.sa .approval-marks{gap:5px}.sa .campus-badge{gap:5px;padding:4px 6px}.sa .dtcp-badge{width:62px;padding:3px 5px}.sa .card{flex:1 1 190px}.sa .approval-marks{flex:0 0 auto}.sa .bar{width:100%;flex-basis:100%}}
+.sa .zoom{position:absolute;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:5;display:flex;flex-direction:column;gap:0;overflow:hidden;border:1px solid #d8d2c5;border-radius:14px;background:rgba(255,253,249,.96);box-shadow:0 6px 22px rgba(0,0,0,.14)}
+.sa .zoom button{width:46px;height:46px;font-size:22px;cursor:pointer;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
+.sa .zoom button+button{border-top:1px solid #d8d2c5}
+.sa .panel{position:absolute;z-index:6;left:12px;bottom:12px;background:rgba(255,253,249,.98);border:1px solid #d8d2c5;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:16px;min-width:270px;max-width:min(360px,calc(100vw - 80px));color:#1b2433}
+.sa .panel h3{margin:0 0 10px;font:800 22px/1.1 "Bricolage Grotesque","Instrument Sans",system-ui,sans-serif}
+.sa .panel dl{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;margin:0;font-size:13px}.sa .panel dt{color:#667085}.sa .panel dd{margin:0;text-align:right;font-weight:700}
+.sa .panel button{margin-top:12px;border:0;background:#07533e;color:#fff;border-radius:9px;padding:9px 14px;font:700 13px "Instrument Sans",system-ui,sans-serif;cursor:pointer}
+@media(max-width:1250px){.sa .top{flex-wrap:wrap;align-items:center}.sa .card{flex:1 1 220px}.sa .bar{order:5;flex:1 1 100%;width:100%;min-height:48px}.sa .search{margin-left:auto;flex:0 1 220px}.sa .approval-marks{flex:none}}
+@media(max-width:991px){.sa .back{display:none!important}}
+@media(max-width:600px){.sa .top{left:8px;right:8px;top:8px;gap:6px}.sa .card{min-width:0;flex:1 1 calc(100% - 140px);min-height:48px;padding:5px 8px;gap:7px}.sa .card .brand-logo{width:32px;height:32px}.sa .card b{font-size:15px;white-space:normal}.sa .card small{font-size:10px;margin-top:3px}.sa .approval-marks{min-height:48px;padding:3px 5px;gap:4px}.sa .campus-badge,.sa .dtcp-badge{height:38px;padding:3px 5px;gap:4px}.sa .campus-symbol{width:25px;height:25px;font-size:18px}.sa .campus-badge b{font-size:9px}.sa .campus-badge small{font-size:7px}.sa .dtcp-badge{width:58px}.sa .dtcp-badge img{height:30px}.sa .bar{order:5;flex:1 1 100%;width:100%;padding:8px 9px;gap:5px;font-size:10px;border-radius:12px;min-height:40px;justify-content:space-between}.sa .bar span{gap:4px}.sa .dot{width:10px;height:10px;border-width:1.5px}.sa .search{order:4;flex:1 1 100%;width:100%;min-width:0;min-height:40px;padding:0 11px}.sa .search input{padding:9px 0;font-size:13px}.sa .admin{right:8px;bottom:calc(154px + env(safe-area-inset-bottom,0px));padding:8px 11px;font-size:12px}.sa .zoom{right:8px;bottom:8px}.sa .zoom button{width:40px;height:40px}.sa .panel{left:8px;bottom:8px;max-width:calc(100vw - 64px);min-width:0;padding:13px}.sa .panel h3{font-size:19px}}
 `;
+
 
 
 

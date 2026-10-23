@@ -26,13 +26,10 @@ export default function Dashboard() {
   const [pin, setPin] = useState('');
   const [role, setRole] = useState('admin');
   const [userName, setUserName] = useState('');
-  const [userEmail, setUserEmail] = useState('');
-  const [emailOtp, setEmailOtp] = useState('');
-  const [otpRequested, setOtpRequested] = useState(false);
   const [userDeleteTarget, setUserDeleteTarget] = useState(null);
   const [users, setUsers] = useState([]);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [authChecking, setAuthChecking] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_token') || window.sessionStorage.getItem('maep_admin_pin')));
+  const [authChecking, setAuthChecking] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_mode') || window.sessionStorage.getItem('maep_user_token') || window.sessionStorage.getItem('maep_admin_pin')));
   const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard'; });
   const [bookings, setBookings] = useState([]);
   const [plots, setPlots] = useState([]);
@@ -72,6 +69,13 @@ export default function Dashboard() {
 
   // Restore and verify saved Admin or approved User sessions after a refresh.
   useEffect(() => {
+    const savedUserMode = window.sessionStorage.getItem('maep_user_mode');
+    if (savedUserMode === 'true') {
+      setRole('user'); setUserName('User'); setLoggedIn(true); setPage('plots');
+      if (window.location.pathname !== '/plot_lists') window.history.replaceState({}, '', '/plot_lists');
+      setAuthChecking(false);
+      return;
+    }
     const savedUserToken = window.sessionStorage.getItem('maep_user_token');
     if (savedUserToken) {
       let cancelled = false;
@@ -145,28 +149,17 @@ export default function Dashboard() {
     } finally { setLoading(false); }
   }
 
-  async function requestEmailOtp() {
-    setSaving(true); setError(''); setNotice('');
-    try {
-      const response = await fetch('/api/email-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'send', email: userEmail }), cache: 'no-store' });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not request an email OTP.');
-      setOtpRequested(true); setEmailOtp('');
-      setNotice(data.message || 'If this email belongs to an approved account, an OTP has been sent.');
-    } catch (e) { setError(e.message || 'Could not request an email OTP.'); }
-    finally { setSaving(false); }
-  }
-
   async function login() {
     setSaving(true); setError('');
     try {
       if (role === 'user') {
-        const response = await fetch('/api/email-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'verify', email: userEmail, otp: emailOtp }), cache: 'no-store' });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.ok) throw new Error(data.error || 'User sign in failed.');
-        window.sessionStorage.setItem('maep_user_token', data.token);
+        // Public User mode intentionally requires no email, OTP, PIN, or approval.
+        window.sessionStorage.setItem('maep_user_mode', 'true');
+        window.sessionStorage.removeItem('maep_user_token');
         window.sessionStorage.removeItem('maep_admin_pin');
-        setUserName(data.name || 'User'); setLoggedIn(true); setAuthChecking(false); setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); setNotice('Welcome. You can view plot lists and submit enquiries.');
+        setUserName('User'); setLoggedIn(true); setAuthChecking(false); setPage('plots');
+        window.history.replaceState({}, '', '/plot_lists');
+        setNotice('Welcome. You can view plot lists and submit enquiries.');
         return;
       }
       const response = await fetch('/api/admin-auth', {
@@ -302,15 +295,12 @@ export default function Dashboard() {
         <form className="login-card" onSubmit={e => { e.preventDefault(); login(); }}>
           <img className="login-logo" src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" />
           <h1>Sign in</h1>
-          <p className="login-copy">{role === 'admin' ? 'Sign in with your Admin PIN.' : 'Enter your email address and verify the one-time code to continue.'}</p>
-          {role === 'user' && error.includes('User access is not configured') && <p className="dash-error login-config-error" role="alert">{error}</p>}
+          <p className="login-copy">{role === 'admin' ? 'Sign in with your Admin PIN.' : 'Select User and sign in to view plot lists and submit enquiries.'}</p>
           <label htmlFor="login-role">Role</label>
-          <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setError(''); setNotice(''); setEmailOtp(''); setOtpRequested(false); setPin(''); }}><option value="admin">Admin</option><option value="user">User</option></select>
-          {role === 'user' && <><label htmlFor="user-email">Email address</label><div className="email-otp-row"><input id="user-email" type="email" value={userEmail} onChange={e => { setUserEmail(e.target.value); setOtpRequested(false); setEmailOtp(''); setNotice(''); }} autoComplete="email" required placeholder="Enter your email address" /><button type="button" className="primary-btn email-otp-request" onClick={requestEmailOtp} disabled={saving || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail.trim())}>{saving ? 'Please wait…' : 'Get OTP'}</button></div></>}
-          {role === 'user' && otpRequested && <><label htmlFor="email-otp">Email OTP</label><input id="email-otp" type="text" inputMode="numeric" autoComplete="one-time-code" value={emailOtp} onChange={e => setEmailOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} required pattern="[0-9]{6}" maxLength={6} placeholder="Enter the 6-digit OTP" /><p className="login-copy otp-help">Enter the code sent to your email. It expires in 5 minutes.</p></>}
+          <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setError(''); setNotice(''); setPin(''); }}><option value="admin">Admin</option><option value="user">User</option></select>
           {role === 'admin' && <><label htmlFor="admin-pin">Admin PIN</label><input id="admin-pin" type="password" inputMode="text" autoComplete="current-password" value={pin} onChange={e => setPin(e.target.value)} placeholder="Enter your Admin PIN" required maxLength={32} /></>}
           {error && !(role === 'user' && error.includes('User access is not configured')) && <p className="dash-error" role="alert">{error}</p>}{notice && <p className="dash-notice" role="status">{notice}</p>}
-          {(role === 'admin' || otpRequested) && <button className="primary-btn login-submit" disabled={saving || (role === 'user' && !/^[0-9]{6}$/.test(emailOtp))}>{saving ? 'Please wait…' : 'Sign in'} <span>→</span></button>}
+          <button className="primary-btn login-submit" disabled={saving || (role === 'admin' && !pin)}>{saving ? 'Please wait…' : 'Sign in'} <span>→</span></button>
         </form>
       </main>
     );
@@ -346,7 +336,7 @@ export default function Dashboard() {
               <strong className="profile-role">{role === 'admin' ? 'Administrator' : userName || 'User'}</strong>
               <span className="profile-company">Mary Ann Elite Properties</span>
               <span className="profile-session"><i />{role === 'admin' ? 'Connected to admin session' : 'Approved user session'}</span>
-              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_token'); setLoggedIn(false); setPin(''); setUserEmail(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); setAuthMode('login'); }}>Sign out</button>
+              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_token'); window.sessionStorage.removeItem('maep_user_mode'); setLoggedIn(false); setPin(''); setUserEmail(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); setAuthMode('login'); }}>Sign out</button>
             </div>}
           </div>
         </header>

@@ -23,8 +23,8 @@ const css = `
 .sa .card .brand-logo{width:40px;height:40px;object-fit:contain;flex:none}
 .sa .card b{font-size:17px;display:block;font-weight:800;letter-spacing:-.02em}
 .sa .card small{font-size:12px;color:#667085;display:block;margin-top:4px}
-.sa .bar{background:linear-gradient(135deg,#07533e,#033b2d);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px;font-weight:600;box-shadow:0 8px 22px rgba(0,35,25,.2);min-height:58px}
-.sa .bar span{display:flex;gap:7px;align-items:center;white-space:nowrap}
+.sa .bar{background:linear-gradient(135deg,#07533e,#033b2d);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:16px;flex:0 0 auto;width:max-content;max-width:100%;flex-wrap:nowrap;font-size:13px;font-weight:600;box-shadow:0 8px 22px rgba(0,35,25,.2);min-height:58px}
+.sa .bar span{display:flex;gap:7px;align-items:center;white-space:nowrap;flex:none}
 .sa .dot{width:11px;height:11px;border-radius:4px;display:inline-block;border:1px solid #ffffff55;flex:none}
 .sa .search{display:flex;align-items:center;padding:0 13px;min-height:44px;width:190px;min-width:150px;margin-left:auto}
 .sa .search input{border:0;outline:0;font:inherit;padding:10px 0;width:100%;background:transparent;color:#14231a;min-width:0}
@@ -32,15 +32,15 @@ const css = `
 .sa svg.map{position:absolute;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}
 .sa svg.map:active{cursor:grabbing}
 .sa .plot{cursor:pointer}.sa .plot:hover rect{stroke:#1f6b34;stroke-width:2}
-.sa .admin{position:absolute;left:14px;bottom:18px;z-index:5;padding:10px 15px;font-weight:700;cursor:pointer}
+.sa .admin{position:absolute;right:12px;bottom:calc(172px + env(safe-area-inset-bottom,0px));z-index:5;padding:10px 14px;font-weight:600;cursor:pointer}
 .sa .admin.on{background:#07533e;color:#fff;border-color:#07533e}
 .sa .zoom{position:absolute;right:14px;bottom:18px;z-index:5;display:flex;flex-direction:column;gap:7px}
 .sa .zoom button{width:42px;height:42px;font-size:22px;cursor:pointer;padding:0}
 .sa .panel{position:absolute;z-index:6;left:14px;bottom:76px;background:rgba(255,253,249,.98);border:1px solid rgba(27,36,51,.12);border-radius:16px;box-shadow:0 8px 24px rgba(15,35,28,.18);padding:14px 16px;min-width:270px;max-width:min(360px,calc(100vw - 28px));color:#14231a}
 .sa .panel h3{margin:0 0 8px;font-size:16px}.sa .panel dl{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;margin:0;font-size:13px}
 .sa .panel dd{margin:0;text-align:right;font-weight:600}.sa .panel button{margin-top:10px;border:0;background:#07533e;color:#fff;border-radius:9px;padding:8px 12px;font:inherit;cursor:pointer}
-@media(max-width:900px){.sa .top{left:10px;right:10px;top:10px;gap:8px}.sa .card{min-width:190px;flex:1}.sa .bar{order:3;flex:1;min-height:42px;justify-content:flex-start}.sa .search{margin-left:0;flex:1;min-width:170px;width:auto}}
-@media(max-width:600px){.sa .top{left:8px;right:8px;top:8px;gap:6px}.sa .back{min-height:38px;padding:0 10px}.sa .card{min-width:0;flex:1;min-height:42px;padding:5px 8px;gap:7px}.sa .card .brand-logo{width:30px;height:30px}.sa .card b{font-size:13px}.sa .card small{font-size:10px;margin-top:2px}.sa .bar{order:3;width:100%;flex:1 1 100%;padding:7px 9px;gap:8px;font-size:10px;border-radius:10px;min-height:36px}.sa .dot{width:9px;height:9px}.sa .search{order:4;flex:1 1 100%;width:100%;min-width:0;min-height:36px;padding:0 10px}.sa .search input{padding:8px 0;font-size:13px}.sa .admin{left:8px;bottom:8px;padding:8px 11px;font-size:12px}.sa .zoom{right:8px;bottom:8px;gap:5px}.sa .zoom button{width:36px;height:36px}.sa .panel{left:8px;bottom:55px;max-width:calc(100vw - 16px);min-width:0}}
+@media(max-width:900px){.sa .top{left:10px;right:10px;top:10px;gap:8px}.sa .card{min-width:190px;flex:0 1 auto}.sa .bar{order:3;flex:0 0 auto;width:max-content;max-width:100%;min-height:42px;justify-content:flex-start;flex-wrap:wrap}.sa .search{margin-left:auto;flex:0 1 220px;min-width:170px;width:auto}}
+@media(max-width:600px){.sa .top{left:8px;right:8px;top:8px;gap:6px}.sa .back{min-height:38px;padding:0 10px}.sa .card{min-width:0;flex:1;min-height:42px;padding:5px 8px;gap:7px}.sa .card .brand-logo{width:30px;height:30px}.sa .card b{font-size:13px}.sa .card small{font-size:10px;margin-top:2px}.sa .bar{order:3;width:100%;flex:1 1 100%;padding:7px 9px;gap:8px;font-size:10px;border-radius:10px;min-height:36px}.sa .dot{width:9px;height:9px}.sa .search{order:4;flex:1 1 100%;width:100%;min-width:0;min-height:36px;padding:0 10px}.sa .search input{padding:8px 0;font-size:13px}.sa .admin{right:8px;bottom:calc(150px + env(safe-area-inset-bottom,0px));padding:8px 11px;font-size:12px}.sa .zoom{right:8px;bottom:8px;gap:5px}.sa .zoom button{width:36px;height:36px}.sa .panel{left:8px;bottom:55px;max-width:calc(100vw - 16px);min-width:0}}
 `;
 
 
@@ -136,7 +136,7 @@ export default function ShanmugaAvenuePlotMap() {
       <style>{css}</style>
       <div className="top">
         <button className="back" onClick={() => { if (document.referrer && new URL(document.referrer).origin === window.location.origin) history.back(); else window.location.assign("/plot_lists"); }}>← Back</button>
-        <div className="card"><img className="brand-logo" src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" /><div><b>{SITE.name}</b><small>{SITE.place}</small></div></div>
+        <div className="card"><img className="brand-logo" src="/mary-ann-plotmap-logo.png" alt="Mary Ann Elite Properties" /><div><b>{SITE.name}</b><small>{SITE.place}</small></div></div>
         <div className="bar">
           {STATUS.map((s) => (
             <span key={s}><i className="dot" style={{ background: FILL[s] }} />{LABEL[s]} {counts[s]}</span>

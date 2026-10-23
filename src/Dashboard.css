@@ -553,3 +553,16 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 .user-management-card .table-footer{display:flex;align-items:center;justify-content:flex-end;padding:13px 20px;border-top:1px solid var(--dash-line);color:var(--dash-muted);font-size:11px}
 .user-management-card .table-toolbar .search-field{flex:1;min-width:180px}
 @media(max-width:640px){.user-management-card .page-intro{padding:17px 14px 0}.user-management-card .table-footer{padding:12px 14px}}
+
+
+/* Email OTP sign-in: keep the address field and Get OTP action on one row. */
+.email-otp-row{display:flex;align-items:center;gap:8px;width:100%}
+.email-otp-row input{flex:1;min-width:0;width:0;margin-top:7px}
+.email-otp-request{flex:none;white-space:nowrap;margin-top:7px;padding:12px 14px}
+.otp-help{margin:2px 0 14px}
+@media(max-width:380px){.email-otp-row{gap:6px}.email-otp-request{padding:11px 9px;font-size:11px}}
+
+
+/* Profile dropdown avatar image */
+.profile-trigger{padding:0;border:0;overflow:hidden;cursor:pointer;background:transparent;}
+.profile-trigger .topbar-avatar-image{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;}

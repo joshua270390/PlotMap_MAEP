@@ -18,7 +18,7 @@ export default function App() {
   const [ad, setAd] = useState(loadAd);              // admin edits, saved in this browser
   const [adminEnquiries, setAdminEnquiries] = useState([]);
   const [userMode, setUserMode] = useState(false);
-  const [checkingUserSession, setCheckingUserSession] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_token')));
+  const [checkingUserSession, setCheckingUserSession] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_mode') === 'true' || window.sessionStorage.getItem('maep_user_token')));
   const [panel, setPanel] = useState('off');         // 'off' | 'lock' | 'tools'
   const [adminPin, setAdminPin] = useState('');
   const [adminAuthenticated, setAdminAuthenticated] = useState(false);
@@ -28,6 +28,13 @@ export default function App() {
   const admin = panel === 'tools';
 
   useEffect(() => {
+    // Public User login is stored by the dashboard as maep_user_mode.
+    // Treat it as a read-only map session and never show Admin Studio controls.
+    if (window.sessionStorage.getItem('maep_user_mode') === 'true') {
+      setUserMode(true);
+      setCheckingUserSession(false);
+      return;
+    }
     const token = window.sessionStorage.getItem('maep_user_token');
     if (!token) { setCheckingUserSession(false); return; }
     let cancelled = false;
@@ -93,7 +100,7 @@ export default function App() {
 
   // Restore the Admin Studio session when an Admin opens the map from the dashboard.
   useEffect(() => {
-    if (window.sessionStorage.getItem('maep_user_token')) return;
+    if (window.sessionStorage.getItem('maep_user_mode') === 'true' || window.sessionStorage.getItem('maep_user_token')) return;
     const savedPin = window.sessionStorage.getItem('maep_admin_pin');
     if (!savedPin) return;
     let cancelled = false;

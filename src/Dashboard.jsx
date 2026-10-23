@@ -25,13 +25,11 @@ export default function Dashboard() {
   }, []);
   const [pin, setPin] = useState('');
   const [role, setRole] = useState('admin');
-  const [authMode, setAuthMode] = useState('login');
   const [userName, setUserName] = useState('');
-  const [userEmail, setUserEmail] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
+  const [userDeleteTarget, setUserDeleteTarget] = useState(null);
   const [users, setUsers] = useState([]);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [authChecking, setAuthChecking] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_token') || window.sessionStorage.getItem('maep_admin_pin')));
+  const [authChecking, setAuthChecking] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_mode') || window.sessionStorage.getItem('maep_user_token') || window.sessionStorage.getItem('maep_admin_pin')));
   const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard'; });
   const [bookings, setBookings] = useState([]);
   const [plots, setPlots] = useState([]);
@@ -71,6 +69,13 @@ export default function Dashboard() {
 
   // Restore and verify saved Admin or approved User sessions after a refresh.
   useEffect(() => {
+    const savedUserMode = window.sessionStorage.getItem('maep_user_mode');
+    if (savedUserMode === 'true') {
+      setRole('user'); setUserName('User'); setLoggedIn(true); setPage('plots');
+      if (window.location.pathname !== '/plot_lists') window.history.replaceState({}, '', '/plot_lists');
+      setAuthChecking(false);
+      return;
+    }
     const savedUserToken = window.sessionStorage.getItem('maep_user_token');
     if (savedUserToken) {
       let cancelled = false;
@@ -148,12 +153,13 @@ export default function Dashboard() {
     setSaving(true); setError('');
     try {
       if (role === 'user') {
-        const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'login', email: userEmail, pin }), cache: 'no-store' });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.ok) throw new Error(data.error || 'User sign in failed.');
-        window.sessionStorage.setItem('maep_user_token', data.token);
+        // Public User mode intentionally requires no email, OTP, PIN, or approval.
+        window.sessionStorage.setItem('maep_user_mode', 'true');
+        window.sessionStorage.removeItem('maep_user_token');
         window.sessionStorage.removeItem('maep_admin_pin');
-        setUserName(data.name || 'User'); setLoggedIn(true); setAuthChecking(false); setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); setNotice('Welcome. You can view plot lists and submit enquiries.');
+        setUserName('User'); setLoggedIn(true); setAuthChecking(false); setPage('plots');
+        window.history.replaceState({}, '', '/plot_lists');
+        setNotice('Welcome. You can view plot lists and submit enquiries.');
         return;
       }
       const response = await fetch('/api/admin-auth', {
@@ -172,18 +178,6 @@ export default function Dashboard() {
     finally { setSaving(false); }
   }
 
-  async function registerUser() {
-    setSaving(true); setError(''); setNotice('');
-    try {
-      if (pin !== confirmPin) throw new Error('PIN and Confirm PIN do not match.');
-      const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'register', name: userName, email: userEmail, pin }), cache: 'no-store' });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not create account.');
-      setAuthMode('login'); setRole('user'); setPin(''); setConfirmPin(''); setNotice(data.message || 'Account created. Wait for Admin approval.');
-    } catch (e) { setError(e.message || 'Could not create account.'); }
-    finally { setSaving(false); }
-  }
-
   async function loadUsers() {
     setLoading(true); setError('');
     try {
@@ -193,6 +187,17 @@ export default function Dashboard() {
       setUsers(data.users || []);
     } catch (e) { setError(e.message || 'Could not load user accounts.'); }
     finally { setLoading(false); }
+  }
+
+  async function deleteUserAccount(user) {
+    setSaving(true); setError(''); setNotice('');
+    try {
+      const response = await fetch('/api/user-access', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin }, body: JSON.stringify({ action: 'delete', id: user.id }), cache: 'no-store' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not delete user account.');
+      setUserDeleteTarget(null); setNotice('User account deleted.'); await loadUsers();
+    } catch (e) { setError(e.message || 'Could not delete user account.'); }
+    finally { setSaving(false); }
   }
 
   async function updateUserAccess(id, action) {
@@ -287,21 +292,15 @@ export default function Dashboard() {
   if (!loggedIn) {
     return (
       <main className="dash-login">
-        <form className="login-card" onSubmit={e => { e.preventDefault(); authMode === 'register' ? registerUser() : login(); }}>
+        <form className="login-card" onSubmit={e => { e.preventDefault(); login(); }}>
           <img className="login-logo" src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" />
-          <h1>{authMode === 'register' ? 'Create User Account' : 'Sign in'}</h1>
-          <p className="login-copy">{authMode === 'register' ? 'Create an account. Admin approval is required before access.' : 'Choose your role to continue.'}</p>
-          {role === 'user' && error.includes('User access is not configured') && <p className="dash-error login-config-error" role="alert">{error}</p>}
+          <h1>Sign in</h1>
+          <p className="login-copy">{role === 'admin' ? 'Sign in with your Admin PIN.' : 'Select User and sign in to view plot lists and submit enquiries.'}</p>
           <label htmlFor="login-role">Role</label>
-          <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setAuthMode('login'); setError(''); setNotice(''); }}><option value="admin">Admin</option><option value="user">User</option></select>
-          {role === 'user' && authMode === 'register' && <><label htmlFor="user-name">Full name</label><input id="user-name" value={userName} onChange={e => setUserName(e.target.value)} autoComplete="name" maxLength={120} required placeholder="Enter your full name" /></>}
-          {role === 'user' && <><label htmlFor="user-email">Email</label><input id="user-email" type="email" value={userEmail} onChange={e => setUserEmail(e.target.value)} autoComplete="email" required placeholder="Enter your email" /></>}
-          <label htmlFor="admin-pin">{role === 'admin' ? 'Admin PIN' : 'PIN'}</label>
-          <input id="admin-pin" type="password" inputMode="text" autoComplete={authMode === 'register' ? 'new-password' : 'current-password'} value={pin} onChange={e => setPin(e.target.value)} placeholder={role === 'admin' ? 'Enter your Admin PIN' : 'Enter your PIN'} required minLength={role === 'user' ? 6 : undefined} maxLength={32} />
-          {role === 'user' && authMode === 'register' && <><label htmlFor="confirm-pin">Confirm PIN</label><input id="confirm-pin" type="password" value={confirmPin} onChange={e => setConfirmPin(e.target.value)} autoComplete="new-password" required minLength={6} maxLength={32} /></>}
+          <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setError(''); setNotice(''); setPin(''); }}><option value="admin">Admin</option><option value="user">User</option></select>
+          {role === 'admin' && <><label htmlFor="admin-pin">Admin PIN</label><input id="admin-pin" type="password" inputMode="text" autoComplete="current-password" value={pin} onChange={e => setPin(e.target.value)} placeholder="Enter your Admin PIN" required maxLength={32} /></>}
           {error && !(role === 'user' && error.includes('User access is not configured')) && <p className="dash-error" role="alert">{error}</p>}{notice && <p className="dash-notice" role="status">{notice}</p>}
-          <button className="primary-btn login-submit" disabled={saving}>{saving ? 'Please wait…' : authMode === 'register' ? 'Create account' : 'Sign in'} <span>→</span></button>
-          {role === 'user' && <button type="button" className="profile-signout" onClick={() => { setAuthMode(authMode === 'register' ? 'login' : 'register'); setError(''); setNotice(''); }}>{authMode === 'register' ? 'Back to sign in' : 'Create a user account'}</button>}
+          <button className="primary-btn login-submit" disabled={saving || (role === 'admin' && !pin)}>{saving ? 'Please wait…' : 'Sign in'} <span>→</span></button>
         </form>
       </main>
     );
@@ -332,12 +331,12 @@ export default function Dashboard() {
           <div className="dashboard-mobile-brand-row"><a className="dashboard-mobile-brand" href="/dashboard" aria-label="Mary Ann dashboard home"><img src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" /></a><button type="button" className="dashboard-menu-toggle" aria-label="Open navigation menu" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(true)}><span></span><span></span><span></span></button></div>
           <div className="dashboard-heading-group"><h1>{page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : page === 'users' ? 'Users' : 'Plot lists'}</h1></div>
           <div className="topbar-actions profile-wrap">
-            <button type="button" className="topbar-avatar profile-trigger" aria-label="Open administrator menu" aria-expanded={profileOpen} onClick={() => setProfileOpen(open => !open)}>MA</button>
+            <button type="button" className="topbar-avatar profile-trigger" aria-label={role === 'admin' ? 'Open administrator menu' : 'Open user menu'} aria-expanded={profileOpen} onClick={() => setProfileOpen(open => !open)}><img className="topbar-avatar-image" src="/user-avatar.svg" alt="" /></button>
             {profileOpen && <div className="profile-menu" role="menu">
               <strong className="profile-role">{role === 'admin' ? 'Administrator' : userName || 'User'}</strong>
-              <span className="profile-company">Mary Ann Elite Properties</span>
+              {role === 'admin' && <span className="profile-company">Mary Ann Elite Properties</span>}
               <span className="profile-session"><i />{role === 'admin' ? 'Connected to admin session' : 'Approved user session'}</span>
-              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_token'); setLoggedIn(false); setPin(''); setUserEmail(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); setAuthMode('login'); }}>Sign out</button>
+              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_token'); window.sessionStorage.removeItem('maep_user_mode'); setLoggedIn(false); setPin(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); setAuthMode('login'); }}>Sign out</button>
             </div>}
           </div>
         </header>
@@ -348,16 +347,16 @@ export default function Dashboard() {
 
           {page === 'users' && role === 'admin' ? (
             <section className="table-card user-management-card">
-              <div className="page-intro"><div><h2>User access management</h2><p>Approve registered users before they can sign in. PINs are stored as protected hashes.</p></div></div>
+              <div className="page-intro"><div><h2>Users</h2><p>Accounts are created automatically when a user verifies their email OTP. No PIN or Admin approval is required.</p></div></div>
               <div className="table-toolbar">
-                <label className="search-field"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, email or access status…" aria-label="Search user accounts" /></label>
+                <label className="search-field"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search email address…" aria-label="Search user accounts" /></label>
                 <div className="booking-toolbar-actions"><button type="button" className="add-customer-btn" onClick={loadUsers} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button></div>
               </div>
-              {loading ? <div className="table-state">Loading user accounts…</div> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Name</th><th>Email</th><th>PIN</th><th>Access status</th><th>Registered</th><th>Action</th></tr></thead><tbody>
-                {users.filter(user => [user.name, user.email, user.status].some(value => String(value || '').toLowerCase().includes(search.toLowerCase().trim()))).map(user => <tr key={user.id}><td><strong>{user.name}</strong></td><td>{user.email}</td><td><span className="unit-pill">Protected</span></td><td><span className={'status-select status-' + user.status}>{user.status === 'approved' ? 'Approved' : user.status === 'revoked' ? 'Revoked' : 'Pending'}</span></td><td>{user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}</td><td><div className="row-actions">{user.status !== 'approved' && <button className="edit-btn" disabled={saving} onClick={() => updateUserAccess(user.id, 'approve')}>Approve</button>}{user.status !== 'revoked' && <button className="delete-btn" disabled={saving} onClick={() => updateUserAccess(user.id, 'revoke')}>Revoke</button>}</div></td></tr>)}
-                {!users.filter(user => [user.name, user.email, user.status].some(value => String(value || '').toLowerCase().includes(search.toLowerCase().trim()))).length && <tr><td colSpan="6" className="empty-cell">{users.length ? 'No user accounts match your search.' : 'No user accounts registered yet.'}</td></tr>}
+              {loading ? <div className="table-state">Loading users…</div> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Email ID</th><th>Registration Date</th><th>Action</th></tr></thead><tbody>
+                {users.filter(user => String(user.email || '').toLowerCase().includes(search.toLowerCase().trim())).map(user => <tr key={user.id}><td><strong>{user.email}</strong></td><td>{user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}</td><td><div className="row-actions"><button className="delete-btn" disabled={saving} onClick={() => setUserDeleteTarget(user)}>Delete</button></div></td></tr>)}
+                {!users.filter(user => String(user.email || '').toLowerCase().includes(search.toLowerCase().trim())).length && <tr><td colSpan="3" className="empty-cell">{users.length ? 'No user accounts match your search.' : 'No users registered yet.'}</td></tr>}
               </tbody></table></div>}
-              <div className="table-footer">Showing {users.filter(user => [user.name, user.email, user.status].some(value => String(value || '').toLowerCase().includes(search.toLowerCase().trim()))).length} of {users.length} user accounts</div>
+              <div className="table-footer">Showing {users.filter(user => String(user.email || '').toLowerCase().includes(search.toLowerCase().trim())).length} of {users.length} users</div>
             </section>
           ) : page !== 'plots' ? (
             <>
@@ -512,6 +511,16 @@ export default function Dashboard() {
           {error && <p className="dash-error">{error}</p>}
           <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setEdit(null)}>Cancel</button><button className="primary-btn" disabled={saving}>{saving ? 'Saving…' : edit.id == null ? 'Add customer' : 'Save changes'}</button></div>
         </form>
+      </div>}
+      {userDeleteTarget && <div className="edit-overlay confirm-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) setUserDeleteTarget(null); }}>
+        <section className="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="user-delete-confirm-title" aria-describedby="user-delete-confirm-copy">
+          <div className="confirm-icon" aria-hidden="true">!</div>
+          <button type="button" className="modal-close" onClick={() => setUserDeleteTarget(null)} aria-label="Close" disabled={saving}>×</button>
+          <p className="eyebrow">CONFIRM ACTION</p>
+          <h2 id="user-delete-confirm-title">Delete user account?</h2>
+          <p id="user-delete-confirm-copy">Are you sure you want to delete <strong>{userDeleteTarget.email}</strong>? This action cannot be undone.</p>
+          <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setUserDeleteTarget(null)} disabled={saving}>Cancel</button><button type="button" className="confirm-delete-btn" onClick={() => deleteUserAccount(userDeleteTarget)} disabled={saving}>{saving ? 'Deleting…' : 'Yes, delete'}</button></div>
+        </section>
       </div>}
       {deleteTarget && <div className="edit-overlay confirm-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) setDeleteTarget(null); }}>
         <section className="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="delete-confirm-title" aria-describedby="delete-confirm-copy">

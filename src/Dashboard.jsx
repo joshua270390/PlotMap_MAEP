@@ -382,30 +382,18 @@ export default function Dashboard() {
                 <input type="search" value={plotSearch} onChange={e => setPlotSearch(e.target.value)} placeholder="Search projects..." aria-label="Filter projects" />
                 <span className="filter-caption">FILTER</span>
               </label>
-              {(!plotSearch.trim() || 'mary ann elite properties madurai tamil nadu interactive plot layout'.includes(plotSearch.trim().toLowerCase())) ? (
-                <div className="project-cards">
+              <div className="project-cards">
+                {(!plotSearch.trim() || 'velavan nagar madurai tamil nadu interactive plot layout mary ann elite properties'.includes(plotSearch.trim().toLowerCase())) && (
                   <a className="project-list-card" href="/velavan_nagar" aria-label="Open Velavan Nagar interactive plot map">
                     <div className="project-card-visual" aria-label="Static preview of the Velavan Nagar interactive plot map">
                       <svg className="project-map-static" viewBox="0 0 4400 3400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Static thumbnail of the Velavan Nagar plot layout">
                         <rect width="4400" height="3400" fill="#e8e4dc" />
-                        <g fill="#363e4c">
-                          {G.base.map((d, i) => <path key={'road-' + i} d={d} />)}
-                        </g>
-                        <g fill="#cdd3c3">
-                          {G.park.map((d, i) => <path key={'park-' + i} d={d} />)}
-                        </g>
-                        <g fill="#ded6c6">
-                          {G.misc.map((d, i) => <path key={'misc-' + i} d={d} />)}
-                        </g>
-                        <g fill="none" stroke="#e9e4d6" strokeWidth="6" strokeDasharray="34 26">
-                          {G.dash.map((d, i) => <path key={'road-mark-' + i} d={d} />)}
-                        </g>
-                        <g stroke="#aab0ba" strokeWidth="8" strokeLinejoin="round">
-                          {P.map(([id, x, y, points, area, pm]) => <polygon key={id} points={points} fill={pm ? '#dcdfe5' : '#ffffff'} />)}
-                        </g>
-                        <g fill="#1b2433" stroke="#ffffff" strokeWidth="10" paintOrder="stroke" fontSize="44" fontWeight="700" textAnchor="middle" dominantBaseline="central">
-                          {P.map(([id, x, y]) => <text key={'number-' + id} x={x} y={y}>{id}</text>)}
-                        </g>
+                        <g fill="#363e4c">{G.base.map((d, i) => <path key={'road-' + i} d={d} />)}</g>
+                        <g fill="#cdd3c3">{G.park.map((d, i) => <path key={'park-' + i} d={d} />)}</g>
+                        <g fill="#ded6c6">{G.misc.map((d, i) => <path key={'misc-' + i} d={d} />)}</g>
+                        <g fill="none" stroke="#e9e4d6" strokeWidth="6" strokeDasharray="34 26">{G.dash.map((d, i) => <path key={'road-mark-' + i} d={d} />)}</g>
+                        <g stroke="#aab0ba" strokeWidth="8" strokeLinejoin="round">{P.map(([id, x, y, points, area, pm]) => <polygon key={id} points={points} fill={pm ? '#dcdfe5' : '#ffffff'} />)}</g>
+                        <g fill="#1b2433" stroke="#ffffff" strokeWidth="10" paintOrder="stroke" fontSize="44" fontWeight="700" textAnchor="middle" dominantBaseline="central">{P.map(([id, x, y]) => <text key={'number-' + id} x={x} y={y}>{id}</text>)}</g>
                       </svg>
                       <div className="project-preview-overlay" aria-hidden="true"><span className="project-visual-mark">MA</span><span className="project-visual-tag">INTERACTIVE PLOT MAP</span></div>
                     </div>
@@ -416,8 +404,38 @@ export default function Dashboard() {
                       <div className="project-card-footer"><span className="project-type"><span aria-hidden="true">▦</span> Interactive Plot Layout</span><span className="project-view-link">View project <span aria-hidden="true">→</span></span></div>
                     </div>
                   </a>
-                </div>
-              ) : (
+                )}
+                {(!plotSearch.trim() || 'shanmuga avenue arasanur layout madurai tamil nadu mary ann elite properties interactive plot map'.includes(plotSearch.trim().toLowerCase())) && (
+                  <a className="project-list-card" href="/shanmuga_avenue" aria-label="Open Shanmuga Avenue interactive plot map">
+                    <div className="project-card-visual" aria-label="Static preview of the Shanmuga Avenue interactive plot map">
+                      <svg className="project-map-static shanmuga-project-preview" viewBox="0 0 440 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Stylized preview of the Shanmuga Avenue plot layout">
+                        <rect width="440" height="300" fill="#e8e4dc" />
+                        <path d="M20 20H420V280H20Z" fill="#f3f0e8" stroke="#d2cbbc" strokeWidth="3" />
+                        <path d="M45 38V262M95 30V270M145 30V270M195 30V270M245 30V270M295 30V270M345 30V270M395 38V262M30 70H410M30 110H410M30 150H410M30 190H410M30 230H410" stroke="#fff" strokeWidth="11" />
+                        <g fill="#fff" stroke="#8b968d" strokeWidth="1.5">
+                          {Array.from({length:7},(_,i)=><rect key={'top-'+i} x={30+i*55} y="32" width="43" height="32" rx="1" />)}
+                          {Array.from({length:7},(_,i)=><rect key={'mid-'+i} x={30+i*55} y="72" width="43" height="34" rx="1" />)}
+                          {Array.from({length:7},(_,i)=><rect key={'low-'+i} x={30+i*55} y="112" width="43" height="34" rx="1" />)}
+                          {Array.from({length:7},(_,i)=><rect key={'lower-'+i} x={30+i*55} y="152" width="43" height="34" rx="1" />)}
+                          {Array.from({length:7},(_,i)=><rect key={'bottom-'+i} x={30+i*55} y="192" width="43" height="34" rx="1" />)}
+                        </g>
+                        <path d="M22 244H418V272H22Z" fill="#363e4c" />
+                        <path d="M35 258H405" stroke="#e9e4d6" strokeWidth="2" strokeDasharray="9 7" />
+                        <rect x="153" y="230" width="132" height="28" rx="6" fill="#0c4a3b" />
+                        <text x="219" y="248" textAnchor="middle" fontSize="11" fontWeight="700" fill="#fff">SHANMUGA AVENUE</text>
+                      </svg>
+                      <div className="project-preview-overlay" aria-hidden="true"><span className="project-visual-mark">MA</span><span className="project-visual-tag">INTERACTIVE PLOT MAP</span></div>
+                    </div>
+                    <div className="project-card-content">
+                      <div className="project-card-heading"><div><span className="project-card-kicker">MARY ANN ELITE PROPERTIES</span><h2>Shanmuga Avenue</h2></div><span className="project-card-arrow" aria-hidden="true">↗</span></div>
+                      <p className="project-card-location"><span aria-hidden="true">⌖</span> Arasanur, Madurai</p>
+                      <p className="project-card-description">Open the Shanmuga Avenue layout with 230 numbered plots.</p>
+                      <div className="project-card-footer"><span className="project-type"><span aria-hidden="true">▦</span> Interactive Plot Layout</span><span className="project-view-link">View project <span aria-hidden="true">→</span></span></div>
+                    </div>
+                  </a>
+                )}
+              </div>
+              {plotSearch.trim() && !['velavan nagar madurai tamil nadu interactive plot layout mary ann elite properties', 'shanmuga avenue arasanur layout madurai tamil nadu mary ann elite properties interactive plot map'].some(text => text.includes(plotSearch.trim().toLowerCase())) && (
                 <div className="project-filter-empty"><span aria-hidden="true">⌕</span><strong>No projects found</strong><p>Try another project name or location.</p></div>
               )}
             </section>

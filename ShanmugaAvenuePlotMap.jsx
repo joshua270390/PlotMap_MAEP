@@ -54,6 +54,14 @@ const css = `
 .sa .panel h3{margin:0 0 10px;font:800 22px/1.1 "Bricolage Grotesque","Instrument Sans",system-ui,sans-serif}
 .sa .panel dl{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;margin:0;font-size:13px}.sa .panel dt{color:#667085}.sa .panel dd{margin:0;text-align:right;font-weight:700}
 .sa .panel button{margin-top:12px;border:0;background:#07533e;color:#fff;border-radius:9px;padding:9px 14px;font:700 13px "Instrument Sans",system-ui,sans-serif;cursor:pointer}
+.sa .map-approval-marks{position:absolute;z-index:4;right:12px;top:86px;display:flex;align-items:center;gap:9px;padding:5px 8px;background:rgba(255,253,249,.96);border:1px solid #d8d2c5;border-radius:12px;box-shadow:0 6px 22px rgba(0,0,0,.12);pointer-events:none}
+.sa .editor-panel{left:12px;right:auto;top:86px;bottom:auto;width:324px;max-width:min(360px,calc(100vw - 24px));max-height:calc(100% - 110px);overflow:auto;z-index:8}
+.sa .editor-panel label{display:block;font-size:12px;color:#667085;margin:0 0 9px}
+.sa .editor-panel input,.sa .editor-panel select{display:block;width:100%;margin-top:4px;padding:9px 10px;border:1px solid #d8d2c5;border-radius:8px;background:#fff;color:#1b2433;font:inherit}
+.sa .editor-panel .editor-actions{display:flex;gap:8px;flex-wrap:wrap}
+.sa .editor-panel .editor-actions button{flex:1;margin-top:5px}
+.sa .editor-panel .editor-message{font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.sa .editor-panel .editor-error{color:#b4313f}
 @media(max-width:1250px){.sa .top{flex-wrap:wrap;align-items:center}.sa .card{flex:1 1 220px}.sa .legend{order:2;flex:1 1 100%;width:100%;min-height:48px}.sa .search{order:3;margin-left:0;flex:1 1 100%;width:100%}.sa .approval-marks{order:4;margin-left:auto}.sa .legend .lrow{justify-content:space-between}}
 @media(max-width:991px){.sa .back{display:none!important}}
 @media(max-width:600px){.sa .top{left:8px;right:8px;top:8px;gap:6px}.sa .card{min-width:0;flex:1 1 calc(100% - 140px);min-height:48px;padding:5px 8px;gap:7px}.sa .card .brand-logo{width:32px;height:32px}.sa .card b{font-size:15px;line-height:1.1;white-space:normal}.sa .card small{font-size:11px;margin-top:4px}.sa .legend{order:3;flex:1 1 100%;width:100%;padding:8px 9px;gap:5px;border-radius:12px;min-height:40px}.sa .legend .lrow{justify-content:space-between;gap:5px}.sa .legend .chip{gap:5px;font-size:14px;padding:5px 7px}.sa .legend .chip i{width:10px;height:10px;border-width:1.5px}.sa .search{order:4;flex:1 1 100%;width:100%;min-width:0;min-height:40px;padding:0 11px}.sa .approval-marks{order:5;width:100%;justify-content:flex-end;padding:2px 0}.sa .dtcp-mark{width:66px;height:40px}.sa .search input{padding:9px 0;font-size:13px}.sa .admin{right:8px;bottom:calc(154px + env(safe-area-inset-bottom,0px));padding:8px 11px;font-size:12px}.sa .zoom{right:8px;bottom:8px}.sa .zoom button{width:40px;height:40px}.sa .panel{left:8px;bottom:8px;max-width:calc(100vw - 64px);min-width:0;padding:13px}.sa .panel h3{font-size:19px}}
@@ -91,7 +99,7 @@ function ChildrenPark() {
       <circle cx="846" cy="378" r="2.5" fill="#d94a3d" /><circle cx="886" cy="360" r="2.5" fill="#d94a3d" />
       {/* benches */}
       <rect x="605" y="318" width="18" height="5" rx="1.5" fill="#8a5a2b" /><rect x="905" y="386" width="18" height="5" rx="1.5" fill="#8a5a2b" />
-      <T x={598} y={290} /><T x={705} y={372} s={1.2} /><T x={935} y={375} /><T x={650} y={200} s={1.2} /><T x={760} y={380} s={1.1} />
+      <T x={598} y={290} /><T x={935} y={375} /><T x={650} y={200} s={1.2} />
       <text x="752" y="238" fill="#2e5e2a" fontSize="11" fontWeight="700" textAnchor="middle" transform="rotate(32 752 238)">Children's Park</text>
     </g>
   );
@@ -101,6 +109,13 @@ export default function ShanmugaAvenuePlotMap() {
   const [status, setStatus] = useState({});
   const [sel, setSel] = useState(null);
   const [admin, setAdmin] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [adminPin, setAdminPin] = useState("");
+  const [pinInput, setPinInput] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [editStatus, setEditStatus] = useState("available");
+  const [savingStatus, setSavingStatus] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
   const [v, setV] = useState({ x: 0, y: 0, k: 0.5 });
   const drag = useRef(null);
 
@@ -131,8 +146,52 @@ export default function ShanmugaAvenuePlotMap() {
   };
   const click = (n) => {
     if (drag.current?.moved) return;
-    if (admin) setStatus((s) => ({ ...s, [n]: STATUS[(STATUS.indexOf(s[n] || "available") + 1) % 4] }));
     setSel(n);
+    setEditStatus(st(n));
+    setSaveMessage("");
+  };
+
+  const authenticateAdmin = async (e) => {
+    e.preventDefault();
+    setAuthError("");
+    try {
+      const response = await fetch("/api/admin-auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: pinInput }),
+        cache: "no-store",
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.error || "Admin authentication failed.");
+      setAdminPin(pinInput);
+      setAdmin(true);
+      setEditorOpen(true);
+      setPinInput("");
+    } catch (error) {
+      setAuthError(error.message || "Could not verify Admin PIN.");
+    }
+  };
+
+  const savePlotStatus = async () => {
+    if (!sel) { setSaveMessage("Select a plot on the map first."); return; }
+    setSavingStatus(true);
+    setSaveMessage("");
+    try {
+      const apiStatus = ({ available: "Available", reserved: "Reserved", booked: "Booked", sold: "Sold" })[editStatus];
+      const response = await fetch("/api/plot-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-pin": adminPin },
+        body: JSON.stringify({ plot_number: String(sel), status: apiStatus }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.error || "Could not save plot status.");
+      setStatus((old) => ({ ...old, [sel]: editStatus }));
+      setSaveMessage("Status saved successfully.");
+    } catch (error) {
+      setSaveMessage(error.message || "Could not save plot status.");
+    } finally {
+      setSavingStatus(false);
+    }
   };
   const find = (t) => {
     const n = parseInt(t, 10);
@@ -153,7 +212,7 @@ export default function ShanmugaAvenuePlotMap() {
       <style>{css}</style>
       <div className="top">
         <button className="back" onClick={() => { if (document.referrer && new URL(document.referrer).origin === window.location.origin) history.back(); else window.location.assign("/plot_lists"); }}>← Back</button>
-        <div className="card"><img className="brand-logo" src="/mary-ann-plotmap-logo.png" alt="Mary Ann Elite Properties" /><div><b>{SITE.name}</b><small>{SITE.place}</small></div></div>
+        <div className="card"><img className="brand-logo" src="/mary-ann-plotmap-logo.png" alt="Mary Ann Elite Properties" /><div><b>Plot Map</b><small>{SITE.name} · {SITE.place}</small></div></div>
         <div className="legend" title="Plot availability status">
           <div className="lrow">
             {STATUS.map((s) => (
@@ -168,10 +227,10 @@ export default function ShanmugaAvenuePlotMap() {
         <label className="search">
           <input placeholder="Search plot number" inputMode="numeric" onChange={(e) => find(e.target.value)} />
         </label>
-        <div className="approval-marks" aria-label="Approvals">
-          <div className="campus-mark"><span className="campus-icon">⌂</span><span><b>Campus</b><small>Community</small></span></div>
-          <img className="dtcp-mark" src="/mary-ann-plotmap-dtcp.png" alt="DTCP Approved" />
-        </div>
+      </div>
+      <div className="map-approval-marks" aria-label="Campus and DTCP approval">
+        <div className="campus-mark"><span className="campus-icon">⌂</span><span><b>Campus</b><small>Community</small></span></div>
+        <img className="dtcp-mark" src="/mary-ann-plotmap-dtcp.png" alt="DTCP Approved" />
       </div>
 
       <svg className="map" onPointerDown={down} onPointerMove={move} onPointerUp={() => setTimeout(() => (drag.current = null), 0)}
@@ -200,19 +259,62 @@ export default function ShanmugaAvenuePlotMap() {
               </g>
             );
           })}
-          {M.trees.map(([x, y, r], i) => (
+          {M.trees.filter((_, i) => i % 2 === 0).map(([x, y, r], i) => (
             <use key={i} href="#tree" transform={`translate(${x} ${y - 4}) scale(${r / 5})`} />
           ))}
         </g>
       </svg>
 
-      <button className={`admin${admin ? " on" : ""}`} onClick={() => setAdmin(!admin)}>{admin ? "Admin: tap plot to change status" : "Admin"}</button>
+      <button className={`admin${admin ? " on" : ""}`} onClick={() => {
+        if (admin) { setAdmin(false); setEditorOpen(false); }
+        else if (adminPin) { setAdmin(true); setEditorOpen(true); }
+        else { setEditorOpen(true); setAuthError(""); }
+      }}>{admin ? "Close Admin" : "Admin"}</button>
       <div className="zoom">
         <button onClick={() => zoom(1.3)} aria-label="Zoom in">+</button>
         <button onClick={() => zoom(0.77)} aria-label="Zoom out">−</button>
       </div>
 
-      {sel && (
+      {editorOpen && (
+        <div className="panel editor-panel">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+            <h3>{admin ? "Admin Editor" : "Admin Login"}</h3>
+            <button type="button" aria-label="Close Admin Editor" onClick={() => { setEditorOpen(false); setAdmin(false); }}>Close</button>
+          </div>
+          {!admin ? (
+            <form onSubmit={authenticateAdmin}>
+              <p style={{ fontSize: 13, lineHeight: 1.45 }}>Enter the Admin PIN to open the plot editor.</p>
+              <label>Admin PIN<input type="password" autoComplete="current-password" value={pinInput} onChange={(e) => setPinInput(e.target.value)} required /></label>
+              {authError && <p className="editor-message editor-error">{authError}</p>}
+              <div className="editor-actions"><button type="submit">Unlock Admin Editor</button></div>
+            </form>
+          ) : (
+            <>
+              {sel ? (
+                <>
+                  <h3>Plot {sel}</h3>
+                  <p style={{ fontSize: 12, color: "#667085" }}>Current status: {LABEL[st(sel)]}</p>
+                  <label>Plot status
+                    <select value={editStatus} onChange={(e) => { setEditStatus(e.target.value); setSaveMessage(""); }}>
+                      {STATUS.map((statusValue) => <option key={statusValue} value={statusValue}>{LABEL[statusValue]}</option>)}
+                    </select>
+                  </label>
+                  <div className="editor-actions"><button type="button" disabled={savingStatus} onClick={savePlotStatus}>{savingStatus ? "Saving…" : "Save status"}</button></div>
+                  {saveMessage && <p className="editor-message">{saveMessage}</p>}
+                  <hr />
+                  <dl>
+                    <dt>Dimensions</dt><dd>{M.dims[sel][0]} × {M.dims[sel][1]}</dd>
+                    <dt>Plot area</dt><dd>{M.areas[sel][0]} sq.ft</dd>
+                    <dt>Road area</dt><dd>{M.areas[sel][1]} sq.ft</dd>
+                  </dl>
+                </>
+              ) : <p style={{ fontSize: 13, lineHeight: 1.45 }}>Select any plot on the map to edit its status.</p>}
+            </>
+          )}
+        </div>
+      )}
+
+      {!editorOpen && sel && (
         <div className="panel">
           <h3>Plot {sel} · {LABEL[st(sel)]}</h3>
           <dl>

@@ -50,7 +50,11 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
   useEffect(() => {
     // The existing plot-status endpoint is currently configured for Velavan Nagar.
     // Do not leak those statuses into a different project's plot numbers.
-    if (geometry.key !== 'velavan_nagar') { setStatus({}); setPlotDetails({}); return; }
+    if (geometry.key !== 'velavan_nagar') {
+      try { setStatus(JSON.parse(window.localStorage.getItem('saraswathi-gardens-plot-status-v1') || '{}')); } catch { setStatus({}); }
+      setPlotDetails({});
+      return;
+    }
     fetch('/api/plots').then(r => r.json()).then(j => {
       if (!j.ok) return;
       const m = {};
@@ -61,6 +65,7 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
   }, []);
 
   const loadAdminEnquiries = useCallback(async adminPin => {
+    if (geometry.key !== 'velavan_nagar') { setAdminEnquiries([]); return; }
     try {
       const response = await fetch('/api/admin-data?view=bookings', { headers: { 'x-admin-pin': adminPin }, cache: 'no-store' });
       const data = await response.json().catch(() => ({}));
@@ -79,7 +84,7 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
       console.error('[admin-map] Could not load enquiry pins:', error);
       setAdminEnquiries([]);
     }
-  }, []);
+  }, [geometry]);
 
   // Restore the Admin Studio session when an Admin opens the map from the dashboard.
   useEffect(() => {
@@ -163,7 +168,7 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
         customer={plotDetails[ax.lbl(closedPlot.id)] || plotDetails[String(closedPlot.id)] || {}}
         onClose={() => setClosedPlot(null)} />}
       {unit != null && !form && (
-        <UnitModal id={unit} ax={ax} status={status[unit]} setAd={setAd} admin={adminAuthenticated} onClose={closeUnit} onEnquire={() => setForm(true)}
+        <UnitModal id={unit} ax={ax} status={status[unit]} setAd={setAd} admin={adminAuthenticated} onClose={closeUnit} onEnquire={geometry.key === 'velavan_nagar' ? () => setForm(true) : undefined}
           reservedCustomers={plotDetails[ax.lbl(unit)]?.reservedCustomers || plotDetails[String(unit)]?.reservedCustomers || []}
           onViewMap={() => { const id = unit; setUnit(null); setSel(id); mapRef.current.focusOn(id); }} />
       )}

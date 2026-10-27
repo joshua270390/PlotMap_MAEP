@@ -68,7 +68,20 @@ const G = {
   ],
   park: [], misc: [], dash: [], trees: []
 };
+// Plot-area labels from the supplied PDF schedule. Displayed under each plot number.
+const plotAreaLabels = Object.keys(D).map(Number).sort((a,b)=>a-b).map(id => ({
+  id, x: C[id][0], y: C[id][1] + 30, area: D[id][0], cents: D[id][3]
+}));
+// Road names/widths visible on the supplied PDF, positioned over their corresponding road sections.
+const roadLabels = [
+  { text: '7.20 m அகல மனைப்பிரிவு சாலை', x: 875, y: 1044, rotate: 8 },
+  { text: '9.00 m அகல மனைப்பிரிவு சாலை', x: 1095, y: 1450, rotate: -82 },
+  { text: '10.00 m அகல மனைப்பிரிவு சாலை', x: 835, y: 1570, rotate: 8 },
+  { text: '10.00 m அகல மனைப்பிரிவு சாலை', x: 1250, y: 1585, rotate: 8 },
+  { text: '7.20 m அகல மனைப்பிரிவு சாலை', x: 810, y: 2145, rotate: 8 },
+  { text: '7.10 m அகல மனைப்பிரிவு சாலை', x: 1515, y: 2240, rotate: 8 }
+];
 const LB = [];
 const DM = [];
 const bounds = { x: 480, y: 720, width: 1280, height: 1860 };
-export { P, G, LB, DM, bounds };
+export { P, G, LB, DM, bounds, plotAreaLabels, roadLabels };

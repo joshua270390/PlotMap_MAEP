@@ -4,12 +4,14 @@ import AdminPanel from './AdminPanel.jsx';
 import { EnquiryModal, UnitModal, PlotStatusModal } from './Modals.jsx';
 import { P as V_P, G as V_G, LB as V_LB, DM as V_DM } from './data.js';
 import { P as S_P, G as S_G, LB as S_LB, DM as S_DM, bounds as S_BOUNDS, plotAreaLabels as S_PLOT_AREA_LABELS, roadLabels as S_ROAD_LABELS, dimensionLabels as S_DIMENSION_LABELS } from './saraswathiGeometry.js';
+import { P as SH_P, G as SH_G, LB as SH_LB, DM as SH_DM, bounds as SH_BOUNDS, plotAreaLabels as SH_PLOT_AREA_LABELS, roadLabels as SH_ROAD_LABELS, dimensionLabels as SH_DIMENSION_LABELS } from './shanmugaGeometry.js';
 import { toStatus } from './plots.js';
 import { addDm, loadAd, makeApi, saveAd } from './adminData.js';
 
 const GEOMETRIES = {
   velavan_nagar: { key: 'velavan_nagar', projectId: 1, P: V_P, G: V_G, LB: V_LB, DM: V_DM, bounds: { x: 369, y: 160, width: 2501, height: 3012 }, canvasWidth: 4400, canvasHeight: 3400, projectName: 'Velavan Nagar', layoutName: 'Kurayur layout' },
-  saraswathi_garden: { key: 'saraswathi_garden', projectId: 3, P: S_P, G: S_G, LB: S_LB, DM: S_DM, bounds: S_BOUNDS, plotAreaLabels: S_PLOT_AREA_LABELS, roadLabels: S_ROAD_LABELS, dimensionLabels: S_DIMENSION_LABELS, canvasWidth: 1760, canvasHeight: 2580, projectName: 'Saraswathi Gardens', layoutName: 'Saraswathi Gardens layout' },
+  saraswathi_garden: { key: 'saraswathi_garden', compact: true, projectId: 3, P: S_P, G: S_G, LB: S_LB, DM: S_DM, bounds: S_BOUNDS, plotAreaLabels: S_PLOT_AREA_LABELS, roadLabels: S_ROAD_LABELS, dimensionLabels: S_DIMENSION_LABELS, canvasWidth: 1760, canvasHeight: 2580, projectName: 'Saraswathi Gardens', layoutName: 'Saraswathi Gardens layout' },
+  shanmuga_avenue: { key: 'shanmuga_avenue', compact: true, projectId: 2, P: SH_P, G: SH_G, LB: SH_LB, DM: SH_DM, bounds: SH_BOUNDS, plotAreaLabels: SH_PLOT_AREA_LABELS, roadLabels: SH_ROAD_LABELS, dimensionLabels: SH_DIMENSION_LABELS, projectName: 'Shanmuga Avenue', layoutName: 'Arasanur layout' },
 };
 
 export default function App({ projectSlug = 'velavan_nagar' }) {

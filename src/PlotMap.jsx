@@ -128,7 +128,7 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
       const r = vp.getBoundingClientRect(), tp = topRef.current, th = Math.round(tp.offsetTop + tp.offsetHeight + 12), bx = bounds.x, by = bounds.y, bw = bounds.width, bh = bounds.height;
       vp.style.setProperty('--th', th + 'px');
       v.fitS = Math.min(r.width / bw, (r.height - th) / bh) * 0.98; v.s = v.fitS;
-      const own = geometry?.key === 'saraswathi_garden', ox = own ? 0 : bx, oy = own ? 0 : by;
+      const own = !!geometry?.compact, ox = own ? 0 : bx, oy = own ? 0 : by;
       v.tx = (r.width - bw * v.s) / 2 - ox * v.s; v.ty = th + (r.height - th - bh * v.s) / 2 - oy * v.s; go(anim);
     };
     v.zoomAt = (cx, cy, f, anim) => {
@@ -137,7 +137,7 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
     };
     v.focusOn = id => {
       const r = vp.getBoundingClientRect(), q = cb.current.ax.posOf(id);
-      v.s = Math.max(v.s, Math.min(1.2, v.fitS * 4)); const own = geometry?.key === 'saraswathi_garden'; v.tx = r.width / 2 - (q[0] - (own ? bounds.x : 0)) * v.s; v.ty = r.height * 0.4 - (q[1] - (own ? bounds.y : 0)) * v.s; go(true);
+      v.s = Math.max(v.s, Math.min(1.2, v.fitS * 4)); const own = !!geometry?.compact; v.tx = r.width / 2 - (q[0] - (own ? bounds.x : 0)) * v.s; v.ty = r.height * 0.4 - (q[1] - (own ? bounds.y : 0)) * v.s; go(true);
     };
     v.fit(false);
 
@@ -260,9 +260,9 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
         </div>
       </div>
       <div id="stage" ref={stageRef} style={{ width: geometry?.canvasWidth || 4400, height: geometry?.canvasHeight || 3400 }}>
-        <svg id="ov" ref={ovRef} className={geometry?.key === "saraswathi_garden" ? "saraswathi-map" : undefined} style={{ width: geometry?.key === "saraswathi_garden" ? bounds.width : (geometry?.canvasWidth || 4400), height: geometry?.key === "saraswathi_garden" ? bounds.height : (geometry?.canvasHeight || 3400) }} viewBox={geometry?.key === "saraswathi_garden" ? `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}` : `0 0 ${geometry?.canvasWidth || 4400} ${geometry?.canvasHeight || 3400}`}>
-          <Ground G={G} colors={ax.ad.mapColors || {}} /><Plots P={P} status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} /><RoadLabels labels={roadLabels} /><DimensionLabels labels={dimensionLabels} />{admin && <EnquiryPins P={P} enquiries={adminEnquiries} ax={ax} />}<Trees G={G} /><PlotNumbers P={P} status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} />{geometry?.key !== 'saraswathi_garden' && <Dims LB={LB} />}{geometry?.key !== "saraswathi_garden" && <image href="/mary-ann-plotmap-logo.png" x="470" y="440" width="600" height="451.7" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />}
-          {geometry?.key !== "saraswathi_garden" && <g className="map-compass" transform="translate(2590 440) scale(2.4)" aria-label="North compass">
+        <svg id="ov" ref={ovRef} className={!!geometry?.compact ? "saraswathi-map" : undefined} style={{ width: !!geometry?.compact ? bounds.width : (geometry?.canvasWidth || 4400), height: !!geometry?.compact ? bounds.height : (geometry?.canvasHeight || 3400) }} viewBox={!!geometry?.compact ? `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}` : `0 0 ${geometry?.canvasWidth || 4400} ${geometry?.canvasHeight || 3400}`}>
+          <Ground G={G} colors={ax.ad.mapColors || {}} /><Plots P={P} status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} /><RoadLabels labels={roadLabels} /><DimensionLabels labels={dimensionLabels} />{admin && <EnquiryPins P={P} enquiries={adminEnquiries} ax={ax} />}<Trees G={G} /><PlotNumbers P={P} status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} />{!geometry?.compact && <Dims LB={LB} />}{!geometry?.compact && <image href="/mary-ann-plotmap-logo.png" x="470" y="440" width="600" height="451.7" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />}
+          {!geometry?.compact && <g className="map-compass" transform="translate(2590 440) scale(2.4)" aria-label="North compass">
             <title>North compass</title>
             <text x="50" y="11" className="compass-direction">N</text>
             <text x="91" y="55" className="compass-direction">E</text>
@@ -273,7 +273,7 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
             <path d="M50 82 L40 52 L50 58 L60 52 Z" className="compass-south" />
             <circle cx="50" cy="54" r="3.5" className="compass-center" />
           </g>}
-          {geometry?.key !== "saraswathi_garden" && <image href="/mary-ann-plotmap-dtcp.png" x="2650" y="790" width="360" height="271" preserveAspectRatio="xMidYMid meet" opacity="1" pointerEvents="none">
+          {!geometry?.compact && <image href="/mary-ann-plotmap-dtcp.png" x="2650" y="790" width="360" height="271" preserveAspectRatio="xMidYMid meet" opacity="1" pointerEvents="none">
             <title>DTCP approved layout</title>
           </image>}
         </svg>

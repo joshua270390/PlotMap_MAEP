@@ -5,7 +5,7 @@ import Dashboard from './Dashboard.jsx';
 import './style.css';
 
 const dashboardPaths = ['/dashboard', '/bookings', '/plot_lists'];
-const mapRoutes = new Set(['velavan_nagar', 'saraswathi_garden']);
+const mapRoutes = new Set(['velavan_nagar', 'saraswathi_garden', 'shanmuga_avenue']);
 const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
 const isDashboard = dashboardPaths.includes(currentPath);
 const routeId = currentPath.slice(1);

@@ -905,3 +905,6 @@ svg.saraswathi-map text.saraswathi-dimension {
   opacity: 1 !important;
   pointer-events: none;
 }
+
+/* Shanmuga Avenue children's park */
+svg.saraswathi-map .pk { fill: #a5d18a; }

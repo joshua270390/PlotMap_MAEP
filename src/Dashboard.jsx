@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import './Dashboard.css';
 import { P, G } from './data.js';
 
-const PROJECT_IDS = { velavan_nagar: 1, saraswathi_garden: 3 };
-const PROJECT_NAMES = { 1: 'Velavan Nagar', 3: 'Saraswathi Garden' };
+const PROJECT_IDS = { velavan_nagar: 1, saraswathi_garden: 3, shanmuga_avenue: 2 };
+const PROJECT_NAMES = { 1: 'Velavan Nagar', 3: 'Saraswathi Garden', 2: 'Shanmuga Avenue' };
 const STATUSES = [
   { value: 'Available', label: 'Availability' },
   { value: 'Reserved', label: 'Reserved' },
@@ -195,7 +195,7 @@ export default function Dashboard() {
       const response = await fetch('/api/admin-data', {
         method: rowId == null ? 'POST' : 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
-        body: JSON.stringify({ ...(rowId == null ? {} : { id: rowId }), ...values, project_id: Number(values.project_id || (projectTab === 'saraswathi_garden' ? PROJECT_IDS.saraswathi_garden : PROJECT_IDS.velavan_nagar)) }),
+        body: JSON.stringify({ ...(rowId == null ? {} : { id: rowId }), ...values, project_id: Number(values.project_id || (PROJECT_IDS[projectTab] || PROJECT_IDS.velavan_nagar)) }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not save booking.');
@@ -336,7 +336,7 @@ export default function Dashboard() {
                 <div className="dashboard-recent-main">
               <div className="page-intro"><div><h2>{page === 'dashboard' ? 'Recent enquiries & bookings' : 'Bookings overview'}</h2><p>Review customer enquiries and manage unit availability.</p></div>{page !== 'dashboard' && <div className="record-count"><strong>{selectedProjectBookings.length}</strong><span>Total bookings</span></div>}</div>
               {page === 'bookings' && <div className="booking-project-tabs" role="tablist" aria-label="Filter bookings by project">
-                {[['all', 'All'], ['velavan_nagar', 'Velavan Nagar'], ['saraswathi_garden', 'Saraswathi Garden']].map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={projectTab === key} className={'booking-project-tab' + (projectTab === key ? ' active' : '')} onClick={() => setProjectTab(key)}>{label}</button>)}
+                {[['all', 'All'], ['velavan_nagar', 'Velavan Nagar'], ['saraswathi_garden', 'Saraswathi Garden'], ['shanmuga_avenue', 'Shanmuga Avenue']].map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={projectTab === key} className={'booking-project-tab' + (projectTab === key ? ' active' : '')} onClick={() => setProjectTab(key)}>{label}</button>)}
               </div>}
               <section className="table-card">
                 <div className="table-toolbar">

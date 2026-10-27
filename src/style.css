@@ -865,7 +865,7 @@ svg.saraswathi-map path.p.sel { stroke: #244000; stroke-width: 8; }
 svg.saraswathi-map .rd { fill: #0877c9; }
 svg.saraswathi-map .road-label { font-size: 25px; font-weight: 700; fill: #fff; stroke: #07518a; stroke-width: 3px; paint-order: stroke; letter-spacing: 0; }
 svg.saraswathi-map .plot-area-label { font-size: 18px; font-weight: 600; fill: #173000; stroke: rgba(255,255,255,.72); stroke-width: 2px; paint-order: stroke; opacity: .95; }
-svg.saraswathi-map[data-z="1"] .plot-area-label { opacity: 0; }
+svg.saraswathi-map[data-z="1"] .plot-area-label { opacity: .95; font-size: 14px; }
 svg.saraswathi-map[data-z="2"] .plot-area-label { font-size: 15px; }
 svg.saraswathi-map[data-z="3"] .plot-area-label { font-size: 22px; }
 

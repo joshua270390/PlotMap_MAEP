@@ -31,6 +31,7 @@ const Measures = memo(({ ax, selD }) => ax.dmList().map(d => (
 
 const PlotAreaLabels = memo(({ labels = [] }) => <g className="plot-area-labels">{labels.map(({ id, x, y, area, cents }) => <text key={id} x={x} y={y} className="plot-area-label">{area} Sq.ft. · {cents} cents</text>)}</g>);
 const RoadLabels = memo(({ labels = [] }) => <g className="road-labels">{labels.map(({ text, x, y, rotate = 0 }, i) => <text key={i} x={x} y={y} transform={`rotate(${rotate} ${x} ${y})`} className="road-label">{text}</text>)}</g>);
+const DimensionLabels = memo(({ labels = [] }) => <g className="dimension-labels">{labels.map(({ text, x, y, rotate = 0 }, i) => <text key={i} x={x} y={y} transform={`rotate(${rotate} ${x} ${y})`} className="dimension-label">{text}</text>)}</g>);
 
 const Plots = memo(({ P, status, filt, sel, ax, colors = {} }) => (
   <>
@@ -103,7 +104,7 @@ const Tooltip = forwardRef(({ status, vpRef, ax, details = {} }, ref) => {
 });
 
 const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName, status, details = {}, filt, setFilt, sel, selD, setSel, onTap, ax, admin, addMode, adminEnquiries = [], children }, ref) {
-  const { P, G, LB, bounds, plotAreaLabels = [], roadLabels = [] } = geometry || { P: V_P, G: V_G, LB: V_LB, bounds: { x: 369, y: 160, width: 2501, height: 3012 } };
+  const { P, G, LB, bounds, plotAreaLabels = [], roadLabels = [], dimensionLabels = [] } = geometry || { P: V_P, G: V_G, LB: V_LB, bounds: { x: 369, y: 160, width: 2501, height: 3012 } };
   const vpRef = useRef(null), stageRef = useRef(null), ovRef = useRef(null), topRef = useRef(null), tipRef = useRef(null), qRef = useRef(null);
   const view = useRef({}), cb = useRef({});
   const [msg, setMsg] = useState('');
@@ -259,7 +260,7 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
       </div>
       <div id="stage" ref={stageRef} style={{ width: geometry?.canvasWidth || 4400, height: geometry?.canvasHeight || 3400 }}>
         <svg id="ov" ref={ovRef} className={geometry?.key === "saraswathi_garden" ? "saraswathi-map" : undefined} style={{ width: geometry?.canvasWidth || 4400, height: geometry?.canvasHeight || 3400 }} viewBox={`0 0 ${geometry?.canvasWidth || 4400} ${geometry?.canvasHeight || 3400}`}>
-          <Ground G={G} colors={ax.ad.mapColors || {}} /><Plots P={P} status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} /><PlotAreaLabels labels={plotAreaLabels} /><RoadLabels labels={roadLabels} />{admin && <EnquiryPins P={P} enquiries={adminEnquiries} ax={ax} />}<Trees G={G} /><PlotNumbers P={P} status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims LB={LB} />{geometry?.key !== "saraswathi_garden" && <image href="/mary-ann-plotmap-logo.png" x="470" y="440" width="600" height="451.7" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />}
+          <Ground G={G} colors={ax.ad.mapColors || {}} /><Plots P={P} status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} /><PlotAreaLabels labels={plotAreaLabels} /><RoadLabels labels={roadLabels} /><DimensionLabels labels={dimensionLabels} />{admin && <EnquiryPins P={P} enquiries={adminEnquiries} ax={ax} />}<Trees G={G} /><PlotNumbers P={P} status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims LB={LB} />{geometry?.key !== "saraswathi_garden" && <image href="/mary-ann-plotmap-logo.png" x="470" y="440" width="600" height="451.7" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />}
           {geometry?.key !== "saraswathi_garden" && <g className="map-compass" transform="translate(2590 440) scale(2.4)" aria-label="North compass">
             <title>North compass</title>
             <text x="50" y="11" className="compass-direction">N</text>

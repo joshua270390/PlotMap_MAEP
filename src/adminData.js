@@ -8,7 +8,7 @@ const modelFor = geometry => {
   const P = geometry?.P || V_P;
   const AREAS = {}, POS = {};
   P.forEach(([id, x, y, , area]) => { AREAS[id] = area; POS[id] = [x, y]; });
-  return { P, DM: geometry?.DM || V_DM, AREAS, POS };
+  return { P, DM: geometry?.key === 'saraswathi_garden' ? (geometry.LB || []) : (geometry?.DM || V_DM), AREAS, POS };
 };
 export const AD0 = () => ({ lbl: {}, area: {}, pos: {}, dm: {}, dmDel: [], dmAdd: [], colors: {}, mapColors: {}, plotDetails: {}, rate: 0 });
 export const loadAd = geometry => { try { return Object.assign(AD0(), JSON.parse(localStorage.getItem(projectKey(geometry)) || '{}')); } catch (_) { return AD0(); } };

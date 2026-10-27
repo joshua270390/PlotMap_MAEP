@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import './Dashboard.css';
 import { P, G } from './data.js';
 
+const PROJECT_IDS = { velavan_nagar: 1, saraswathi_garden: 3 };
+const PROJECT_NAMES = { 1: 'Velavan Nagar', 3: 'Saraswathi Garden' };
 const STATUSES = [
   { value: 'Available', label: 'Availability' },
   { value: 'Reserved', label: 'Reserved' },
@@ -44,6 +46,7 @@ export default function Dashboard() {
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [projectsError, setProjectsError] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [projectTab, setProjectTab] = useState('all');
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -103,7 +106,7 @@ export default function Dashboard() {
     return () => { cancelled = true; };
   }, []);
 
-  const plotById = useMemo(() => new Map(plots.map(plot => [String(plot.id), plot])), [plots]);
+  const plotById = useMemo(() => new Map(plots.flatMap(plot => [[String(plot.id), plot], [String(plot.project_id) + ':' + String(plot.id), plot]])), [plots]);
 
   useEffect(() => {
     if (page !== 'plots') return;
@@ -124,7 +127,7 @@ export default function Dashboard() {
   async function loadData(view = page, currentPin = pin) {
     setLoading(true); setError('');
     try {
-      const requests = [fetch('/api/admin-data?view=' + encodeURIComponent(view), {
+      const requests = [fetch('/api/admin-data?view=' + encodeURIComponent(view) + (view === 'bookings' ? '&project_id=all' : ''), {
         headers: { 'x-admin-pin': currentPin },
         cache: 'no-store',
       })];
@@ -192,7 +195,7 @@ export default function Dashboard() {
       const response = await fetch('/api/admin-data', {
         method: rowId == null ? 'POST' : 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
-        body: JSON.stringify({ ...(rowId == null ? {} : { id: rowId }), ...values }),
+        body: JSON.stringify({ ...(rowId == null ? {} : { id: rowId }), ...values, project_id: Number(values.project_id || (projectTab === 'saraswathi_garden' ? PROJECT_IDS.saraswathi_garden : PROJECT_IDS.velavan_nagar)) }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not save booking.');
@@ -244,13 +247,14 @@ export default function Dashboard() {
   }, [mapPlotStatuses]);
 
   const visibleBookings = useMemo(() => bookings.filter(row => {
-    const plot = plotById.get(String(row.plot_id));
+    const plot = plotById.get(String(row.project_id) + ':' + String(row.plot_id)) || plotById.get(String(row.plot_id));
     const unit = field(plot, 'plot_number', 'unit_number');
     const text = [row.id, row.customer_name, row.phone, row.plot_id, unit].map(v => String(v ?? '')).join(' ').toLowerCase();
     const matchesSearch = text.includes(search.toLowerCase().trim());
     const matchesStatus = statusFilter === 'All' || normalizedStatus(row.status) === statusFilter;
-    return matchesSearch && matchesStatus;
-  }), [bookings, plotById, search, statusFilter]);
+    const matchesProject = projectTab === 'all' || String(row.project_id) === String(PROJECT_IDS[projectTab]);
+    return matchesSearch && matchesStatus && matchesProject;
+  }), [bookings, plotById, search, statusFilter, projectTab]);
 
   if (authChecking) {
     return <main className="dash-login"><div className="login-card" role="status"><p className="login-copy">Checking your session…</p></div></main>;
@@ -329,11 +333,14 @@ export default function Dashboard() {
               <div className={page === 'dashboard' ? "dashboard-recent-layout" : "dashboard-recent-layout dashboard-recent-layout-single"}>
                 <div className="dashboard-recent-main">
               <div className="page-intro"><div><h2>{page === 'dashboard' ? 'Recent enquiries & bookings' : 'Bookings overview'}</h2><p>Review customer enquiries and manage unit availability.</p></div>{page !== 'dashboard' && <div className="record-count"><strong>{bookings.length}</strong><span>Total bookings</span></div>}</div>
+              {page === 'bookings' && <div className="booking-project-tabs" role="tablist" aria-label="Filter bookings by project">
+                {[['all', 'All'], ['velavan_nagar', 'Velavan Nagar'], ['saraswathi_garden', 'Saraswathi Garden']].map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={projectTab === key} className={'booking-project-tab' + (projectTab === key ? ' active' : '')} onClick={() => setProjectTab(key)}>{label}</button>)}
+              </div>}
               <section className="table-card">
                 <div className="table-toolbar">
                   <label className="search-field"><span>⌕</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search customer, phone or unit…" /></label>
                   <div className="booking-toolbar-actions">
-                    {page === 'bookings' && <button type="button" className="add-customer-btn" onClick={() => { setError(''); setEdit({ id: null, customer_name: '', phone: '', plot_id: '', status: 'Available' }); }}>Add Customers +</button>}
+                    {page === 'bookings' && <button type="button" className="add-customer-btn" onClick={() => { setError(''); setEdit({ id: null, customer_name: '', phone: '', plot_id: '', status: 'Available', project_id: PROJECT_IDS[projectTab === 'all' ? 'velavan_nagar' : projectTab] }); }}>Add Customers +</button>}
                     <select className="filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} aria-label="Filter by status">
                       <option value="All">All statuses</option>{STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                     </select>
@@ -341,12 +348,13 @@ export default function Dashboard() {
                 </div>
                 {loading ? <div className="table-state">Loading bookings from Supabase…</div> : (
                   <div className="table-scroll"><table className="data-table">
-                    <thead><tr><th>ID</th><th>Customer Name</th><th>Phone Number</th><th>Plot Id</th><th>Unit Number</th><th>Status</th><th>Action</th></tr></thead>
+                    <thead><tr><th>ID</th>{projectTab === 'all' && <th>Project</th>}<th>Customer Name</th><th>Phone Number</th><th>Plot Id</th><th>Unit Number</th><th>Status</th><th>Action</th></tr></thead>
                     <tbody>
                       {visibleBookings.map(row => {
-                        const plot = plotById.get(String(row.plot_id));
-                        return <tr key={row.id}>
+                        const plot = plotById.get(String(row.project_id) + ':' + String(row.plot_id)) || plotById.get(String(row.plot_id));
+                        return <tr key={String(row.project_id) + ':' + row.id}>
                           <td className="id-cell">#{row.id}</td>
+                          {projectTab === 'all' && <td><span className="unit-pill">{PROJECT_NAMES[row.project_id] || ('Project ' + row.project_id)}</span></td>}
                           <td><strong>{field(row, 'customer_name', 'name') || '—'}</strong></td>
                           <td>{field(row, 'phone', 'phone_number') || '—'}</td>
                           <td>{row.plot_id ?? '—'}</td>
@@ -355,17 +363,18 @@ export default function Dashboard() {
                             customer_name: field(row, 'customer_name', 'name'),
                             phone: field(row, 'phone', 'phone_number'),
                             plot_id: row.plot_id,
+                            project_id: row.project_id,
                             status: e.target.value,
                           }, row.id, true)} disabled={saving} aria-label={'Status for booking ' + row.id}>
                             {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                           </select></td>
                           <td><div className="row-actions"><button className="edit-btn" onClick={() => { setError(''); setEdit({
                             id: row.id, customer_name: field(row, 'customer_name', 'name'), phone: field(row, 'phone', 'phone_number'),
-                            plot_id: String(row.plot_id ?? ''), status: normalizedStatus(row.status),
+                            plot_id: String(row.plot_id ?? ''), project_id: Number(row.project_id || 1), status: normalizedStatus(row.status),
                           }); }}>Edit</button><button className="delete-btn" onClick={() => setDeleteTarget(row)} disabled={saving}>Delete</button></div></td>
                         </tr>;
                       })}
-                      {!visibleBookings.length && <tr><td colSpan="7" className="empty-cell">{bookings.length ? 'No bookings match your search.' : 'No bookings found in Supabase.'}</td></tr>}
+                      {!visibleBookings.length && <tr><td colSpan={projectTab === 'all' ? 8 : 7} className="empty-cell">{bookings.length ? 'No bookings match your search.' : 'No bookings found in Supabase.'}</td></tr>}
                     </tbody>
                   </table></div>
                 )}

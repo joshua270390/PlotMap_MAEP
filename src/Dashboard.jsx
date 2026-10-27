@@ -408,7 +408,7 @@ export default function Dashboard() {
               ) : projects.filter(project => [project.name, project.layout, project.location, project.description].join(' ').toLowerCase().includes(plotSearch.trim().toLowerCase())).length ? (
                 <div className="project-cards">
                   {projects.filter(project => [project.name, project.layout, project.location, project.description].join(' ').toLowerCase().includes(plotSearch.trim().toLowerCase())).map(project => (
-                    <a className="project-list-card" href={'/' + project.slug} key={project.id} aria-label={'Open ' + project.name + ' interactive plot map'}>
+                    <a className="project-list-card" href={project.mapReady ? '/' + project.slug : undefined} key={project.id} aria-label={project.mapReady ? 'Open ' + project.name + ' interactive plot map' : project.name + ' map is being prepared'} aria-disabled={!project.mapReady} onClick={e => { if (!project.mapReady) e.preventDefault(); }}>
                       <div className="project-card-visual" aria-label={'Preview for ' + project.name}>
                         {project.mapKey === 'velavan_nagar' ? (
                           <svg className="project-map-static" viewBox="0 0 4400 3400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Static thumbnail of the Velavan Nagar plot layout">
@@ -429,7 +429,7 @@ export default function Dashboard() {
                         <div className="project-card-heading"><div><span className="project-card-kicker">MARY ANN ELITE PROPERTIES</span><h2>{project.name}</h2></div><span className="project-card-arrow" aria-hidden="true">↗</span></div>
                         <p className="project-card-location"><span aria-hidden="true">⌖</span> {project.location}</p>
                         <p className="project-card-description">{project.description}</p>
-                        <div className="project-card-footer"><span className="project-type"><span aria-hidden="true">▦</span> Interactive Plot Layout</span><span className="project-view-link">View project <span aria-hidden="true">→</span></span></div>
+                        <div className="project-card-footer"><span className="project-type"><span aria-hidden="true">▦</span> Interactive Plot Layout</span><span className="project-view-link">{project.mapReady ? 'View project' : 'Map coming soon'} <span aria-hidden="true">{project.mapReady ? '→' : '…'}</span></span></div>
                       </div>
                     </a>
                   ))}

@@ -885,6 +885,10 @@ svg.saraswathi-map text.dm {
 svg.saraswathi-map[data-z="1"] text.dm { font-size: 21px; }
 svg.saraswathi-map[data-z="2"] text.dm { font-size: 21px; }
 svg.saraswathi-map[data-z="3"] text.dm { font-size: 21px; }
+/* Allow Admin Studio to select and edit Saraswathi plot dimensions; keep labels non-interactive for visitors. */
+svg.saraswathi-map.adm text.dm { pointer-events: all; cursor: pointer; stroke: #fff; stroke-width: 6px; paint-order: stroke fill; }
+svg.saraswathi-map.adm text.dm:hover,
+svg.saraswathi-map.adm text.dm.dsel { fill: #000; stroke: #fff; stroke-width: 6px; }
 
 
 /* Saraswathi Gardens plot-edge dimensions: preserve the supplied HTML font size,

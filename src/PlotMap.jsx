@@ -22,7 +22,7 @@ const Trees = memo(({ G }) => {
   return <><defs dangerouslySetInnerHTML={{ __html: TREE }} /><g className="trees">{uses}</g></>;
 });
 const Dims = memo(({ LB }) => LB.map(([s, x, y, r], i) => (
-  <text key={i} className="r" transform={`translate(${x} ${y}) rotate(${r}) translate(0 -17)`}>{s}</text>
+  <text key={i} data-saraswathi-dimension={i} className="saraswathi-dimension" transform={`translate(${x} ${y}) rotate(${r}) translate(0 -17)`}>{s}</text>
 )));
 
 const Measures = memo(({ ax, selD }) => ax.dmList().map(d => (

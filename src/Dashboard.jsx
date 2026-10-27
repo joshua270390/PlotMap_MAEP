@@ -206,7 +206,7 @@ export default function Dashboard() {
           ? { ...row, ...(data.booking || values), status: (data.booking || values).status || values.status }
           : row));
         if (data.plotStatusSynced) {
-          setPlots(current => current.map(plot => String(plot.id) === String(values.plot_id)
+          setPlots(current => current.map(plot => String(plot.id) === String(values.plot_id) && String(plot.project_id) === String(values.project_id)
             ? { ...plot, status: values.status }
             : plot));
         }

@@ -40,6 +40,9 @@ export default async function handler(request) {
   if (!cfg.url || !cfg.key) return json({ ok: false, error: "Plot status updates are not configured on the server." }, 500);
 
   let body; try { body = await request.json(); } catch { body = null; }
+  const requestedProjectId = String(body?.project_id ?? cfg.projectId).trim();
+  if (!/^\d+$/.test(requestedProjectId)) return json({ ok: false, error: "A valid project ID is required." }, 422);
+  cfg.projectId = requestedProjectId;
   const plotNumber = String(body?.plot_number ?? "").trim();
   const status = String(body?.status ?? "");
   const bookingId = String(body?.booking_id ?? "").trim();

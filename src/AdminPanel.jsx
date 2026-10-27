@@ -54,7 +54,7 @@ function StatusEditor({ id, ax, status, setStatus, pin, setAd }) {
   useEffect(() => {
     let cancelled = false;
     async function loadReservedCustomers() {
-      if (!pin) return;
+      if (!pin || ax.geometry?.key !== 'velavan_nagar') return;
       setCustomersLoading(true);
       try {
         const response = await fetch('/api/admin-data?view=bookings', {
@@ -81,8 +81,19 @@ function StatusEditor({ id, ax, status, setStatus, pin, setAd }) {
   const save = async () => {
     setBusy(true); setM(null);
     try {
-      if (['Booked', 'Sold'].includes(value) && !selectedBookingId) {
+      if (ax.geometry?.key === 'velavan_nagar' && ['Booked', 'Sold'].includes(value) && !selectedBookingId) {
         setM({ t: 'Select a customer from the Reserved list before setting Booked or Sold.' });
+        setBusy(false);
+        return;
+      }
+      if (ax.geometry?.key === 'saraswathi_garden') {
+        const code = ({ Available: 'a', Reserved: 'r', Booked: 'b', Sold: 's' })[value];
+        setStatus(old => {
+          const next = { ...old, [id]: code };
+          try { localStorage.setItem('saraswathi-gardens-plot-status-v1', JSON.stringify(next)); } catch {}
+          return next;
+        });
+        setM({ t: 'Saved in this browser. Project database sync is not connected yet.', ok: true });
         setBusy(false);
         return;
       }

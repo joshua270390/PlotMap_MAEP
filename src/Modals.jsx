@@ -178,7 +178,7 @@ export function EnquiryModal({ id, ax, onClose }) {
     try {
       const r = await fetch('/api/enquiry', {
         method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: n, email: e, phone: p, message: f.m.trim(), plot_number: lb, website: f.hp }),
+        body: JSON.stringify({ name: n, email: e, phone: p, message: f.m.trim(), plot_number: lb, project_id: ax.geometry?.projectId || 1, website: f.hp }),
       });
       let j = {}; try { j = await r.json(); } catch (_) {}
       if (!r.ok || !j.ok) { const x = new Error(j.error || 'HTTP ' + r.status); x.status = r.status; throw x; }

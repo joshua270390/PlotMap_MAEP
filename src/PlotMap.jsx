@@ -254,8 +254,8 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
           <p id="msg" role="alert">{msg}</p>
         </div>
       </div>
-      <div id="stage" ref={stageRef}>
-        <svg id="ov" ref={ovRef} viewBox={`${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}`}>
+      <div id="stage" ref={stageRef} style={{ width: geometry?.canvasWidth || 4400, height: geometry?.canvasHeight || 3400 }}>
+        <svg id="ov" ref={ovRef} style={{ width: geometry?.canvasWidth || 4400, height: geometry?.canvasHeight || 3400 }} viewBox={`0 0 ${geometry?.canvasWidth || 4400} ${geometry?.canvasHeight || 3400}`}>
           <Ground G={G} colors={ax.ad.mapColors || {}} /><Plots P={P} status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} />{admin && <EnquiryPins P={P} enquiries={adminEnquiries} ax={ax} />}<Trees G={G} /><PlotNumbers P={P} status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims LB={LB} />{geometry?.key !== "saraswathi_garden" && <image href="/mary-ann-plotmap-logo.png" x="470" y="440" width="600" height="451.7" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />}
           {geometry?.key !== "saraswathi_garden" && <g className="map-compass" transform="translate(2590 440) scale(2.4)" aria-label="North compass">
             <title>North compass</title>

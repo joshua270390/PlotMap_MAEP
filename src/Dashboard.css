@@ -566,3 +566,9 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 /* Profile dropdown avatar image */
 .profile-trigger{padding:0;border:0;overflow:hidden;cursor:pointer;background:transparent;}
 .profile-trigger .topbar-avatar-image{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;}
+
+
+/* Dynamic project-card preview placeholder while a project's PDF map is being traced. */
+.project-map-pending{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:linear-gradient(135deg,#e8e4dc,#d8dfd0);color:#344153}
+.project-map-pending .project-visual-mark{position:static;width:58px;height:58px;display:grid;place-items:center;border-radius:50%;background:#f0c928;color:#29384a;font-weight:800;font-size:20px}
+.project-map-pending .project-visual-tag{position:static;background:#173f35;color:#fff;padding:7px 12px;border-radius:20px;font-size:10px;letter-spacing:.08em}

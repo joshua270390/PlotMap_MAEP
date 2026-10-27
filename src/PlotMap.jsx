@@ -128,7 +128,8 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
       const r = vp.getBoundingClientRect(), tp = topRef.current, th = Math.round(tp.offsetTop + tp.offsetHeight + 12), bx = bounds.x, by = bounds.y, bw = bounds.width, bh = bounds.height;
       vp.style.setProperty('--th', th + 'px');
       v.fitS = Math.min(r.width / bw, (r.height - th) / bh) * 0.98; v.s = v.fitS;
-      v.tx = (r.width - bw * v.s) / 2 - bx * v.s; v.ty = th + (r.height - th - bh * v.s) / 2 - by * v.s; go(anim);
+      const own = geometry?.key === 'saraswathi_garden', ox = own ? 0 : bx, oy = own ? 0 : by;
+      v.tx = (r.width - bw * v.s) / 2 - ox * v.s; v.ty = th + (r.height - th - bh * v.s) / 2 - oy * v.s; go(anim);
     };
     v.zoomAt = (cx, cy, f, anim) => {
       const ns = Math.min(1.6, Math.max(v.fitS * 0.8, v.s * f));
@@ -136,7 +137,7 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
     };
     v.focusOn = id => {
       const r = vp.getBoundingClientRect(), q = cb.current.ax.posOf(id);
-      v.s = Math.max(v.s, Math.min(1.2, v.fitS * 4)); v.tx = r.width / 2 - q[0] * v.s; v.ty = r.height * 0.4 - q[1] * v.s; go(true);
+      v.s = Math.max(v.s, Math.min(1.2, v.fitS * 4)); const own = geometry?.key === 'saraswathi_garden'; v.tx = r.width / 2 - (q[0] - (own ? bounds.x : 0)) * v.s; v.ty = r.height * 0.4 - (q[1] - (own ? bounds.y : 0)) * v.s; go(true);
     };
     v.fit(false);
 

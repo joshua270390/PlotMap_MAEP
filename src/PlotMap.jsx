@@ -138,7 +138,10 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
       const r = vp.getBoundingClientRect(), q = cb.current.ax.posOf(id);
       v.s = Math.max(v.s, Math.min(1.2, v.fitS * 4)); v.tx = r.width / 2 - q[0] * v.s; v.ty = r.height * 0.4 - q[1] * v.s; go(true);
     };
-    v.fit(false);
+    // Fit after the browser completes the first layout pass. On the cropped
+    // Saraswathi SVG, measuring the viewport too early can use stale dimensions
+    // and leave the map offset toward the top-left on initial entry.
+    const initialFitFrame = requestAnimationFrame(() => v.fit(false));
 
     const skip = '.zoom,.top,.legend,.apn,#admbtn';
     const ptr = new Map(); let moved = 0, tgt = null, tgtD = null, pd = 0;
@@ -197,6 +200,7 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
     vp.addEventListener('pointerup', onUp); vp.addEventListener('pointercancel', onUp); vp.addEventListener('pointerleave', hideTip);
     addEventListener('resize', onResize); addEventListener('keydown', onKey);
     return () => {
+      cancelAnimationFrame(initialFitFrame);
       vp.removeEventListener('wheel', onWheel); vp.removeEventListener('pointerdown', onDown); vp.removeEventListener('pointermove', onMove);
       vp.removeEventListener('pointerup', onUp); vp.removeEventListener('pointercancel', onUp); vp.removeEventListener('pointerleave', hideTip);
       removeEventListener('resize', onResize); removeEventListener('keydown', onKey);

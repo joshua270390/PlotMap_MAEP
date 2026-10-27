@@ -77,7 +77,7 @@ export default async function handler(request) {
     const view = url.searchParams.get("view") || "bookings";
     const requestedProjectId = url.searchParams.get("project_id") || cfg.projectId;
     const allProjects = requestedProjectId === "all";
-    const activeProjectId = /^\\d+$/.test(requestedProjectId) ? requestedProjectId : cfg.projectId;
+    const activeProjectId = /^\d+$/.test(requestedProjectId) ? requestedProjectId : cfg.projectId;
     const projectFilter = allProjects ? {} : { project_id: "eq." + activeProjectId };
     if (view === "plots") {
       const q = new URLSearchParams({ select: "*", ...projectFilter, limit: "2000" });
@@ -118,7 +118,7 @@ export default async function handler(request) {
   if (!body || typeof body !== "object") return json({ ok: false, error: "Invalid request body." }, 400);
   if (body.project_id != null) {
     const requestedProjectId = String(body.project_id).trim();
-    if (!/^\\d+$/.test(requestedProjectId)) return json({ ok: false, error: "A valid project ID is required." }, 422);
+    if (!/^\d+$/.test(requestedProjectId)) return json({ ok: false, error: "A valid project ID is required." }, 422);
     cfg.projectId = requestedProjectId;
   }
   if (method === "POST") {

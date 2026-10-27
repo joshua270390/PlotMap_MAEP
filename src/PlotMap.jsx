@@ -125,7 +125,7 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
     };
     const go = anim => { if (anim) { stage.classList.add('anim'); setTimeout(() => stage.classList.remove('anim'), 420); } apply(); };
     v.fit = anim => {
-      const r = vp.getBoundingClientRect(), tp = topRef.current, th = Math.round(tp.offsetTop + tp.offsetHeight + 12), bx = bounds.x, by = bounds.y, bw = bounds.width, bh = bounds.height;
+      const r = vp.getBoundingClientRect(), tp = topRef.current, th = Math.round(tp.offsetTop + tp.offsetHeight + 12), croppedView = geometry?.key === 'saraswathi_garden', bx = croppedView ? 0 : bounds.x, by = croppedView ? 0 : bounds.y, bw = bounds.width, bh = bounds.height;
       vp.style.setProperty('--th', th + 'px');
       v.fitS = Math.min(r.width / bw, (r.height - th) / bh) * 0.98; v.s = v.fitS;
       v.tx = (r.width - bw * v.s) / 2 - bx * v.s; v.ty = th + (r.height - th - bh * v.s) / 2 - by * v.s; go(anim);

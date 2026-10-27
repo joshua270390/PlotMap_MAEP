@@ -8,8 +8,8 @@ import { toStatus } from './plots.js';
 import { addDm, loadAd, makeApi, saveAd } from './adminData.js';
 
 const GEOMETRIES = {
-  velavan_nagar: { key: 'velavan_nagar', P: V_P, G: V_G, LB: V_LB, DM: V_DM, bounds: { x: 369, y: 160, width: 2501, height: 3012 }, projectName: 'Velavan Nagar', layoutName: 'Kurayur layout' },
-  saraswathi_garden: { key: 'saraswathi_garden', P: S_P, G: S_G, LB: S_LB, DM: S_DM, bounds: S_BOUNDS, projectName: 'Saraswathi Gardens', layoutName: 'Saraswathi Gardens layout' },
+  velavan_nagar: { key: 'velavan_nagar', P: V_P, G: V_G, LB: V_LB, DM: V_DM, bounds: { x: 369, y: 160, width: 2501, height: 3012 }, canvasWidth: 4400, canvasHeight: 3400, projectName: 'Velavan Nagar', layoutName: 'Kurayur layout' },
+  saraswathi_garden: { key: 'saraswathi_garden', P: S_P, G: S_G, LB: S_LB, DM: S_DM, bounds: S_BOUNDS, canvasWidth: 1760, canvasHeight: 2580, projectName: 'Saraswathi Gardens', layoutName: 'Saraswathi Gardens layout' },
 };
 
 export default function App({ projectSlug = 'velavan_nagar' }) {

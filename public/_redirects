@@ -2,5 +2,6 @@
 /api/admin-data  /.netlify/functions/admin-data  200
 /api/plot-status  /.netlify/functions/plot-status  200
 /api/plots  /.netlify/functions/plots  200
+/api/projects  /.netlify/functions/projects  200
 /api/enquiry  /.netlify/functions/enquiry  200
 /*  /index.html  200

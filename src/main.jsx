@@ -20,6 +20,6 @@ if (!isDashboard && currentPath !== '/' && !isMapRoute) {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    {isDashboard ? <Dashboard /> : isMapRoute ? <App /> : <Dashboard />}
+    {isDashboard ? <Dashboard /> : isMapRoute ? <App projectSlug={routeId || 'velavan_nagar'} /> : <Dashboard />}
   </StrictMode>
 );

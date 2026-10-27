@@ -195,8 +195,18 @@ export default async function handler(request) {
       return json({ ok: false, error: "Booking was not found." }, 404);
     if (String(currentBooking.data[0].plot_id) !== String(plotId))
       return json({ ok: false, error: "Select the same unit as this customer's existing booking." }, 422);
-    if (String(currentBooking.data[0].status).toLowerCase() !== "reserved")
-      return json({ ok: false, error: "Only a Reserved customer's booking can be changed to Booked or Sold." }, 422);
+
+    // Admins can promote a customer from Available or Reserved directly to
+    // Booked/Sold. Only block it when a different customer already owns the
+    // unit as Booked/Sold; the customer does not need to be Reserved first.
+    const otherBookings = await db(cfg, "GET", cfg.bookingsTable,
+      new URLSearchParams({ select: "id,status", project_id: "eq." + cfg.projectId, plot_id: "eq." + plotId, id: "neq." + id }).toString());
+    if (!otherBookings.ok)
+      return json({ ok: false, error: "Could not verify other bookings for this unit. Please try again." }, 502);
+    const anotherClosedBooking = (otherBookings.data || []).some(row =>
+      ["Booked", "Sold"].includes(String(row.status || "").trim()));
+    if (anotherClosedBooking)
+      return json({ ok: false, error: "Another customer's booking for this unit is already Booked or Sold." }, 409);
   }
   const updated = await db(cfg, "PATCH", cfg.bookingsTable, filter.toString(), {
     customer_name: customerName, phone, plot_id: Number(plotId), status,

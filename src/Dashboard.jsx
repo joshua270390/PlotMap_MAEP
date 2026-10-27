@@ -246,6 +246,8 @@ export default function Dashboard() {
     return counts;
   }, [mapPlotStatuses]);
 
+  const selectedProjectBookings = useMemo(() => page !== 'bookings' || projectTab === 'all' ? bookings : bookings.filter(row => String(row.project_id) === String(PROJECT_IDS[projectTab])), [bookings, projectTab, page]);
+
   const visibleBookings = useMemo(() => bookings.filter(row => {
     const plot = plotById.get(String(row.project_id) + ':' + String(row.plot_id)) || plotById.get(String(row.plot_id));
     const unit = field(plot, 'plot_number', 'unit_number');
@@ -332,7 +334,7 @@ export default function Dashboard() {
               ) : null}
               <div className={page === 'dashboard' ? "dashboard-recent-layout" : "dashboard-recent-layout dashboard-recent-layout-single"}>
                 <div className="dashboard-recent-main">
-              <div className="page-intro"><div><h2>{page === 'dashboard' ? 'Recent enquiries & bookings' : 'Bookings overview'}</h2><p>Review customer enquiries and manage unit availability.</p></div>{page !== 'dashboard' && <div className="record-count"><strong>{bookings.length}</strong><span>Total bookings</span></div>}</div>
+              <div className="page-intro"><div><h2>{page === 'dashboard' ? 'Recent enquiries & bookings' : 'Bookings overview'}</h2><p>Review customer enquiries and manage unit availability.</p></div>{page !== 'dashboard' && <div className="record-count"><strong>{selectedProjectBookings.length}</strong><span>Total bookings</span></div>}</div>
               {page === 'bookings' && <div className="booking-project-tabs" role="tablist" aria-label="Filter bookings by project">
                 {[['all', 'All'], ['velavan_nagar', 'Velavan Nagar'], ['saraswathi_garden', 'Saraswathi Garden']].map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={projectTab === key} className={'booking-project-tab' + (projectTab === key ? ' active' : '')} onClick={() => setProjectTab(key)}>{label}</button>)}
               </div>}
@@ -374,11 +376,11 @@ export default function Dashboard() {
                           }); }}>Edit</button><button className="delete-btn" onClick={() => setDeleteTarget(row)} disabled={saving}>Delete</button></div></td>
                         </tr>;
                       })}
-                      {!visibleBookings.length && <tr><td colSpan={projectTab === 'all' ? 8 : 7} className="empty-cell">{bookings.length ? 'No bookings match your search.' : 'No bookings found in Supabase.'}</td></tr>}
+                      {!visibleBookings.length && <tr><td colSpan={projectTab === 'all' ? 8 : 7} className="empty-cell">{selectedProjectBookings.length ? 'No bookings match your search.' : 'No bookings found in Supabase.'}</td></tr>}
                     </tbody>
                   </table></div>
                 )}
-                <div className="table-footer">Showing {visibleBookings.length} of {bookings.length} bookings</div>
+                <div className="table-footer">Showing {visibleBookings.length} of {selectedProjectBookings.length} bookings</div>
               </section>
                 </div>
                 {page === 'dashboard' && (

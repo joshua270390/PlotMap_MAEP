@@ -55,9 +55,9 @@ const shapes = {
 2:"1064,2235 1039,2367 1047,2420 1032,2421 1018,2527 1162,2523 1195,2255 1111,2253 1106,2240",
 1:"1203,2255 1210,2298 1197,2299 1192,2420 1169,2523 1307,2518 1309,2419 1340,2277 1257,2275"
 };
-const poly = points => points.trim().split(/\s+/).map(pair => pair.replace(",", " ")).join(" ");
+const poly = points => points;
 const P = Object.keys(C).map(Number).sort((a,b)=>a-b).map(id => [id, C[id][0], C[id][1], poly(shapes[id]), D[id][0], D[id][2]]);
-const roadPoly = points => "M" + poly(points).replace(/\s+/g, "L") + "Z";
+const roadPoly = points => "M" + points.trim().replace(/\s+/g, "L") + "Z";
 const G = {
   base: [
     roadPoly("693,943 682,1048 1054,1102 1073,1126 1037,1444 1016,1466 641,1414 618,1560 988,1614 1010,1638 959,2082 938,2100 559,2046 546,2149 1343,2271 1367,2169 1097,2128 1080,2105 1132,1659 1152,1642 1350,1662 1363,1521 1175,1494 1157,1470 1193,1149 1214,1130 1403,1154 1414,1049"),

@@ -8,8 +8,8 @@ import { toStatus } from './plots.js';
 import { addDm, loadAd, makeApi, saveAd } from './adminData.js';
 
 const GEOMETRIES = {
-  velavan_nagar: { key: 'velavan_nagar', P: V_P, G: V_G, LB: V_LB, DM: V_DM, bounds: { x: 369, y: 160, width: 2501, height: 3012 }, canvasWidth: 4400, canvasHeight: 3400, projectName: 'Velavan Nagar', layoutName: 'Kurayur layout' },
-  saraswathi_garden: { key: 'saraswathi_garden', P: S_P, G: S_G, LB: S_LB, DM: S_DM, bounds: S_BOUNDS, plotAreaLabels: S_PLOT_AREA_LABELS, roadLabels: S_ROAD_LABELS, dimensionLabels: S_DIMENSION_LABELS, canvasWidth: 1760, canvasHeight: 2580, projectName: 'Saraswathi Gardens', layoutName: 'Saraswathi Gardens layout' },
+  velavan_nagar: { key: 'velavan_nagar', projectId: 1, P: V_P, G: V_G, LB: V_LB, DM: V_DM, bounds: { x: 369, y: 160, width: 2501, height: 3012 }, canvasWidth: 4400, canvasHeight: 3400, projectName: 'Velavan Nagar', layoutName: 'Kurayur layout' },
+  saraswathi_garden: { key: 'saraswathi_garden', projectId: 3, P: S_P, G: S_G, LB: S_LB, DM: S_DM, bounds: S_BOUNDS, plotAreaLabels: S_PLOT_AREA_LABELS, roadLabels: S_ROAD_LABELS, dimensionLabels: S_DIMENSION_LABELS, canvasWidth: 1760, canvasHeight: 2580, projectName: 'Saraswathi Gardens', layoutName: 'Saraswathi Gardens layout' },
 };
 
 export default function App({ projectSlug = 'velavan_nagar' }) {
@@ -48,26 +48,19 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
 
   useEffect(() => { saveAd(ad, geometry); }, [ad, geometry]);
   useEffect(() => {
-    // The existing plot-status endpoint is currently configured for Velavan Nagar.
-    // Do not leak those statuses into a different project's plot numbers.
-    if (geometry.key !== 'velavan_nagar') {
-      try { setStatus(JSON.parse(window.localStorage.getItem('saraswathi-gardens-plot-status-v1') || '{}')); } catch { setStatus({}); }
-      setPlotDetails({});
-      return;
-    }
-    fetch('/api/plots').then(r => r.json()).then(j => {
+    // Read each project's authoritative inventory status from the database.
+    fetch('/api/plots?project_id=' + encodeURIComponent(geometry.projectId)).then(r => r.json()).then(j => {
       if (!j.ok) return;
       const m = {};
       P.forEach(([id]) => { const v = j.plots[String(id)]; if (v) m[id] = toStatus(v); });
       setStatus(m);
       setPlotDetails(j.details || {});
     }).catch(() => {});   // no API (plain `vite` dev): every plot shows as Available
-  }, []);
+  }, [geometry, P]);
 
   const loadAdminEnquiries = useCallback(async adminPin => {
-    if (geometry.key !== 'velavan_nagar') { setAdminEnquiries([]); return; }
     try {
-      const response = await fetch('/api/admin-data?view=bookings', { headers: { 'x-admin-pin': adminPin }, cache: 'no-store' });
+      const response = await fetch('/api/admin-data?view=bookings&project_id=' + encodeURIComponent(geometry.projectId), { headers: { 'x-admin-pin': adminPin }, cache: 'no-store' });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load customer enquiries.');
       const numberById = new Map((data.plots || []).map(plot => [String(plot.id), String(plot.plot_number ?? '')]));

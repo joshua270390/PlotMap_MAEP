@@ -576,7 +576,7 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 
 /* Project tabs for the bookings table */
 .booking-project-tabs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;padding:5px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:12px;width:max-content;max-width:100%}
-.booking-project-tab{appearance:none;border:0;background:transparent;color:#475569;font:600 13px/1.2 inherit;padding:10px 16px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:background .15s ease,color .15s ease,box-shadow .15s ease}
+.booking-project-tab{appearance:none;border:0;background:transparent;color:#475569;font-family:inherit;font-size:13px;font-weight:600;line-height:1.2;padding:10px 16px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:background .15s ease,color .15s ease,box-shadow .15s ease}
 .booking-project-tab:hover{color:#172033;background:#e2e8f0}
 .booking-project-tab.active{background:#fff;color:#166534;box-shadow:0 1px 3px rgba(15,23,42,.12)}
 @media(max-width:600px){.booking-project-tabs{width:100%;gap:4px}.booking-project-tab{flex:1;padding:10px 8px;font-size:12px}}

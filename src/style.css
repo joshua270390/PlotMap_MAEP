@@ -857,9 +857,9 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
 svg.saraswathi-map path.p.a,
 svg.saraswathi-map path.p.a.pm,
 svg.saraswathi-map path.p.a.dim,
-svg.saraswathi-map path.p.a.pm.dim { fill: #8ab800; fill-opacity: 1; }
+svg.saraswathi-map path.p.a.pm.dim { fill: #8ab800 !important; fill-opacity: 1; }
 svg.saraswathi-map path.p.a:hover,
-svg.saraswathi-map path.p.a.pm:hover { fill: #b7e03a; filter: none; }
+svg.saraswathi-map path.p.a.pm:hover { fill: #b7e03a !important; filter: none; }
 svg.saraswathi-map path.p:hover { stroke: #4f7000; stroke-width: 5; }
 svg.saraswathi-map path.p.sel { stroke: #244000; stroke-width: 8; }
 svg.saraswathi-map .rd { fill: #0877c9; }

@@ -19,6 +19,16 @@ const PROJECTS = [
     mapKey: "saraswathi_garden",
     mapReady: true,
   },
+  {
+    id: "shanmuga-avenue",
+    slug: "shanmuga_avenue",
+    name: "Shanmuga Avenue",
+    layout: "Arasanur layout",
+    location: "Sivagangai, Tamil Nadu",
+    description: "Open the Shanmuga Avenue interactive plot layout and view plot details.",
+    mapKey: "shanmuga_avenue",
+    mapReady: true,
+  },
 ];
 
 export default async function handler(request) {

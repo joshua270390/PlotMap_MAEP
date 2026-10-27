@@ -867,3 +867,21 @@ svg.saraswathi-map .road-label { font-size: 25px; font-weight: 700; fill: #fff; 
 
 svg.saraswathi-map .dimension-label { font-size: 22px; font-weight: 700; fill: #202820; stroke: #fff; stroke-width: 3px; paint-order: stroke; letter-spacing: 0; }
 svg.saraswathi-map[data-z="1"] .dimension-label { font-size: 17px; }
+
+
+/* Saraswathi Gardens: keep the source-HTML plot-edge measurements visible,
+   even at the initial fit-to-layout zoom. These are actual dimensions, not areas. */
+svg.saraswathi-map text.dm {
+  opacity: 1 !important;
+  font-size: 21px;
+  font-weight: 700;
+  fill: #000;
+  stroke: #8ab800;
+  stroke-width: 4px;
+  paint-order: stroke;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+svg.saraswathi-map[data-z="1"] text.dm { font-size: 21px; }
+svg.saraswathi-map[data-z="2"] text.dm { font-size: 21px; }
+svg.saraswathi-map[data-z="3"] text.dm { font-size: 21px; }

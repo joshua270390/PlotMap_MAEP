@@ -68,7 +68,7 @@ export default async function handler(request) {
     plotNumberById.set(id, plotNumber);
     plotNumberByAnyKey.set(id, plotNumber);
     plotNumberByAnyKey.set(plotNumber, plotNumber);
-    plots[id] = status;
+    // The map geometry is keyed by plot/unit number, not the database row ID.
     plots[plotNumber] = status;
     const detail = customerDetails(plot);
     if (detail.name || detail.mobile) {

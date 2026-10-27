@@ -252,9 +252,9 @@ export default function Dashboard() {
     const text = [row.id, row.customer_name, row.phone, row.plot_id, unit].map(v => String(v ?? '')).join(' ').toLowerCase();
     const matchesSearch = text.includes(search.toLowerCase().trim());
     const matchesStatus = statusFilter === 'All' || normalizedStatus(row.status) === statusFilter;
-    const matchesProject = projectTab === 'all' || String(row.project_id) === String(PROJECT_IDS[projectTab]);
+    const matchesProject = page !== 'bookings' || projectTab === 'all' || String(row.project_id) === String(PROJECT_IDS[projectTab]);
     return matchesSearch && matchesStatus && matchesProject;
-  }), [bookings, plotById, search, statusFilter, projectTab]);
+  }), [bookings, plotById, search, statusFilter, projectTab, page]);
 
   if (authChecking) {
     return <main className="dash-login"><div className="login-card" role="status"><p className="login-copy">Checking your session…</p></div></main>;

@@ -73,6 +73,17 @@ const plotAreaLabels = Object.keys(D).map(Number).sort((a,b)=>a-b).map(id => ({
   id, x: C[id][0], y: C[id][1] + 30, area: D[id][0], cents: D[id][3]
 }));
 // Road names/widths visible on the supplied PDF, positioned over their corresponding road sections.
+const dimensionLabels = [
+  { text: '31.20 m', x: 1010, y: 748, rotate: -2 },
+  { text: '22.80 m', x: 1285, y: 748, rotate: -1 },
+  { text: '66.80 m', x: 607, y: 1300, rotate: -83 },
+  { text: '73.20 m', x: 1434, y: 1338, rotate: -82 },
+  { text: '25.00 m', x: 595, y: 1935, rotate: -82 },
+  { text: '32.00 m', x: 1365, y: 2160, rotate: -80 },
+  { text: '34.00 m', x: 1100, y: 2550, rotate: 0 },
+  { text: '12.00 m', x: 1328, y: 2408, rotate: -80 },
+  { text: '22.80 m', x: 700, y: 2385, rotate: 35 }
+];
 const roadLabels = [
   { text: '7.20 m அகல மனைப்பிரிவு சாலை', x: 875, y: 1044, rotate: 8 },
   { text: '9.00 m அகல மனைப்பிரிவு சாலை', x: 1095, y: 1450, rotate: -82 },
@@ -84,4 +95,4 @@ const roadLabels = [
 const LB = [];
 const DM = [];
 const bounds = { x: 480, y: 720, width: 1280, height: 1860 };
-export { P, G, LB, DM, bounds, plotAreaLabels, roadLabels };
+export { P, G, LB, DM, bounds, plotAreaLabels, roadLabels, dimensionLabels };

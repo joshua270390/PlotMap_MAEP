@@ -851,3 +851,20 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
 .unit-confirm-actions .mbtn{background:var(--acc);color:#fff;border-color:var(--acc)}
 @media(max-width:600px){.unit-contact-row{grid-template-columns:minmax(90px,1fr) auto auto;gap:5px}.unit-contact-row button{font-size:10px;padding:6px 7px}.unit-contact-row input{font-size:12px;padding:7px 6px}}
 @media(max-width:380px){.unit-contact-row{grid-template-columns:minmax(75px,1fr) auto auto;gap:4px}.unit-contact-row button{font-size:9px;padding:5px 5px;white-space:normal}.unit-contact-row label{font-size:12px}.unit-confirm-modal{padding:20px}}
+
+
+/* Saraswathi Gardens PDF map styling: green plots and readable survey labels. */
+svg.saraswathi-map path.p.a,
+svg.saraswathi-map path.p.a.pm,
+svg.saraswathi-map path.p.a.dim,
+svg.saraswathi-map path.p.a.pm.dim { fill: #8ab800; fill-opacity: 1; }
+svg.saraswathi-map path.p.a:hover,
+svg.saraswathi-map path.p.a.pm:hover { fill: #b7e03a; filter: none; }
+svg.saraswathi-map path.p:hover { stroke: #4f7000; stroke-width: 5; }
+svg.saraswathi-map path.p.sel { stroke: #244000; stroke-width: 8; }
+svg.saraswathi-map .rd { fill: #0877c9; }
+svg.saraswathi-map .road-label { font-size: 25px; font-weight: 700; fill: #fff; stroke: #07518a; stroke-width: 3px; paint-order: stroke; letter-spacing: 0; }
+svg.saraswathi-map .plot-area-label { font-size: 18px; font-weight: 600; fill: #173000; stroke: rgba(255,255,255,.72); stroke-width: 2px; paint-order: stroke; opacity: .95; }
+svg.saraswathi-map[data-z="1"] .plot-area-label { opacity: 0; }
+svg.saraswathi-map[data-z="2"] .plot-area-label { font-size: 15px; }
+svg.saraswathi-map[data-z="3"] .plot-area-label { font-size: 22px; }

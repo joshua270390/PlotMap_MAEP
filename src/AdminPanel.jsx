@@ -54,10 +54,10 @@ function StatusEditor({ id, ax, status, setStatus, pin, setAd }) {
   useEffect(() => {
     let cancelled = false;
     async function loadReservedCustomers() {
-      if (!pin || ax.geometry?.key !== 'velavan_nagar') return;
+      if (!pin) return;
       setCustomersLoading(true);
       try {
-        const response = await fetch('/api/admin-data?view=bookings', {
+        const response = await fetch('/api/admin-data?view=bookings&project_id=' + encodeURIComponent(ax.geometry?.projectId || 1), {
           headers: { 'x-admin-pin': pin }, cache: 'no-store',
         });
         const data = await response.json().catch(() => ({}));
@@ -81,26 +81,15 @@ function StatusEditor({ id, ax, status, setStatus, pin, setAd }) {
   const save = async () => {
     setBusy(true); setM(null);
     try {
-      if (ax.geometry?.key === 'velavan_nagar' && ['Booked', 'Sold'].includes(value) && !selectedBookingId) {
+      if (['Booked', 'Sold'].includes(value) && !selectedBookingId) {
         setM({ t: 'Select a customer from the Reserved list before setting Booked or Sold.' });
-        setBusy(false);
-        return;
-      }
-      if (ax.geometry?.key === 'saraswathi_garden') {
-        const code = ({ Available: 'a', Reserved: 'r', Booked: 'b', Sold: 's' })[value];
-        setStatus(old => {
-          const next = { ...old, [id]: code };
-          try { localStorage.setItem('saraswathi-gardens-plot-status-v1', JSON.stringify(next)); } catch {}
-          return next;
-        });
-        setM({ t: 'Saved in this browser. Project database sync is not connected yet.', ok: true });
         setBusy(false);
         return;
       }
       const response = await fetch('/api/plot-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
-        body: JSON.stringify({ plot_number: ax.lbl(id), status: value, booking_id: selectedBookingId || undefined }),
+        body: JSON.stringify({ plot_number: ax.lbl(id), status: value, booking_id: selectedBookingId || undefined, project_id: ax.geometry?.projectId || 1 }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || 'Could not update plot status.');

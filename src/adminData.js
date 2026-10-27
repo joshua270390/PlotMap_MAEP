@@ -42,7 +42,7 @@ export function setPlot(ad, id, { nv, av, xv, yv }, geometry) {
   if (xv === b[0] && yv === b[1]) delete n.pos[id]; else n.pos[id] = [xv, yv];
   return n;
 }
-export function revertPlot(ad, id, geometry) { const n = clone(ad); const { P } = modelFor(geometry); const p = P.find(row => row[0] === id); delete n.lbl[id]; delete n.area[id]; delete n.pos[id]; return n; }
+export function revertPlot(ad, id, geometry) { const n = clone(ad); delete n.lbl[id]; delete n.area[id]; delete n.pos[id]; return n; }
 export function setDm(ad, k, o) {
   const n = clone(ad), i = +k.slice(1);
   if (k[0] === 'b') n.dm[i] = o; else n.dmAdd[i] = [o.t, o.x, o.y, o.r];

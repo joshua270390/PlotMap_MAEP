@@ -7,6 +7,7 @@ const backdrop = onClose => ({ onPointerDown: e => { if (e.target === e.currentT
 
 export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap, reservedCustomers = [], admin = false }) {
   const a = ax.areaOf(id), lb = ax.lbl(id), sv = status || 'a', closeRef = useRef(null);
+  const projectName = ax.geometry?.projectName || PROJECT;
   const details = ax.ad.plotDetails?.[id] || {};
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ phone: details.phone ?? PHONE, whatsapp: details.whatsapp ?? PHONE, area: String(a) });
@@ -27,7 +28,7 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
     if (!value) { setEditError(`Enter a valid ${field === 'phone' ? 'Contact' : 'WhatsApp'} number.`); setConfirmApply(null); return; }
     setAd(old => {
       const plotDetails = { ...(old.plotDetails || {}) };
-      const ids = confirmApply.scope === 'all' ? P.map(plot => String(plot[0])) : [String(id)];
+      const ids = confirmApply.scope === 'all' ? (ax.geometry?.P || P).map(plot => String(plot[0])) : [String(id)];
       ids.forEach(plotId => { plotDetails[plotId] = { ...(plotDetails[plotId] || {}), [field]: value }; });
       return { ...old, plotDetails };
     });
@@ -50,13 +51,13 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
       <div className="mb">
         <button className="mx" ref={closeRef} type="button" aria-label="Close" onClick={onClose}>&times;</button>
         <div className="mh">
-          <small>{COMPANY}</small><h2>{PROJECT}</h2>
+          <small>{COMPANY}</small><h2>{projectName}</h2>
           <div className="cts">
             <a href={'tel:+' + phoneDigits}>
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2.5" /><path d="M11 18h2" /></svg>
               <span>{details.phone ?? PHONE}</span>
             </a>
-            <a className="wa" target="_blank" rel="noopener" href={'https://wa.me/' + waDigits + '?text=' + encodeURIComponent('Hi, I am interested in Unit : ' + lb + ' of ' + PROJECT)}>
+            <a className="wa" target="_blank" rel="noopener" href={'https://wa.me/' + waDigits + '?text=' + encodeURIComponent('Hi, I am interested in Unit : ' + lb + ' of ' + projectName)}>
               <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1 2.7s1.8 2.8 4.4 3.9c1.6.7 2.3.7 3.1.6.5-.1 1.5-.6 1.7-1.2s.2-1.1.2-1.2-.2-.2-.5-.3z" /></svg>
               WhatsApp
             </a>
@@ -67,7 +68,7 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
           <div className={'sb ' + sv}>
             <h3><i /><span>{NAMES[sv]}</span></h3>
             {sv === 'a' || sv === 'r'
-              ? <div><button className="mbtn" type="button" onClick={onEnquire}>Booking enquiry</button></div>
+              ? (onEnquire ? <div><button className="mbtn" type="button" onClick={onEnquire}>Booking enquiry</button></div> : <p>Project enquiry and booking integration is being configured.</p>)
               : <p>{sv === 'b' ? 'This plot is currently booked.' : 'This plot has been sold.'}</p>}
           </div>
           {sv === 'r' && Array.isArray(reservedCustomers) && reservedCustomers.length > 0 && (

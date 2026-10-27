@@ -17,7 +17,7 @@ const PROJECTS = [
     location: "Madurai, Tamil Nadu",
     description: "Open the Saraswathi Garden interactive plot layout and view plot details.",
     mapKey: "saraswathi_garden",
-    mapReady: false,
+    mapReady: true,
   },
 ];
 

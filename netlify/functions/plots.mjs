@@ -30,7 +30,8 @@ export default async function handler(request) {
   if (request.method !== "GET") return json({ ok: false, error: "Method not allowed" }, 405);
   const url = (process.env.SUPABASE_URL || "").replace(/\/+$/, "");
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || "").trim();
-  const projectId = String(parseInt(process.env.PROJECT_ID || "1", 10));
+  const requestedProjectId = new URL(request.url).searchParams.get("project_id") || "";
+  const projectId = /^\d+$/.test(requestedProjectId) ? requestedProjectId : String(parseInt(process.env.PROJECT_ID || "1", 10));
   const plotsTable = process.env.PLOTS_TABLE || "plots";
   const bookingsTable = process.env.BOOKINGS_TABLE || "bookings";
   if (!url || !key) return json({ ok: false, error: "Plot map database access is not configured." }, 500);

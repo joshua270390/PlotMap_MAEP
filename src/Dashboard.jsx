@@ -40,6 +40,9 @@ export default function Dashboard() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [plotSearch, setPlotSearch] = useState('');
+  const [projects, setProjects] = useState([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [projectsError, setProjectsError] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -101,6 +104,22 @@ export default function Dashboard() {
   }, []);
 
   const plotById = useMemo(() => new Map(plots.map(plot => [String(plot.id), plot])), [plots]);
+
+  useEffect(() => {
+    if (page !== 'plots') return;
+    let cancelled = false;
+    setProjectsLoading(true);
+    setProjectsError('');
+    fetch('/api/projects', { cache: 'no-store' })
+      .then(async response => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok || !Array.isArray(data.projects)) throw new Error(data.error || 'Could not load projects.');
+        if (!cancelled) setProjects(data.projects);
+      })
+      .catch(error => { if (!cancelled) setProjectsError(error.message || 'Could not load projects.'); })
+      .finally(() => { if (!cancelled) setProjectsLoading(false); });
+    return () => { cancelled = true; };
+  }, [page]);
 
   async function loadData(view = page, currentPin = pin) {
     setLoading(true); setError('');
@@ -382,40 +401,38 @@ export default function Dashboard() {
                 <input type="search" value={plotSearch} onChange={e => setPlotSearch(e.target.value)} placeholder="Search projects..." aria-label="Filter projects" />
                 <span className="filter-caption">FILTER</span>
               </label>
-              {(!plotSearch.trim() || 'mary ann elite properties madurai tamil nadu interactive plot layout'.includes(plotSearch.trim().toLowerCase())) ? (
+              {projectsLoading ? (
+                <div className="project-filter-empty"><strong>Loading projects…</strong></div>
+              ) : projectsError ? (
+                <div className="project-filter-empty" role="alert"><strong>Could not load projects</strong><p>{projectsError}</p><button type="button" className="edit-btn" onClick={() => { setProjectsError(''); setPage('plots'); }}>Retry</button></div>
+              ) : projects.filter(project => [project.name, project.layout, project.location, project.description].join(' ').toLowerCase().includes(plotSearch.trim().toLowerCase())).length ? (
                 <div className="project-cards">
-                  <a className="project-list-card" href="/velavan_nagar" aria-label="Open Velavan Nagar interactive plot map">
-                    <div className="project-card-visual" aria-label="Static preview of the Velavan Nagar interactive plot map">
-                      <svg className="project-map-static" viewBox="0 0 4400 3400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Static thumbnail of the Velavan Nagar plot layout">
-                        <rect width="4400" height="3400" fill="#e8e4dc" />
-                        <g fill="#363e4c">
-                          {G.base.map((d, i) => <path key={'road-' + i} d={d} />)}
-                        </g>
-                        <g fill="#cdd3c3">
-                          {G.park.map((d, i) => <path key={'park-' + i} d={d} />)}
-                        </g>
-                        <g fill="#ded6c6">
-                          {G.misc.map((d, i) => <path key={'misc-' + i} d={d} />)}
-                        </g>
-                        <g fill="none" stroke="#e9e4d6" strokeWidth="6" strokeDasharray="34 26">
-                          {G.dash.map((d, i) => <path key={'road-mark-' + i} d={d} />)}
-                        </g>
-                        <g stroke="#aab0ba" strokeWidth="8" strokeLinejoin="round">
-                          {P.map(([id, x, y, points, area, pm]) => <polygon key={id} points={points} fill={pm ? '#dcdfe5' : '#ffffff'} />)}
-                        </g>
-                        <g fill="#1b2433" stroke="#ffffff" strokeWidth="10" paintOrder="stroke" fontSize="44" fontWeight="700" textAnchor="middle" dominantBaseline="central">
-                          {P.map(([id, x, y]) => <text key={'number-' + id} x={x} y={y}>{id}</text>)}
-                        </g>
-                      </svg>
-                      <div className="project-preview-overlay" aria-hidden="true"><span className="project-visual-mark">MA</span><span className="project-visual-tag">INTERACTIVE PLOT MAP</span></div>
-                    </div>
-                    <div className="project-card-content">
-                      <div className="project-card-heading"><div><span className="project-card-kicker">MARY ANN ELITE PROPERTIES</span><h2>Velavan Nagar</h2></div><span className="project-card-arrow" aria-hidden="true">↗</span></div>
-                      <p className="project-card-location"><span aria-hidden="true">⌖</span> Madurai, Tamil Nadu</p>
-                      <p className="project-card-description">Open the Velavan Nagar interactive plot layout and view plot details.</p>
-                      <div className="project-card-footer"><span className="project-type"><span aria-hidden="true">▦</span> Interactive Plot Layout</span><span className="project-view-link">View project <span aria-hidden="true">→</span></span></div>
-                    </div>
-                  </a>
+                  {projects.filter(project => [project.name, project.layout, project.location, project.description].join(' ').toLowerCase().includes(plotSearch.trim().toLowerCase())).map(project => (
+                    <a className="project-list-card" href={'/' + project.slug} key={project.id} aria-label={'Open ' + project.name + ' interactive plot map'}>
+                      <div className="project-card-visual" aria-label={'Preview for ' + project.name}>
+                        {project.mapKey === 'velavan_nagar' ? (
+                          <svg className="project-map-static" viewBox="0 0 4400 3400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Static thumbnail of the Velavan Nagar plot layout">
+                            <rect width="4400" height="3400" fill="#e8e4dc" />
+                            <g fill="#363e4c">{G.base.map((d, i) => <path key={'road-' + i} d={d} />)}</g>
+                            <g fill="#cdd3c3">{G.park.map((d, i) => <path key={'park-' + i} d={d} />)}</g>
+                            <g fill="#ded6c6">{G.misc.map((d, i) => <path key={'misc-' + i} d={d} />)}</g>
+                            <g fill="none" stroke="#e9e4d6" strokeWidth="6" strokeDasharray="34 26">{G.dash.map((d, i) => <path key={'road-mark-' + i} d={d} />)}</g>
+                            <g stroke="#aab0ba" strokeWidth="8" strokeLinejoin="round">{P.map(([id, x, y, points, area, pm]) => <polygon key={id} points={points} fill={pm ? '#dcdfe5' : '#ffffff'} />)}</g>
+                            <g fill="#1b2433" stroke="#ffffff" strokeWidth="10" paintOrder="stroke" fontSize="44" fontWeight="700" textAnchor="middle" dominantBaseline="central">{P.map(([id, x, y]) => <text key={'number-' + id} x={x} y={y}>{id}</text>)}</g>
+                          </svg>
+                        ) : (
+                          <div className="project-map-pending" role="img" aria-label="Saraswathi Garden map preview will be added from its layout PDF"><span className="project-visual-mark">MA</span><span className="project-visual-tag">LAYOUT MAP</span></div>
+                        )}
+                        <div className="project-preview-overlay" aria-hidden="true"><span className="project-visual-mark">MA</span><span className="project-visual-tag">INTERACTIVE PLOT MAP</span></div>
+                      </div>
+                      <div className="project-card-content">
+                        <div className="project-card-heading"><div><span className="project-card-kicker">MARY ANN ELITE PROPERTIES</span><h2>{project.name}</h2></div><span className="project-card-arrow" aria-hidden="true">↗</span></div>
+                        <p className="project-card-location"><span aria-hidden="true">⌖</span> {project.location}</p>
+                        <p className="project-card-description">{project.description}</p>
+                        <div className="project-card-footer"><span className="project-type"><span aria-hidden="true">▦</span> Interactive Plot Layout</span><span className="project-view-link">View project <span aria-hidden="true">→</span></span></div>
+                      </div>
+                    </a>
+                  ))}
                 </div>
               ) : (
                 <div className="project-filter-empty"><span aria-hidden="true">⌕</span><strong>No projects found</strong><p>Try another project name or location.</p></div>

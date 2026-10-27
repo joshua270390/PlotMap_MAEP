@@ -2,11 +2,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PlotMap from './PlotMap.jsx';
 import AdminPanel from './AdminPanel.jsx';
 import { EnquiryModal, UnitModal, PlotStatusModal } from './Modals.jsx';
-import { P } from './data.js';
+import { P as V_P, G as V_G, LB as V_LB, DM as V_DM } from './data.js';
+import { P as S_P, G as S_G, LB as S_LB, DM as S_DM, bounds as S_BOUNDS } from './saraswathiGeometry.js';
 import { toStatus } from './plots.js';
 import { addDm, loadAd, makeApi, saveAd } from './adminData.js';
 
-export default function App() {
+const GEOMETRIES = {
+  velavan_nagar: { key: 'velavan_nagar', P: V_P, G: V_G, LB: V_LB, DM: V_DM, bounds: { x: 369, y: 160, width: 2501, height: 3012 }, projectName: 'Velavan Nagar', layoutName: 'Kurayur layout' },
+  saraswathi_garden: { key: 'saraswathi_garden', P: S_P, G: S_G, LB: S_LB, DM: S_DM, bounds: S_BOUNDS, projectName: 'Saraswathi Gardens', layoutName: 'Saraswathi Gardens layout' },
+};
+
+export default function App({ projectSlug = 'velavan_nagar' }) {
+  const geometry = GEOMETRIES[projectSlug] || GEOMETRIES.velavan_nagar;
+  const P = geometry.P;
   const [status, setStatus] = useState({});          // a=Available, r=Reserved, b=Booked, s=Sold (from Supabase)
   const [plotDetails, setPlotDetails] = useState({});
   const [filt, setFilt] = useState(null);
@@ -15,7 +23,7 @@ export default function App() {
   const [unit, setUnit] = useState(null);
   const [closedPlot, setClosedPlot] = useState(null);
   const [form, setForm] = useState(false);
-  const [ad, setAd] = useState(loadAd);              // admin edits, saved in this browser
+  const [ad, setAd] = useState(() => loadAd(geometry));              // admin edits, saved in this browser
   const [adminEnquiries, setAdminEnquiries] = useState([]);
   const [userMode, setUserMode] = useState(false);
   const [checkingUserSession, setCheckingUserSession] = useState(() => window.sessionStorage.getItem('maep_user_mode') === 'true');
@@ -24,7 +32,7 @@ export default function App() {
   const [adminAuthenticated, setAdminAuthenticated] = useState(false);
   const [addMode, setAddMode] = useState(false);
   const mapRef = useRef(null);
-  const ax = useMemo(() => makeApi(ad), [ad]);
+  const ax = useMemo(() => makeApi(ad, geometry), [ad, geometry]);
   const admin = panel === 'tools';
 
   useEffect(() => {
@@ -38,8 +46,11 @@ export default function App() {
     setCheckingUserSession(false);
   }, []);
 
-  useEffect(() => { saveAd(ad); }, [ad]);
+  useEffect(() => { saveAd(ad, geometry); }, [ad, geometry]);
   useEffect(() => {
+    // The existing plot-status endpoint is currently configured for Velavan Nagar.
+    // Do not leak those statuses into a different project's plot numbers.
+    if (geometry.key !== 'velavan_nagar') { setStatus({}); setPlotDetails({}); return; }
     fetch('/api/plots').then(r => r.json()).then(j => {
       if (!j.ok) return;
       const m = {};
@@ -143,9 +154,9 @@ export default function App() {
 
   return (
     <>
-      <PlotMap ref={mapRef} ax={ax} status={status} details={plotDetails} filt={filt} setFilt={setFilt} sel={sel} selD={selD} setSel={setSel}
+      <PlotMap ref={mapRef} geometry={geometry} projectName={geometry.projectName} layoutName={geometry.layoutName} ax={ax} status={status} details={plotDetails} filt={filt} setFilt={setFilt} sel={sel} selD={selD} setSel={setSel}
         onTap={onTap} admin={admin} addMode={addMode} adminEnquiries={adminEnquiries}>
-        {!userMode && !checkingUserSession && <AdminPanel panel={panel} setPanel={setPanel} ax={ax} setAd={setAd} sel={sel} selD={selD} status={status} setStatus={setStatus} initialAdminPin={adminPin}
+        {!userMode && !checkingUserSession && <AdminPanel geometry={geometry} panel={panel} setPanel={setPanel} ax={ax} setAd={setAd} sel={sel} selD={selD} status={status} setStatus={setStatus} initialAdminPin={adminPin}
           addMode={addMode} setAddMode={setAddMode} clearSel={clearSel} onAdminAuth={handleAdminAuth} onAdminExit={() => setAdminEnquiries([])} />}
       </PlotMap>
       {closedPlot != null && <PlotStatusModal id={closedPlot.id} status={closedPlot.status} ax={ax}

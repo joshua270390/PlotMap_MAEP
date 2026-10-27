@@ -404,7 +404,7 @@ export default function Dashboard() {
               {projectsLoading ? (
                 <div className="project-filter-empty"><strong>Loading projects…</strong></div>
               ) : projectsError ? (
-                <div className="project-filter-empty" role="alert"><strong>Could not load projects</strong><p>{projectsError}</p><button type="button" className="edit-btn" onClick={() => { setProjectsError(''); setPage('plots'); }}>Retry</button></div>
+                <div className="project-filter-empty" role="alert"><strong>Could not load projects</strong><p>{projectsError}</p><button type="button" className="edit-btn" onClick={() => window.location.reload()}>Retry</button></div>
               ) : projects.filter(project => [project.name, project.layout, project.location, project.description].join(' ').toLowerCase().includes(plotSearch.trim().toLowerCase())).length ? (
                 <div className="project-cards">
                   {projects.filter(project => [project.name, project.layout, project.location, project.description].join(' ').toLowerCase().includes(plotSearch.trim().toLowerCase())).map(project => (

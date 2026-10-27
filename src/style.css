@@ -894,7 +894,7 @@ svg.saraswathi-map.adm text.dm.dsel { fill: #000; stroke: #fff; stroke-width: 6p
 /* Saraswathi Gardens plot-edge dimensions: preserve the supplied HTML font size,
    use a white label halo and black text so labels stay readable over green plots. */
 svg.saraswathi-map text.saraswathi-dimension {
-  font-size: 21px !important;
+  font-size: 15px !important;
   font-weight: 700;
   letter-spacing: 0;
   fill: #000;

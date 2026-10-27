@@ -163,7 +163,8 @@ const OK_MSG = [403, 404, 409, 422, 429];
 
 export function EnquiryModal({ id, ax, onClose }) {
   const lb = ax.lbl(id);
-  const [f, setF] = useState({ n: '', e: '', p: '', m: `Greetings, I am interested in Unit : ${lb} of ${PROJECT}`, hp: '' });
+  const projectName = ax.geometry?.projectName || PROJECT;
+  const [f, setF] = useState({ n: '', e: '', p: '', m: `Greetings, I am interested in Unit : ${lb} of ${projectName}`, hp: '' });
   const [err, setErr] = useState(''), [bad, setBad] = useState(''), [busy, setBusy] = useState(false), [done, setDone] = useState(false);
   const set = k => e => setF(s => ({ ...s, [k]: e.target.value }));
 
@@ -196,7 +197,7 @@ export function EnquiryModal({ id, ax, onClose }) {
         <button className="mx" type="button" aria-label="Close enquiry form" onClick={onClose}>&times;</button>
         {!done ? (
           <div>
-            <div className="fh"><h2 id="f_t">Booking enquiry form</h2><p>Unit No : {lb} | {PROJECT}</p></div>
+            <div className="fh"><h2 id="f_t">Booking enquiry form</h2><p>Unit No : {lb} | {projectName}</p></div>
             <div className="fb" onKeyDown={enter}>
               <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" value={f.hp} onChange={set('hp')}
                 style={{ position: 'absolute', left: -9999, width: 1, height: 1, opacity: 0 }} />

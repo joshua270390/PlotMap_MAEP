@@ -408,7 +408,7 @@ export default function Dashboard() {
               ) : projects.filter(project => [project.name, project.layout, project.location, project.description].join(' ').toLowerCase().includes(plotSearch.trim().toLowerCase())).length ? (
                 <div className="project-cards">
                   {projects.filter(project => [project.name, project.layout, project.location, project.description].join(' ').toLowerCase().includes(plotSearch.trim().toLowerCase())).map(project => (
-                    <a className="project-list-card" href={project.mapReady ? '/' + project.slug : undefined} key={project.id} aria-label={project.mapReady ? 'Open ' + project.name + ' interactive plot map' : project.name + ' map is being prepared'} aria-disabled={!project.mapReady} onClick={e => { if (!project.mapReady) e.preventDefault(); }}>
+                    <a className="project-list-card" href={'/' + project.slug} key={project.id} aria-label={'Open ' + project.name + ' interactive plot map'}>
                       <div className="project-card-visual" aria-label={'Preview for ' + project.name}>
                         {project.mapKey === 'velavan_nagar' ? (
                           <svg className="project-map-static" viewBox="0 0 4400 3400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Static thumbnail of the Velavan Nagar plot layout">

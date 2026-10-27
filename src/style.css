@@ -851,3 +851,57 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
 .unit-confirm-actions .mbtn{background:var(--acc);color:#fff;border-color:var(--acc)}
 @media(max-width:600px){.unit-contact-row{grid-template-columns:minmax(90px,1fr) auto auto;gap:5px}.unit-contact-row button{font-size:10px;padding:6px 7px}.unit-contact-row input{font-size:12px;padding:7px 6px}}
 @media(max-width:380px){.unit-contact-row{grid-template-columns:minmax(75px,1fr) auto auto;gap:4px}.unit-contact-row button{font-size:9px;padding:5px 5px;white-space:normal}.unit-contact-row label{font-size:12px}.unit-confirm-modal{padding:20px}}
+
+
+/* Saraswathi Gardens PDF map styling: green plots and readable survey labels. */
+svg.saraswathi-map path.p.a,
+svg.saraswathi-map path.p.a.pm,
+svg.saraswathi-map path.p.a.dim,
+svg.saraswathi-map path.p.a.pm.dim { fill: #8ab800 !important; fill-opacity: 1; }
+svg.saraswathi-map path.p.a:hover,
+svg.saraswathi-map path.p.a.pm:hover { fill: #b7e03a !important; filter: none; }
+svg.saraswathi-map path.p:hover { stroke: #4f7000; stroke-width: 5; }
+svg.saraswathi-map path.p.sel { stroke: #244000; stroke-width: 8; }
+svg.saraswathi-map .rd { fill: #0877c9; }
+svg.saraswathi-map .road-label { font-size: 25px; font-weight: 700; fill: #fff; stroke: #07518a; stroke-width: 3px; paint-order: stroke; letter-spacing: 0; }
+
+svg.saraswathi-map .dimension-label { font-size: 22px; font-weight: 700; fill: #202820; stroke: #fff; stroke-width: 3px; paint-order: stroke; letter-spacing: 0; }
+svg.saraswathi-map[data-z="1"] .dimension-label { font-size: 17px; }
+
+
+/* Saraswathi Gardens: keep the source-HTML plot-edge measurements visible,
+   even at the initial fit-to-layout zoom. These are actual dimensions, not areas. */
+svg.saraswathi-map text.dm {
+  opacity: 1 !important;
+  font-size: 21px;
+  font-weight: 700;
+  fill: #000;
+  stroke: #8ab800;
+  stroke-width: 4px;
+  paint-order: stroke;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+svg.saraswathi-map[data-z="1"] text.dm { font-size: 21px; }
+svg.saraswathi-map[data-z="2"] text.dm { font-size: 21px; }
+svg.saraswathi-map[data-z="3"] text.dm { font-size: 21px; }
+/* Allow Admin Studio to select and edit Saraswathi plot dimensions; keep labels non-interactive for visitors. */
+svg.saraswathi-map.adm text.dm { pointer-events: all; cursor: pointer; stroke: #fff; stroke-width: 6px; paint-order: stroke fill; }
+svg.saraswathi-map.adm text.dm:hover,
+svg.saraswathi-map.adm text.dm.dsel { fill: #000; stroke: #fff; stroke-width: 6px; }
+
+
+/* Saraswathi Gardens plot-edge dimensions: preserve the supplied HTML font size,
+   use a white label halo and black text so labels stay readable over green plots. */
+svg.saraswathi-map text.saraswathi-dimension {
+  font-size: 15px !important;
+  font-weight: 700;
+  letter-spacing: 0;
+  fill: #000;
+  stroke: #fff;
+  stroke-width: 6px;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+  opacity: 1 !important;
+  pointer-events: none;
+}

@@ -1,12 +1,12 @@
 import { forwardRef, memo, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { P, G, LB } from './data.js';
+import { P as V_P, G as V_G, LB as V_LB } from './data.js';
 import { COMPANY, LAYOUT, PROJECT } from './config.js';
 import { NAMES, PM, cents, inr } from './plots.js';
 
 const TREE = `<symbol id="tr1" viewBox="0 0 100 120"><ellipse cx="50" cy="111" rx="30" ry="7" fill="rgba(0,0,0,.24)"/><path class="tk" d="M44 112 L47 66 L53 66 L56 112Z"/><path class="tk" d="M50 88 L36 72 L40 70 L50 80Z"/><circle class="g1" cx="50" cy="46" r="34"/><circle class="g1" cx="25" cy="62" r="22"/><circle class="g1" cx="75" cy="62" r="22"/><circle class="g2" cx="48" cy="42" r="28"/><circle class="g2" cx="28" cy="57" r="16"/><circle class="g2" cx="72" cy="57" r="16"/><circle class="g3" cx="40" cy="32" r="13"/><circle class="g3" cx="63" cy="44" r="9"/><circle class="g3" cx="25" cy="52" r="7"/></symbol>`;
 
 // Static drawing: never re-renders.
-const Ground = memo(({ colors = {} }) => (
+const Ground = memo(({ colors = {}, G }) => (
   <>
     {G.base.map((d, i) => <path key={'b' + i} d={d} className="rd" style={colors.road ? { fill: colors.road } : undefined} />)}
     {G.park.map((d, i) => <path key={'p' + i} d={d} className="pk" style={colors.soil ? { fill: colors.soil } : undefined} />)}
@@ -14,22 +14,26 @@ const Ground = memo(({ colors = {} }) => (
     {G.dash.map((d, i) => <path key={'d' + i} d={d} className="dash" />)}
   </>
 ));
-const Trees = memo(() => {
+const Trees = memo(({ G }) => {
   const uses = useMemo(() => [...G.trees].sort((a, b) => a[1] - b[1]).map(([x, y, r], i) => {
     const h = Math.abs(Math.round(x * 3 + y * 5)) % 5, w = r * 2.9 * (0.94 + h * 0.03), hh = w * 1.2;
     return <use key={i} href="#tr1" x={x - w / 2} y={y - hh * 0.62} width={w} height={hh} />;
-  }), []);
+  }), [G]);
   return <><defs dangerouslySetInnerHTML={{ __html: TREE }} /><g className="trees">{uses}</g></>;
 });
-const Dims = memo(() => LB.map(([s, x, y, r], i) => (
-  <text key={i} className="r" transform={`translate(${x} ${y}) rotate(${r}) translate(0 -17)`}>{s}</text>
+const Dims = memo(({ LB }) => LB.map(([s, x, y, r], i) => (
+  <text key={i} data-saraswathi-dimension={i} className="saraswathi-dimension" transform={`translate(${x} ${y}) rotate(${r}) translate(0 0)`}>{s}</text>
 )));
 
 const Measures = memo(({ ax, selD }) => ax.dmList().map(d => (
   <text key={d.k} data-dm={d.k} className={'dm' + (selD === d.k ? ' dsel' : '')} transform={`translate(${d.x} ${d.y}) rotate(${d.r})`}>{d.t}</text>
 )));
 
-const Plots = memo(({ status, filt, sel, ax, colors = {} }) => (
+const PlotAreaLabels = memo(({ labels = [] }) => <g className="plot-area-labels">{labels.map(({ id, x, y, area, cents }) => <text key={id} x={x} y={y} className="plot-area-label">{area} Sq.ft. · {cents} cents</text>)}</g>);
+const RoadLabels = memo(({ labels = [] }) => <g className="road-labels">{labels.map(({ text, x, y, rotate = 0 }, i) => <text key={i} x={x} y={y} transform={`rotate(${rotate} ${x} ${y})`} className="road-label">{text}</text>)}</g>);
+const DimensionLabels = memo(({ labels = [] }) => <g className="dimension-labels">{labels.map(({ text, x, y, rotate = 0 }, i) => <text key={i} x={x} y={y} transform={`rotate(${rotate} ${x} ${y})`} className="dimension-label">{text}</text>)}</g>);
+
+const Plots = memo(({ P, status, filt, sel, ax, colors = {} }) => (
   <>
     {P.map(([id, , , pt]) => {
       const v = status[id] || 'a';
@@ -42,7 +46,7 @@ const Plots = memo(({ status, filt, sel, ax, colors = {} }) => (
     })}
   </>
 ));
-const EnquiryPins = memo(({ enquiries, ax }) => {
+const EnquiryPins = memo(({ P, enquiries, ax }) => {
   const pins = enquiries.map(item => {
     const id = ax.findId(item.plotNumber);
     if (id == null) return null;
@@ -64,7 +68,7 @@ const EnquiryPins = memo(({ enquiries, ax }) => {
   return <g className="admin-enquiry-pins" aria-label="Customer enquiry pins">{pins}</g>;
 });
 
-const PlotNumbers = memo(({ status, filt, ax }) => (
+const PlotNumbers = memo(({ P, status, filt, ax }) => (
   <>
     {P.map(([id]) => {
       const v = status[id] || 'a', [x, y] = ax.posOf(id);
@@ -99,7 +103,8 @@ const Tooltip = forwardRef(({ status, vpRef, ax, details = {} }, ref) => {
   );
 });
 
-const PlotMap = forwardRef(function PlotMap({ status, details = {}, filt, setFilt, sel, selD, setSel, onTap, ax, admin, addMode, adminEnquiries = [], children }, ref) {
+const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName, status, details = {}, filt, setFilt, sel, selD, setSel, onTap, ax, admin, addMode, adminEnquiries = [], children }, ref) {
+  const { P, G, LB, bounds, plotAreaLabels = [], roadLabels = [], dimensionLabels = [] } = geometry || { P: V_P, G: V_G, LB: V_LB, bounds: { x: 369, y: 160, width: 2501, height: 3012 } };
   const vpRef = useRef(null), stageRef = useRef(null), ovRef = useRef(null), topRef = useRef(null), tipRef = useRef(null), qRef = useRef(null);
   const view = useRef({}), cb = useRef({});
   const [msg, setMsg] = useState('');
@@ -120,7 +125,7 @@ const PlotMap = forwardRef(function PlotMap({ status, details = {}, filt, setFil
     };
     const go = anim => { if (anim) { stage.classList.add('anim'); setTimeout(() => stage.classList.remove('anim'), 420); } apply(); };
     v.fit = anim => {
-      const r = vp.getBoundingClientRect(), tp = topRef.current, th = Math.round(tp.offsetTop + tp.offsetHeight + 12), bx = 369, by = 160, bw = 2501, bh = 3012;
+      const r = vp.getBoundingClientRect(), tp = topRef.current, th = Math.round(tp.offsetTop + tp.offsetHeight + 12), bx = bounds.x, by = bounds.y, bw = bounds.width, bh = bounds.height;
       vp.style.setProperty('--th', th + 'px');
       v.fitS = Math.min(r.width / bw, (r.height - th) / bh) * 0.98; v.s = v.fitS;
       v.tx = (r.width - bw * v.s) / 2 - bx * v.s; v.ty = th + (r.height - th - bh * v.s) / 2 - by * v.s; go(anim);
@@ -219,8 +224,8 @@ const PlotMap = forwardRef(function PlotMap({ status, details = {}, filt, setFil
         <button type="button" className="map-back-button" onClick={() => { if (window.sessionStorage.getItem("maep_user_token")) { window.location.assign("/plot_lists"); return; } if (window.history.length > 1 && document.referrer && new URL(document.referrer).origin === window.location.origin) window.history.back(); else window.location.assign("/dashboard"); }} aria-label="Go back to previous page">← Back</button>
         <div className="brand fl" aria-label={COMPANY}>
           <div className="brand-copy">
-            <b>{PROJECT}</b>
-            <span className="sub">{LAYOUT}</span>
+            <b>{projectName || PROJECT}</b>
+            <span className="sub">{layoutName || LAYOUT}</span>
           </div>
         </div>
         <button type="button" className="search-toggle" aria-label="Search plot number" aria-expanded={searchOpen} onClick={() => {
@@ -253,10 +258,10 @@ const PlotMap = forwardRef(function PlotMap({ status, details = {}, filt, setFil
           <p id="msg" role="alert">{msg}</p>
         </div>
       </div>
-      <div id="stage" ref={stageRef}>
-        <svg id="ov" ref={ovRef} viewBox="0 0 4400 3400">
-          <Ground colors={ax.ad.mapColors || {}} /><Plots status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} />{admin && <EnquiryPins enquiries={adminEnquiries} ax={ax} />}<Trees /><PlotNumbers status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} /><Dims /><image href="/mary-ann-plotmap-logo.png" x="470" y="440" width="600" height="451.7" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />
-          <g className="map-compass" transform="translate(2590 440) scale(2.4)" aria-label="North compass">
+      <div id="stage" ref={stageRef} style={{ width: geometry?.canvasWidth || 4400, height: geometry?.canvasHeight || 3400 }}>
+        <svg id="ov" ref={ovRef} className={geometry?.key === "saraswathi_garden" ? "saraswathi-map" : undefined} style={{ width: geometry?.key === "saraswathi_garden" ? bounds.width : (geometry?.canvasWidth || 4400), height: geometry?.key === "saraswathi_garden" ? bounds.height : (geometry?.canvasHeight || 3400) }} viewBox={geometry?.key === "saraswathi_garden" ? `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}` : `0 0 ${geometry?.canvasWidth || 4400} ${geometry?.canvasHeight || 3400}`}>
+          <Ground G={G} colors={ax.ad.mapColors || {}} /><Plots P={P} status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} /><RoadLabels labels={roadLabels} /><DimensionLabels labels={dimensionLabels} />{admin && <EnquiryPins P={P} enquiries={adminEnquiries} ax={ax} />}<Trees G={G} /><PlotNumbers P={P} status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} />{geometry?.key !== 'saraswathi_garden' && <Dims LB={LB} />}{geometry?.key !== "saraswathi_garden" && <image href="/mary-ann-plotmap-logo.png" x="470" y="440" width="600" height="451.7" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />}
+          {geometry?.key !== "saraswathi_garden" && <g className="map-compass" transform="translate(2590 440) scale(2.4)" aria-label="North compass">
             <title>North compass</title>
             <text x="50" y="11" className="compass-direction">N</text>
             <text x="91" y="55" className="compass-direction">E</text>
@@ -266,10 +271,10 @@ const PlotMap = forwardRef(function PlotMap({ status, details = {}, filt, setFil
             <path d="M50 26 L60 56 L50 50 L40 56 Z" className="compass-north" />
             <path d="M50 82 L40 52 L50 58 L60 52 Z" className="compass-south" />
             <circle cx="50" cy="54" r="3.5" className="compass-center" />
-          </g>
-          <image href="/mary-ann-plotmap-dtcp.png" x="2650" y="790" width="360" height="271" preserveAspectRatio="xMidYMid meet" opacity="1" pointerEvents="none">
+          </g>}
+          {geometry?.key !== "saraswathi_garden" && <image href="/mary-ann-plotmap-dtcp.png" x="2650" y="790" width="360" height="271" preserveAspectRatio="xMidYMid meet" opacity="1" pointerEvents="none">
             <title>DTCP approved layout</title>
-          </image>
+          </image>}
         </svg>
       </div>
       <div className="zoom fl">

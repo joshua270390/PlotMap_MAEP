@@ -2,11 +2,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PlotMap from './PlotMap.jsx';
 import AdminPanel from './AdminPanel.jsx';
 import { EnquiryModal, UnitModal, PlotStatusModal } from './Modals.jsx';
-import { P } from './data.js';
+import { P as V_P, G as V_G, LB as V_LB, DM as V_DM } from './data.js';
+import { P as S_P, G as S_G, LB as S_LB, DM as S_DM, bounds as S_BOUNDS, plotAreaLabels as S_PLOT_AREA_LABELS, roadLabels as S_ROAD_LABELS, dimensionLabels as S_DIMENSION_LABELS } from './saraswathiGeometry.js';
 import { toStatus } from './plots.js';
 import { addDm, loadAd, makeApi, saveAd } from './adminData.js';
 
-export default function App() {
+const GEOMETRIES = {
+  velavan_nagar: { key: 'velavan_nagar', projectId: 1, P: V_P, G: V_G, LB: V_LB, DM: V_DM, bounds: { x: 369, y: 160, width: 2501, height: 3012 }, canvasWidth: 4400, canvasHeight: 3400, projectName: 'Velavan Nagar', layoutName: 'Kurayur layout' },
+  saraswathi_garden: { key: 'saraswathi_garden', projectId: 3, P: S_P, G: S_G, LB: S_LB, DM: S_DM, bounds: S_BOUNDS, plotAreaLabels: S_PLOT_AREA_LABELS, roadLabels: S_ROAD_LABELS, dimensionLabels: S_DIMENSION_LABELS, canvasWidth: 1760, canvasHeight: 2580, projectName: 'Saraswathi Gardens', layoutName: 'Saraswathi Gardens layout' },
+};
+
+export default function App({ projectSlug = 'velavan_nagar' }) {
+  const geometry = GEOMETRIES[projectSlug] || GEOMETRIES.velavan_nagar;
+  const P = geometry.P;
   const [status, setStatus] = useState({});          // a=Available, r=Reserved, b=Booked, s=Sold (from Supabase)
   const [plotDetails, setPlotDetails] = useState({});
   const [filt, setFilt] = useState(null);
@@ -15,7 +23,7 @@ export default function App() {
   const [unit, setUnit] = useState(null);
   const [closedPlot, setClosedPlot] = useState(null);
   const [form, setForm] = useState(false);
-  const [ad, setAd] = useState(loadAd);              // admin edits, saved in this browser
+  const [ad, setAd] = useState(() => loadAd(geometry));              // admin edits, saved in this browser
   const [adminEnquiries, setAdminEnquiries] = useState([]);
   const [userMode, setUserMode] = useState(false);
   const [checkingUserSession, setCheckingUserSession] = useState(() => window.sessionStorage.getItem('maep_user_mode') === 'true');
@@ -24,7 +32,7 @@ export default function App() {
   const [adminAuthenticated, setAdminAuthenticated] = useState(false);
   const [addMode, setAddMode] = useState(false);
   const mapRef = useRef(null);
-  const ax = useMemo(() => makeApi(ad), [ad]);
+  const ax = useMemo(() => makeApi(ad, geometry), [ad, geometry]);
   const admin = panel === 'tools';
 
   useEffect(() => {
@@ -38,20 +46,21 @@ export default function App() {
     setCheckingUserSession(false);
   }, []);
 
-  useEffect(() => { saveAd(ad); }, [ad]);
+  useEffect(() => { saveAd(ad, geometry); }, [ad, geometry]);
   useEffect(() => {
-    fetch('/api/plots').then(r => r.json()).then(j => {
+    // Read each project's authoritative inventory status from the database.
+    fetch('/api/plots?project_id=' + encodeURIComponent(geometry.projectId)).then(r => r.json()).then(j => {
       if (!j.ok) return;
       const m = {};
       P.forEach(([id]) => { const v = j.plots[String(id)]; if (v) m[id] = toStatus(v); });
       setStatus(m);
       setPlotDetails(j.details || {});
     }).catch(() => {});   // no API (plain `vite` dev): every plot shows as Available
-  }, []);
+  }, [geometry, P]);
 
   const loadAdminEnquiries = useCallback(async adminPin => {
     try {
-      const response = await fetch('/api/admin-data?view=bookings', { headers: { 'x-admin-pin': adminPin }, cache: 'no-store' });
+      const response = await fetch('/api/admin-data?view=bookings&project_id=' + encodeURIComponent(geometry.projectId), { headers: { 'x-admin-pin': adminPin }, cache: 'no-store' });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load customer enquiries.');
       const numberById = new Map((data.plots || []).map(plot => [String(plot.id), String(plot.plot_number ?? '')]));
@@ -68,7 +77,7 @@ export default function App() {
       console.error('[admin-map] Could not load enquiry pins:', error);
       setAdminEnquiries([]);
     }
-  }, []);
+  }, [geometry]);
 
   // Restore the Admin Studio session when an Admin opens the map from the dashboard.
   useEffect(() => {
@@ -143,9 +152,9 @@ export default function App() {
 
   return (
     <>
-      <PlotMap ref={mapRef} ax={ax} status={status} details={plotDetails} filt={filt} setFilt={setFilt} sel={sel} selD={selD} setSel={setSel}
+      <PlotMap ref={mapRef} geometry={geometry} projectName={geometry.projectName} layoutName={geometry.layoutName} ax={ax} status={status} details={plotDetails} filt={filt} setFilt={setFilt} sel={sel} selD={selD} setSel={setSel}
         onTap={onTap} admin={admin} addMode={addMode} adminEnquiries={adminEnquiries}>
-        {!userMode && !checkingUserSession && <AdminPanel panel={panel} setPanel={setPanel} ax={ax} setAd={setAd} sel={sel} selD={selD} status={status} setStatus={setStatus} initialAdminPin={adminPin}
+        {!userMode && !checkingUserSession && <AdminPanel geometry={geometry} panel={panel} setPanel={setPanel} ax={ax} setAd={setAd} sel={sel} selD={selD} status={status} setStatus={setStatus} initialAdminPin={adminPin}
           addMode={addMode} setAddMode={setAddMode} clearSel={clearSel} onAdminAuth={handleAdminAuth} onAdminExit={() => setAdminEnquiries([])} />}
       </PlotMap>
       {closedPlot != null && <PlotStatusModal id={closedPlot.id} status={closedPlot.status} ax={ax}

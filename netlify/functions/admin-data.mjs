@@ -75,9 +75,13 @@ export default async function handler(request) {
 
   if (method === "GET") {
     const view = url.searchParams.get("view") || "bookings";
+    const requestedProjectId = url.searchParams.get("project_id") || cfg.projectId;
+    const allProjects = requestedProjectId === "all";
+    const activeProjectId = /^\d+$/.test(requestedProjectId) ? requestedProjectId : cfg.projectId;
+    const projectFilter = allProjects ? {} : { project_id: "eq." + activeProjectId };
     if (view === "plots") {
-      const q = new URLSearchParams({ select: "*", project_id: "eq." + cfg.projectId, limit: "2000" });
-      const bq = new URLSearchParams({ select: "id,plot_id,status", project_id: "eq." + cfg.projectId, order: "id.desc", limit: "2000" });
+      const q = new URLSearchParams({ select: "*", ...projectFilter, limit: "2000" });
+      const bq = new URLSearchParams({ select: "id,plot_id,status", ...projectFilter, order: "id.desc", limit: "2000" });
       const [result, bookings] = await Promise.all([
         db(cfg, "GET", cfg.plotsTable, q.toString()),
         db(cfg, "GET", cfg.bookingsTable, bq.toString()),
@@ -92,13 +96,13 @@ export default async function handler(request) {
     }
     if (view !== "bookings") return json({ ok: false, error: "Unknown dashboard view." }, 400);
 
-    const q = new URLSearchParams({ select: "*", project_id: "eq." + cfg.projectId, limit: "2000", order: "id.desc" });
+    const q = new URLSearchParams({ select: "*", ...projectFilter, limit: "2000", order: "id.desc" });
     const bookings = await db(cfg, "GET", cfg.bookingsTable, q.toString());
     if (!bookings.ok) {
       console.error("[admin-data] Booking fetch failed:", bookings.status, bookings.error, JSON.stringify(keyDiagnostics(cfg)));
       return json({ ok: false, error: "Supabase bookings query failed (" + bookings.status + "): " + bookings.error }, 502);
     }
-    const plotsQuery = new URLSearchParams({ select: "*", project_id: "eq." + cfg.projectId, limit: "2000" });
+    const plotsQuery = new URLSearchParams({ select: "*", ...projectFilter, limit: "2000" });
     const plots = await db(cfg, "GET", cfg.plotsTable, plotsQuery.toString());
     if (!plots.ok) {
       console.error("[admin-data] Plot lookup failed:", plots.status, plots.error);
@@ -112,6 +116,11 @@ export default async function handler(request) {
   let body;
   try { body = await request.json(); } catch { body = null; }
   if (!body || typeof body !== "object") return json({ ok: false, error: "Invalid request body." }, 400);
+  if (body.project_id != null) {
+    const requestedProjectId = String(body.project_id).trim();
+    if (!/^\d+$/.test(requestedProjectId)) return json({ ok: false, error: "A valid project ID is required." }, 422);
+    cfg.projectId = requestedProjectId;
+  }
   if (method === "POST") {
     const customerName = String(body.customer_name ?? "").trim();
     const phone = String(body.phone ?? "").trim();
@@ -186,8 +195,18 @@ export default async function handler(request) {
       return json({ ok: false, error: "Booking was not found." }, 404);
     if (String(currentBooking.data[0].plot_id) !== String(plotId))
       return json({ ok: false, error: "Select the same unit as this customer's existing booking." }, 422);
-    if (String(currentBooking.data[0].status).toLowerCase() !== "reserved")
-      return json({ ok: false, error: "Only a Reserved customer's booking can be changed to Booked or Sold." }, 422);
+
+    // Admins can promote a customer from Available or Reserved directly to
+    // Booked/Sold. Only block it when a different customer already owns the
+    // unit as Booked/Sold; the customer does not need to be Reserved first.
+    const otherBookings = await db(cfg, "GET", cfg.bookingsTable,
+      new URLSearchParams({ select: "id,status", project_id: "eq." + cfg.projectId, plot_id: "eq." + plotId, id: "neq." + id }).toString());
+    if (!otherBookings.ok)
+      return json({ ok: false, error: "Could not verify other bookings for this unit. Please try again." }, 502);
+    const anotherClosedBooking = (otherBookings.data || []).some(row =>
+      ["Booked", "Sold"].includes(String(row.status || "").trim()));
+    if (anotherClosedBooking)
+      return json({ ok: false, error: "Another customer's booking for this unit is already Booked or Sold." }, 409);
   }
   const updated = await db(cfg, "PATCH", cfg.bookingsTable, filter.toString(), {
     customer_name: customerName, phone, plot_id: Number(plotId), status,

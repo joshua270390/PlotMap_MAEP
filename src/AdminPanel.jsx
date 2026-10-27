@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AD0, delDm, revertPlot, setDm, setPlot } from './adminData.js';
-import { AREAS, POS, cents } from './plots.js';
+import { cents } from './plots.js';
 
 const num = v => parseFloat(v);
 
@@ -18,11 +18,11 @@ function PlotEditor({ id, ax, setAd }) {
     const o = ax.findId(nv); if (o != null && o !== id) return say('Number ' + nv + ' is already used by another plot.');
     if (!(av > 0)) return say('Enter a valid area.');
     if (isNaN(xv) || isNaN(yv)) return say('Enter valid X and Y values.');
-    setAd(ad => setPlot(ad, id, { nv, av, xv, yv })); say('Saved.', true);
+    setAd(ad => setPlot(ad, id, { nv, av, xv, yv }, ax.geometry)); say('Saved.', true);
   };
   const revert = () => {
-    setAd(ad => revertPlot(ad, id));
-    const q = POS[id]; setF({ n: String(id), a: String(AREAS[id]), x: String(q[0]), y: String(q[1]) }); say('Reverted number, area and position to original.', true);
+    setAd(ad => revertPlot(ad, id, ax.geometry));
+    const q = ax.posOf(id); setF({ n: String(id), a: String(ax.areaOf(id)), x: String(q[0]), y: String(q[1]) }); say('Reverted number, area and position to original.', true);
   };
   return (
     <>
@@ -57,7 +57,7 @@ function StatusEditor({ id, ax, status, setStatus, pin, setAd }) {
       if (!pin) return;
       setCustomersLoading(true);
       try {
-        const response = await fetch('/api/admin-data?view=bookings', {
+        const response = await fetch('/api/admin-data?view=bookings&project_id=' + encodeURIComponent(ax.geometry?.projectId || 1), {
           headers: { 'x-admin-pin': pin }, cache: 'no-store',
         });
         const data = await response.json().catch(() => ({}));
@@ -89,7 +89,7 @@ function StatusEditor({ id, ax, status, setStatus, pin, setAd }) {
       const response = await fetch('/api/plot-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
-        body: JSON.stringify({ plot_number: ax.lbl(id), status: value, booking_id: selectedBookingId || undefined }),
+        body: JSON.stringify({ plot_number: ax.lbl(id), status: value, booking_id: selectedBookingId || undefined, project_id: ax.geometry?.projectId || 1 }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || 'Could not update plot status.');

@@ -32,7 +32,7 @@ export default async function handler(request) {
   if (request.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405);
   const url = (process.env.SUPABASE_URL || "").replace(/\/+$/, "");
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || "").trim();
-  const projectId = String(parseInt(process.env.PROJECT_ID || "1", 10));
+  const defaultProjectId = String(parseInt(process.env.PROJECT_ID || "1", 10));
   const plotsTable = process.env.PLOTS_TABLE || "plots";
   const bookingsTable = process.env.BOOKINGS_TABLE || "bookings";
   if (!url || !key) {
@@ -48,6 +48,9 @@ export default async function handler(request) {
   let input; try { input = await request.json(); } catch { input = null; }
   if (!input || typeof input !== "object") return json({ ok: false, error: "Invalid request." }, 400);
   if (input.website) return json({ ok: true });
+  const requestedProjectId = String(input.project_id ?? defaultProjectId).trim();
+  if (!/^\d+$/.test(requestedProjectId)) return json({ ok: false, error: "Invalid project." }, 422);
+  const projectId = requestedProjectId;
   const ip = (request.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "unknown";
   if (limited(ip)) return json({ ok: false, error: "Too many enquiries. Please try again in a few minutes." }, 429);
 

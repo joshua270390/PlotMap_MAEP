@@ -126,9 +126,6 @@ export default function CanvasEditor({ cv, ax, setAd, vpRef, ovRef, onClose }) {
   const f0 = fills[fills.length - 1];
   const fill = !f0 ? null : f0.kind === 'plot' ? ax.ad.colors?.[f0.id] : ax.ad.shapeFills?.[f0.key];
   const setFill = c => setAd(ad => fills.reduce((n, o) => o.kind === 'plot' ? setPlotFill(n, o.id, c) : setShapeFill(n, o.key, c), ad));
-  const nameOf = o => o.kind === 'plot' ? 'Plot No: ' + ax.lbl(o.id) : String(o.key).startsWith('rd') ? 'Road' : String(o.key).startsWith('pk') ? 'Empty Land' : 'Ground';
-  const fillLbl = !fills.length ? '' : fills.length === 1 ? nameOf(fills[0]) : fills.slice(0, 3).map(nameOf).join(', ') + (fills.length > 3 ? ' +' + (fills.length - 3) : '');
-
 
   return (
     <>
@@ -161,11 +158,9 @@ export default function CanvasEditor({ cv, ax, setAd, vpRef, ovRef, onClose }) {
         </>}
         {fills.length > 0 && <>
           {texts.length > 0 && <span className="cv-sep" />}
-          {fillLbl && <span className="cv-lbl" title={fillLbl}>{fillLbl}</span>}
           <label className="cv-col" title="Background colour"><input type="color" value={fill || '#c7dfc7'} onChange={e => setFill(e.target.value)} aria-label="Background colour" /></label>
           <button type="button" className="cv-txt" onClick={() => setFill(null)}>Reset</button>
         </>}
-
         <button type="button" className="cv-x" onClick={onClose} aria-label="Close selection">×</button>
       </div>
     </>

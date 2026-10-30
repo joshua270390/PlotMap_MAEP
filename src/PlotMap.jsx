@@ -39,7 +39,7 @@ const Plots = memo(({ P, status, filt, sel, ax, colors = {} }) => (
       const v = status[id] || 'a';
       return (
         <path key={id} data-id={id} d={'M' + pt.replace(/ /g, 'L') + 'Z'}
-          className={'p ' + v + (sel === id ? ' sel' : '')} style={colors[id] ? { fill: colors[id] } : undefined}>
+          className={'p ' + v + (colors[id] ? ' cc' : '') + (sel === id ? ' sel' : '')} style={colors[id] ? { fill: colors[id], '--custom-fill': colors[id] } : undefined}>
           <title>Plot {ax.lbl(id)}</title>
         </path>
       );

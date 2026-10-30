@@ -28,6 +28,7 @@ export function tStyle(s) {
     fontWeight: s.bold === undefined ? undefined : (s.bold ? 700 : 400),
     fontStyle: s.italic ? 'italic' : undefined,
     textDecoration: s.underline ? 'underline' : undefined,
+    ...(s.stColor ? { stroke: s.stColor, strokeWidth: (+s.stW || 0) + 'px', strokeOpacity: s.stOp == null ? 1 : Math.max(0, Math.min(100, +s.stOp)) / 100, paintOrder: 'stroke', strokeLinejoin: 'round' } : {}),
   });
   return Object.keys(st).length ? st : undefined;
 }

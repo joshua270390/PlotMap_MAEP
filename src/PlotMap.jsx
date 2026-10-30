@@ -115,7 +115,8 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
   const view = useRef({}), cb = useRef({});
   const [msg, setMsg] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
-  cb.current = { onTap, ax, admin, setAd };
+  const [multiOn, setMultiOn] = useState(false);
+  cb.current = { onTap, ax, admin, setAd, multiOn };
 
   useImperativeHandle(ref, () => ({ focusOn: id => view.current.focusOn(id) }), []);
 
@@ -203,7 +204,7 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
       if (was === 1 && moved < 6 && e.type === 'pointerup') {
         hideTip();
         const r = vp.getBoundingClientRect();
-        cb.current.onTap({ id: tgt ? +tgt.dataset.id : null, dm: tgtD ? tgtD.dataset.dm : null, tk: tgtT ? tgtT.dataset.tk : null, sk: tgtS ? tgtS.dataset.sk : null, x: (e.clientX - r.left - v.tx) / v.s, y: (e.clientY - r.top - v.ty) / v.s });
+        cb.current.onTap({ id: tgt ? +tgt.dataset.id : null, dm: tgtD ? tgtD.dataset.dm : null, tk: tgtT ? tgtT.dataset.tk : null, sk: tgtS ? tgtS.dataset.sk : null, multi: e.shiftKey || e.ctrlKey || e.metaKey || cb.current.multiOn, x: (e.clientX - r.left - v.tx) / v.s, y: (e.clientY - r.top - v.ty) / v.s });
       }
     };
     const onKey = e => { if (e.key === '/' && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); qRef.current.focus(); } };
@@ -312,6 +313,7 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
       {admin && history && <div className="cv-hist fl" role="group" aria-label="Edit history">
         <button type="button" disabled={!history.canUndo} onClick={history.undo} aria-label="Undo (Ctrl+Z)">↶ Undo</button>
         <button type="button" disabled={!history.canRedo} onClick={history.redo} aria-label="Redo (Ctrl+Y)">↷ Redo</button>
+        <button type="button" className={multiOn ? 'on' : ''} aria-pressed={multiOn} onClick={() => setMultiOn(m => !m)} title="Or hold Shift / Ctrl and click">☐ Multi-select{cv?.items?.length > 1 ? ` (${cv.items.length})` : ''}</button>
         <span>Auto-saved</span>
       </div>}
       <Tooltip ref={tipRef} status={status} vpRef={vpRef} ax={ax} details={details} />

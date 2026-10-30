@@ -146,8 +146,20 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
     return () => removeEventListener('keydown', onKey);
   }, [form, unit, closedPlot, closeUnit, admin, cv, undo, redo]);
 
-  const onTap = ({ id, dm, tk, sk, x, y }) => {
+  const onTap = ({ id, dm, tk, sk, x, y, multi, keep }) => {
     if (admin) {
+      const it = tk ? { kind: 'text', key: tk } : (id != null && !dm) ? { kind: 'plot', id } : sk && !dm ? { kind: 'shape', key: sk } : null;
+      const ik = o => o.kind + ':' + (o.kind === 'plot' ? o.id : o.key);
+      if (keep && it && cv?.items?.length > 1 && cv.items.some(o => ik(o) === ik(it))) return;
+      // Multi-select: Shift / Ctrl / Cmd click (or the Multi-select button) adds or removes items.
+      if (multi && it && !addMode) {
+        const cur = cv ? (cv.items || [cv]) : [];
+        const has = cur.some(o => ik(o) === ik(it));
+        const items = has ? cur.filter(o => ik(o) !== ik(it)) : [...cur, it];
+        setSel(null); setSelD(null);
+        setCv(items.length ? { ...items[items.length - 1], items } : null);
+        return;
+      }
       if (addMode) { const [n, k] = addDm(ad, x, y); setAdH(n); setAddMode(false); setSel(null); setSelD(k); setCv({ kind: 'text', key: 'dm:' + k }); }
       else if (tk) {
         setCv({ kind: 'text', key: tk });

@@ -952,3 +952,4 @@ svg.adm [data-sk]:hover{filter:brightness(1.06)}
 @media(max-width:600px){.cv-bar{gap:3px;padding:5px 6px}.cv-bar .cv-font{max-width:110px}.cv-hist{bottom:80px}}
 #vp{-webkit-user-select:none;user-select:none}
 #vp input,#vp textarea,#vp select,#vp .apn{-webkit-user-select:text;user-select:text}
+.cv-hist button.on{background:#2b7bff;border-color:#2b7bff;color:#fff}

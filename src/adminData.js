@@ -3,14 +3,15 @@ import { P as V_P, DM as V_DM } from './data.js';
 import { RATE } from './config.js';
 
 export const AKEY = 'velavan-plot-admin-v1';
-const projectKey = geometry => geometry?.key === 'saraswathi_garden' ? 'saraswathi-gardens-plot-admin-v1' : geometry?.key === 'shanmuga_avenue' ? 'shanmuga-avenue-plot-admin-v1' : AKEY;
+// Existing projects keep their old keys; any new project gets its own key automatically.
+const projectKey = geometry => !geometry?.key || geometry.key === 'velavan_nagar' ? AKEY : geometry.key === 'saraswathi_garden' ? 'saraswathi-gardens-plot-admin-v1' : geometry.key === 'shanmuga_avenue' ? 'shanmuga-avenue-plot-admin-v1' : geometry.key.replace(/_/g, '-') + '-plot-admin-v1';
 const modelFor = geometry => {
   const P = geometry?.P || V_P;
   const AREAS = {}, POS = {};
   P.forEach(([id, x, y, , area]) => { AREAS[id] = area; POS[id] = [x, y]; });
   return { P, DM: geometry?.compact ? (geometry.LB || []) : (geometry?.DM || V_DM), AREAS, POS };
 };
-export const AD0 = () => ({ lbl: {}, area: {}, pos: {}, dm: {}, dmDel: [], dmAdd: [], colors: {}, mapColors: {}, plotDetails: {}, rate: 0 });
+export const AD0 = () => ({ lbl: {}, area: {}, pos: {}, dm: {}, dmDel: [], dmAdd: [], colors: {}, mapColors: {}, plotDetails: {}, textStyles: {}, shapeFills: {}, rate: 0 });
 export const loadAd = geometry => { try { return Object.assign(AD0(), JSON.parse(localStorage.getItem(projectKey(geometry)) || '{}')); } catch (_) { return AD0(); } };
 export const saveAd = (ad, geometry) => { try { localStorage.setItem(projectKey(geometry), JSON.stringify(ad)); } catch (_) {} };
 

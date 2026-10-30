@@ -26,6 +26,19 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
   const [closedPlot, setClosedPlot] = useState(null);
   const [form, setForm] = useState(false);
   const [ad, setAd] = useState(() => loadAd(geometry));              // admin edits, saved in this browser
+  const [cv, setCv] = useState(null);                // canvas selection: {kind:'text',key} | {kind:'shape',key} | {kind:'plot',id}
+  // Undo / redo history for every admin edit.
+  const adRef = useRef(ad); adRef.current = ad;
+  const past = useRef([]), future = useRef([]);
+  const [, bump] = useState(0);
+  const setAdH = useCallback(fn => {
+    const prev = adRef.current, next = typeof fn === 'function' ? fn(prev) : fn;
+    if (!next || next === prev) return;
+    past.current.push(prev); if (past.current.length > 100) past.current.shift();
+    future.current = []; adRef.current = next; setAd(next); bump(x => x + 1);
+  }, []);
+  const undo = useCallback(() => { const prev = past.current.pop(); if (!prev) return; future.current.push(adRef.current); adRef.current = prev; setAd(prev); bump(x => x + 1); }, []);
+  const redo = useCallback(() => { const next = future.current.pop(); if (!next) return; past.current.push(adRef.current); adRef.current = next; setAd(next); bump(x => x + 1); }, []);
   const [adminEnquiries, setAdminEnquiries] = useState([]);
   const [userMode, setUserMode] = useState(false);
   const [checkingUserSession, setCheckingUserSession] = useState(() => window.sessionStorage.getItem('maep_user_mode') === 'true');
@@ -118,22 +131,34 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
     loadAdminEnquiries(adminPinValue);
   }, [loadAdminEnquiries]);
 
-  const clearSel = useCallback(() => { setSel(null); setSelD(null); setAddMode(false); }, []);
+  const clearSel = useCallback(() => { setSel(null); setSelD(null); setAddMode(false); setCv(null); }, []);
   const closeUnit = useCallback(() => { setUnit(null); setSel(null); }, []);
   useEffect(() => {
     const onKey = e => {
+      const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '');
+      if (admin && !typing && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+      if (admin && !typing && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
       if (e.key !== 'Escape') return;
+      if (admin && cv) { setCv(null); return; }
       if (form) setForm(false); else if (unit != null) closeUnit(); else if (closedPlot != null) setClosedPlot(null);
     };
     addEventListener('keydown', onKey);
     return () => removeEventListener('keydown', onKey);
-  }, [form, unit, closedPlot, closeUnit]);
+  }, [form, unit, closedPlot, closeUnit, admin, cv, undo, redo]);
 
-  const onTap = ({ id, dm, x, y }) => {
+  const onTap = ({ id, dm, tk, sk, x, y }) => {
     if (admin) {
-      if (addMode) { const [n, k] = addDm(ad, x, y); setAd(n); setAddMode(false); setSel(null); setSelD(k); }
+      if (addMode) { const [n, k] = addDm(ad, x, y); setAdH(n); setAddMode(false); setSel(null); setSelD(k); setCv({ kind: 'text', key: 'dm:' + k }); }
+      else if (tk) {
+        setCv({ kind: 'text', key: tk });
+        // Plot number text also opens that plot in the existing editor; dimension text opens its editor.
+        if (/^n\d+$/.test(tk)) { setSelD(null); setSel(+tk.slice(1)); }
+        else if (tk.startsWith('dm:')) { setSel(null); setSelD(tk.slice(3)); }
+        else { setSel(null); setSelD(null); }
+      }
       else if (dm) { setSel(null); setSelD(dm); }
-      else if (id != null) { setSelD(null); setSel(id); }
+      else if (id != null) { setSelD(null); setSel(id); setCv({ kind: 'plot', id }); }
+      else if (sk) { setSel(null); setSelD(null); setCv({ kind: 'shape', key: sk }); }
       else clearSel();
       return;
     }
@@ -155,15 +180,16 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
   return (
     <>
       <PlotMap ref={mapRef} geometry={geometry} projectName={geometry.projectName} layoutName={geometry.layoutName} ax={ax} status={status} details={plotDetails} filt={filt} setFilt={setFilt} sel={sel} selD={selD} setSel={setSel}
-        onTap={onTap} admin={admin} addMode={addMode} adminEnquiries={adminEnquiries}>
-        {!userMode && !checkingUserSession && <AdminPanel geometry={geometry} panel={panel} setPanel={setPanel} ax={ax} setAd={setAd} sel={sel} selD={selD} status={status} setStatus={setStatus} initialAdminPin={adminPin}
-          addMode={addMode} setAddMode={setAddMode} clearSel={clearSel} onAdminAuth={handleAdminAuth} onAdminExit={() => setAdminEnquiries([])} />}
+        onTap={onTap} admin={admin} addMode={addMode} adminEnquiries={adminEnquiries} cv={cv} setCv={setCv} setAd={setAdH}
+        history={{ undo, redo, canUndo: past.current.length > 0, canRedo: future.current.length > 0 }}>
+        {!userMode && !checkingUserSession && <AdminPanel geometry={geometry} panel={panel} setPanel={setPanel} ax={ax} setAd={setAdH} sel={sel} selD={selD} status={status} setStatus={setStatus} initialAdminPin={adminPin}
+          addMode={addMode} setAddMode={setAddMode} clearSel={clearSel} onAdminAuth={handleAdminAuth} onAdminExit={() => { setAdminEnquiries([]); setCv(null); }} />}
       </PlotMap>
       {closedPlot != null && <PlotStatusModal id={closedPlot.id} status={closedPlot.status} ax={ax}
         customer={plotDetails[ax.lbl(closedPlot.id)] || plotDetails[String(closedPlot.id)] || {}}
         onClose={() => setClosedPlot(null)} />}
       {unit != null && !form && (
-        <UnitModal id={unit} ax={ax} status={status[unit]} setAd={setAd} admin={adminAuthenticated} onClose={closeUnit} onEnquire={() => setForm(true)}
+        <UnitModal id={unit} ax={ax} status={status[unit]} setAd={setAdH} admin={adminAuthenticated} onClose={closeUnit} onEnquire={() => setForm(true)}
           reservedCustomers={plotDetails[ax.lbl(unit)]?.reservedCustomers || plotDetails[String(unit)]?.reservedCustomers || []}
           onViewMap={() => { const id = unit; setUnit(null); setSel(id); mapRef.current.focusOn(id); }} />
       )}

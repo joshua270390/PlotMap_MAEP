@@ -2,15 +2,21 @@ import { forwardRef, memo, useEffect, useImperativeHandle, useLayoutEffect, useM
 import { P as V_P, G as V_G, LB as V_LB } from './data.js';
 import { COMPANY, LAYOUT, PROJECT } from './config.js';
 import { NAMES, PM, cents, inr } from './plots.js';
+import CanvasEditor from './CanvasEditor.jsx';
+import { tStyle, tWrap } from './canvasStyle.js';
+
+// Editable text wrapper: move/rotate lives on the <g>, look lives on the <text>.
+const ET = ({ k, s, cx, cy, children }) => <g data-tw={k} data-cx={cx} data-cy={cy} transform={tWrap(s, cx, cy)}>{children}</g>;
 
 const TREE = `<symbol id="tr1" viewBox="0 0 100 120"><ellipse cx="50" cy="111" rx="30" ry="7" fill="rgba(0,0,0,.24)"/><path class="tk" d="M44 112 L47 66 L53 66 L56 112Z"/><path class="tk" d="M50 88 L36 72 L40 70 L50 80Z"/><circle class="g1" cx="50" cy="46" r="34"/><circle class="g1" cx="25" cy="62" r="22"/><circle class="g1" cx="75" cy="62" r="22"/><circle class="g2" cx="48" cy="42" r="28"/><circle class="g2" cx="28" cy="57" r="16"/><circle class="g2" cx="72" cy="57" r="16"/><circle class="g3" cx="40" cy="32" r="13"/><circle class="g3" cx="63" cy="44" r="9"/><circle class="g3" cx="25" cy="52" r="7"/></symbol>`;
 
 // Static drawing: never re-renders.
-const Ground = memo(({ colors = {}, G }) => (
+const fillOf = c => c ? { fill: c } : undefined;
+const Ground = memo(({ colors = {}, fills = {}, G }) => (
   <>
-    {G.base.map((d, i) => <path key={'b' + i} d={d} className="rd" style={colors.road ? { fill: colors.road } : undefined} />)}
-    {G.park.map((d, i) => <path key={'p' + i} d={d} className="pk" style={colors.soil ? { fill: colors.soil } : undefined} />)}
-    {G.misc.map((d, i) => <path key={'m' + i} d={d} className="ms" />)}
+    {G.base.map((d, i) => <path key={'b' + i} d={d} data-sk={'rd' + i} className="rd" style={fillOf(fills['rd' + i] || colors.road)} />)}
+    {G.park.map((d, i) => <path key={'p' + i} d={d} data-sk={'pk' + i} className="pk" style={fillOf(fills['pk' + i] || colors.soil)} />)}
+    {G.misc.map((d, i) => <path key={'m' + i} d={d} data-sk={'ms' + i} className="ms" style={fillOf(fills['ms' + i])} />)}
     {G.dash.map((d, i) => <path key={'d' + i} d={d} className="dash" />)}
   </>
 ));
@@ -21,17 +27,17 @@ const Trees = memo(({ G }) => {
   }), [G]);
   return <><defs dangerouslySetInnerHTML={{ __html: TREE }} /><g className="trees">{uses}</g></>;
 });
-const Dims = memo(({ LB }) => LB.map(([s, x, y, r], i) => (
-  <text key={i} data-saraswathi-dimension={i} className="saraswathi-dimension" transform={`translate(${x} ${y}) rotate(${r}) translate(0 0)`}>{s}</text>
+const Dims = memo(({ LB, ts = {} }) => LB.map(([s, x, y, r], i) => (
+  <ET key={i} k={'lb' + i} s={ts['lb' + i]} cx={x} cy={y}><text data-tk={'lb' + i} data-saraswathi-dimension={i} className="saraswathi-dimension" style={tStyle(ts['lb' + i])} transform={`translate(${x} ${y}) rotate(${r}) translate(0 0)`}>{s}</text></ET>
 )));
 
-const Measures = memo(({ ax, selD }) => ax.dmList().map(d => (
-  <text key={d.k} data-dm={d.k} className={'dm' + (selD === d.k ? ' dsel' : '')} transform={`translate(${d.x} ${d.y}) rotate(${d.r})`}>{d.t}</text>
+const Measures = memo(({ ax, selD, ts = {} }) => ax.dmList().map(d => (
+  <ET key={d.k} k={'dm:' + d.k} s={ts['dm:' + d.k]} cx={d.x} cy={d.y}><text data-tk={'dm:' + d.k} data-dm={d.k} className={'dm' + (selD === d.k ? ' dsel' : '')} style={tStyle(ts['dm:' + d.k])} transform={`translate(${d.x} ${d.y}) rotate(${d.r})`}>{d.t}</text></ET>
 )));
 
 const PlotAreaLabels = memo(({ labels = [] }) => <g className="plot-area-labels">{labels.map(({ id, x, y, area, cents }) => <text key={id} x={x} y={y} className="plot-area-label">{area} Sq.ft. · {cents} cents</text>)}</g>);
-const RoadLabels = memo(({ labels = [] }) => <g className="road-labels">{labels.map(({ text, x, y, rotate = 0 }, i) => <text key={i} x={x} y={y} transform={`rotate(${rotate} ${x} ${y})`} className="road-label">{text}</text>)}</g>);
-const DimensionLabels = memo(({ labels = [] }) => <g className="dimension-labels">{labels.map(({ text, x, y, rotate = 0 }, i) => <text key={i} x={x} y={y} transform={`rotate(${rotate} ${x} ${y})`} className="dimension-label">{text}</text>)}</g>);
+const RoadLabels = memo(({ labels = [], ts = {} }) => <g className="road-labels">{labels.map(({ text, x, y, rotate = 0 }, i) => <ET key={i} k={'rl' + i} s={ts['rl' + i]} cx={x} cy={y}><text data-tk={'rl' + i} x={x} y={y} transform={`rotate(${rotate} ${x} ${y})`} className="road-label" style={tStyle(ts['rl' + i])}>{text}</text></ET>)}</g>);
+const DimensionLabels = memo(({ labels = [], ts = {} }) => <g className="dimension-labels">{labels.map(({ text, x, y, rotate = 0 }, i) => <ET key={i} k={'dl' + i} s={ts['dl' + i]} cx={x} cy={y}><text data-tk={'dl' + i} x={x} y={y} transform={`rotate(${rotate} ${x} ${y})`} className="dimension-label" style={tStyle(ts['dl' + i])}>{text}</text></ET>)}</g>);
 
 const Plots = memo(({ P, status, filt, sel, ax, colors = {} }) => (
   <>
@@ -68,11 +74,11 @@ const EnquiryPins = memo(({ P, enquiries, ax }) => {
   return <g className="admin-enquiry-pins" aria-label="Customer enquiry pins">{pins}</g>;
 });
 
-const PlotNumbers = memo(({ P, status, filt, ax }) => (
+const PlotNumbers = memo(({ P, status, filt, ax, ts = {} }) => (
   <>
     {P.map(([id]) => {
-      const v = status[id] || 'a', [x, y] = ax.posOf(id);
-      return <text key={id} x={x} y={y} className={'n ' + v}>{ax.lbl(id)}</text>;
+      const v = status[id] || 'a', [x, y] = ax.posOf(id), k = 'n' + id;
+      return <ET key={id} k={k} s={ts[k]} cx={x} cy={y}><text data-tk={k} x={x} y={y} className={'n ' + v} style={tStyle(ts[k])}>{ax.lbl(id)}</text></ET>;
     })}
   </>
 ));
@@ -103,13 +109,13 @@ const Tooltip = forwardRef(({ status, vpRef, ax, details = {} }, ref) => {
   );
 });
 
-const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName, status, details = {}, filt, setFilt, sel, selD, setSel, onTap, ax, admin, addMode, adminEnquiries = [], children }, ref) {
+const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName, status, details = {}, filt, setFilt, sel, selD, setSel, onTap, ax, admin, addMode, adminEnquiries = [], cv = null, setCv, setAd, history, children }, ref) {
   const { P, G, LB, bounds, plotAreaLabels = [], roadLabels = [], dimensionLabels = [] } = geometry || { P: V_P, G: V_G, LB: V_LB, bounds: { x: 369, y: 160, width: 2501, height: 3012 } };
   const vpRef = useRef(null), stageRef = useRef(null), ovRef = useRef(null), topRef = useRef(null), tipRef = useRef(null), qRef = useRef(null);
   const view = useRef({}), cb = useRef({});
   const [msg, setMsg] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
-  cb.current = { onTap, ax, admin };
+  cb.current = { onTap, ax, admin, setAd };
 
   useImperativeHandle(ref, () => ({ focusOn: id => view.current.focusOn(id) }), []);
 
@@ -141,8 +147,8 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
     };
     v.fit(false);
 
-    const skip = '.zoom,.top,.legend,.apn,#admbtn';
-    const ptr = new Map(); let moved = 0, tgt = null, tgtD = null, pd = 0;
+    const skip = '.zoom,.top,.legend,.apn,#admbtn,.cv-ui,.cv-hist';
+    const ptr = new Map(); let moved = 0, tgt = null, tgtD = null, tgtT = null, tgtS = null, drag = null, pd = 0;
     const onWheel = e => {
       if (e.target.closest(skip)) return;
       e.preventDefault(); hideTip();
@@ -151,7 +157,11 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
     const onDown = e => {
       if (e.target.closest(skip) || e.target.closest('[data-enquiry-pin]')) return;
       vp.setPointerCapture(e.pointerId); ptr.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (ptr.size === 1) { moved = 0; tgt = e.target.closest('[data-id]'); tgtD = e.target.closest('[data-dm]'); }
+      if (ptr.size === 1) {
+        moved = 0; tgt = e.target.closest('[data-id]'); tgtD = e.target.closest('[data-dm]'); tgtT = e.target.closest('[data-tk]'); tgtS = e.target.closest('[data-sk]');
+        const wrap = tgtT && tgtT.closest('[data-tw]');
+        drag = cb.current.admin && wrap ? { key: tgtT.dataset.tk, wrap, sx: e.clientX, sy: e.clientY, base: cb.current.ax.ad.textStyles?.[tgtT.dataset.tk] || {}, ddx: 0, ddy: 0 } : null;
+      }
       else { const a = [...ptr.values()]; pd = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); moved = 99; }
     };
     const onMove = e => {
@@ -165,7 +175,14 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
       const r = vp.getBoundingClientRect();
       if (ptr.size === 1) {
         if (moved > 6) hideTip();
-        const dx = e.clientX - p.x, dy = e.clientY - p.y; moved += Math.abs(dx) + Math.abs(dy); v.tx += dx; v.ty += dy; apply();
+        const dx = e.clientX - p.x, dy = e.clientY - p.y; moved += Math.abs(dx) + Math.abs(dy);
+        if (drag) {
+          if (moved > 6) {
+            drag.ddx = (e.clientX - drag.sx) / v.s; drag.ddy = (e.clientY - drag.sy) / v.s;
+            const b = drag.base, t = tWrap({ ...b, dx: (+b.dx || 0) + drag.ddx, dy: (+b.dy || 0) + drag.ddy }, drag.wrap.dataset.cx, drag.wrap.dataset.cy);
+            if (t) drag.wrap.setAttribute('transform', t); else drag.wrap.removeAttribute('transform');
+          }
+        } else { v.tx += dx; v.ty += dy; apply(); }
       } else if (ptr.size === 2) {
         const o = [...ptr.entries()].find(([k]) => k !== e.pointerId)[1], d = Math.hypot(e.clientX - o.x, e.clientY - o.y);
         if (pd) v.zoomAt((e.clientX + o.x) / 2 - r.left, (e.clientY + o.y) / 2 - r.top, d / pd);
@@ -175,10 +192,18 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
     };
     const onUp = e => {
       const was = ptr.size; ptr.delete(e.pointerId);
+      if (drag && was === 1 && moved >= 6) {
+        const d = drag; drag = null;
+        const r1 = x => Math.round(x * 10) / 10;
+        cb.current.setAd(ad => { const all = { ...(ad.textStyles || {}) }, o = { ...(all[d.key] || {}) }; o.dx = r1((+o.dx || 0) + d.ddx); o.dy = r1((+o.dy || 0) + d.ddy); all[d.key] = o; return { ...ad, textStyles: all }; });
+        cb.current.onTap({ tk: d.key, keep: true });
+        return;
+      }
+      drag = null;
       if (was === 1 && moved < 6 && e.type === 'pointerup') {
         hideTip();
         const r = vp.getBoundingClientRect();
-        cb.current.onTap({ id: tgt ? +tgt.dataset.id : null, dm: tgtD ? tgtD.dataset.dm : null, x: (e.clientX - r.left - v.tx) / v.s, y: (e.clientY - r.top - v.ty) / v.s });
+        cb.current.onTap({ id: tgt ? +tgt.dataset.id : null, dm: tgtD ? tgtD.dataset.dm : null, tk: tgtT ? tgtT.dataset.tk : null, sk: tgtS ? tgtS.dataset.sk : null, x: (e.clientX - r.left - v.tx) / v.s, y: (e.clientY - r.top - v.ty) / v.s });
       }
     };
     const onKey = e => { if (e.key === '/' && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); qRef.current.focus(); } };
@@ -261,7 +286,7 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
       </div>
       <div id="stage" ref={stageRef} style={{ width: geometry?.canvasWidth || 4400, height: geometry?.canvasHeight || 3400 }}>
         <svg id="ov" ref={ovRef} className={!!geometry?.compact ? "saraswathi-map" : undefined} style={{ width: !!geometry?.compact ? bounds.width : (geometry?.canvasWidth || 4400), height: !!geometry?.compact ? bounds.height : (geometry?.canvasHeight || 3400) }} viewBox={!!geometry?.compact ? `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}` : `0 0 ${geometry?.canvasWidth || 4400} ${geometry?.canvasHeight || 3400}`}>
-          <Ground G={G} colors={ax.ad.mapColors || {}} /><Plots P={P} status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} /><RoadLabels labels={roadLabels} /><DimensionLabels labels={dimensionLabels} />{admin && <EnquiryPins P={P} enquiries={adminEnquiries} ax={ax} />}<Trees G={G} /><PlotNumbers P={P} status={status} filt={filt} ax={ax} /><Measures ax={ax} selD={selD} />{!geometry?.compact && <Dims LB={LB} />}{!geometry?.compact && <image href="/mary-ann-plotmap-logo.png" x="470" y="440" width="600" height="451.7" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />}
+          <Ground G={G} colors={ax.ad.mapColors || {}} fills={ax.ad.shapeFills || {}} /><Plots P={P} status={status} filt={filt} sel={sel} ax={ax} colors={ax.ad.colors || {}} /><RoadLabels labels={roadLabels} ts={ax.ad.textStyles || {}} /><DimensionLabels labels={dimensionLabels} ts={ax.ad.textStyles || {}} />{admin && <EnquiryPins P={P} enquiries={adminEnquiries} ax={ax} />}<Trees G={G} /><PlotNumbers P={P} status={status} filt={filt} ax={ax} ts={ax.ad.textStyles || {}} /><Measures ax={ax} selD={selD} ts={ax.ad.textStyles || {}} />{!geometry?.compact && <Dims LB={LB} ts={ax.ad.textStyles || {}} />}{!geometry?.compact && <image href="/mary-ann-plotmap-logo.png" x="470" y="440" width="600" height="451.7" preserveAspectRatio="xMidYMid meet" opacity="0.88" pointerEvents="none" />}
           {!geometry?.compact && <g className="map-compass" transform="translate(2590 440) scale(2.4)" aria-label="North compass">
             <title>North compass</title>
             <text x="50" y="11" className="compass-direction">N</text>
@@ -283,6 +308,12 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
         <button id="zo" aria-label="Zoom out" onClick={() => center(1 / 1.5)}>&minus;</button>
         <button id="zf" aria-label="Fit to screen" style={{ fontSize: 13 }} onClick={() => view.current.fit(true)}>Fit</button>
       </div>
+      {admin && <CanvasEditor cv={cv} ax={ax} setAd={setAd} vpRef={vpRef} ovRef={ovRef} onClose={() => setCv && setCv(null)} />}
+      {admin && history && <div className="cv-hist fl" role="group" aria-label="Edit history">
+        <button type="button" disabled={!history.canUndo} onClick={history.undo} aria-label="Undo (Ctrl+Z)">↶ Undo</button>
+        <button type="button" disabled={!history.canRedo} onClick={history.redo} aria-label="Redo (Ctrl+Y)">↷ Redo</button>
+        <span>Auto-saved</span>
+      </div>}
       <Tooltip ref={tipRef} status={status} vpRef={vpRef} ax={ax} details={details} />
       {children}
     </main>

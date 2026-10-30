@@ -199,6 +199,14 @@ export default function CanvasEditor({ cv, ax, setAd, vpRef, ovRef, onClose }) {
               <Rng lbl="Blur" v={+s.shBlur || 0} min={0} max={10} step={0.5} on={v => t({ shBlur: v })} />
             </div>}
             <div className="cv-fx-row">
+              <label className="cv-chk"><input type="checkbox" checked={!!s.stColor} onChange={e => t(e.target.checked ? { stColor: '#000000', stOp: 100, stW: Math.round(size * 0.12 * 10) / 10 || 1 } : { stColor: undefined, stOp: undefined, stW: undefined })} /> Text stroke</label>
+              {s.stColor && <>
+                <label className="cv-col" title="Stroke colour"><input type="color" value={toHex(s.stColor)} onChange={e => t({ stColor: e.target.value })} aria-label="Stroke colour" /></label>
+                <Rng lbl="Width" v={+s.stW || 0} min={0} max={20} step={0.5} on={v => t({ stW: v })} />
+                <Rng lbl="Transparency" v={100 - (s.stOp ?? 100)} min={0} max={100} step={1} unit="%" on={v => t({ stOp: 100 - v })} />
+              </>}
+            </div>
+            <div className="cv-fx-row">
               <label className="cv-chk"><input type="checkbox" checked={!!s.bgColor} onChange={e => t(e.target.checked ? { bgColor: '#ffffff', bgOp: 80 } : { bgColor: undefined, bgOp: undefined })} /> Text BG colour</label>
               {s.bgColor && <>
                 <label className="cv-col" title="Text background colour"><input type="color" value={toHex(s.bgColor)} onChange={e => t({ bgColor: e.target.value })} aria-label="Text background colour" /></label>

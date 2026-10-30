@@ -1,3 +1,4 @@
+import { downloadMap } from './mapDownload.js';
 import { forwardRef, memo, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { P as V_P, G as V_G, LB as V_LB } from './data.js';
 import { COMPANY, LAYOUT, PROJECT } from './config.js';
@@ -261,6 +262,8 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
     const id = hit[0]; setMsg(''); setSel(id); setSearchOpen(false); view.current.focusOn(id);
     setTimeout(() => { const r = vpRef.current.getBoundingClientRect(); tipRef.current.show(id, r.left + r.width / 2, r.top + r.height * 0.4); }, 450);
   };
+  const [dlOpen, setDlOpen] = useState(false), [dlBusy, setDlBusy] = useState(false);
+  const doDl = async (plain) => { setDlOpen(false); setDlBusy(true); try { await downloadMap(ovRef.current, { plain, name: (geometry?.key || 'plotmap') }); } catch (e) { console.error(e); alert('Download failed. Please try again.'); } setDlBusy(false); };
   const chips = [['a', 'var(--av)'], ['b', 'var(--bk)'], ['s', 'var(--sd)']];
 
   return (
@@ -294,6 +297,16 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
             <div className="chip status-chip"><i style={{ background: 'var(--bk)' }} /><span className="l">Booked</span><span className="c">{n.b}</span></div>
             <div className="chip status-chip"><i style={{ background: 'var(--sd)' }} /><span className="l">Sold</span><span className="c">{n.s}</span></div>
           </div>
+        </div>
+        <div className="dl-wrap">
+          <button type="button" className="dl-btn" aria-haspopup="menu" aria-expanded={dlOpen} disabled={dlBusy} onClick={() => setDlOpen((o) => !o)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14" /></svg>
+            <span>{dlBusy ? 'Preparing…' : 'Download'}</span>
+          </button>
+          {dlOpen && <div className="dl-menu" role="menu">
+            <button type="button" role="menuitem" onClick={() => doDl(false)}>Download the plotmap<small>With Reserved, Booked &amp; Sold</small></button>
+            <button type="button" role="menuitem" onClick={() => doDl(true)}>Download plain plotmap<small>Plain map, no status colours</small></button>
+          </div>}
         </div>
         <div className={'sw' + (searchOpen ? ' mobile-search-open' : '')}>
           <label className="search fl">

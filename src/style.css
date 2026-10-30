@@ -908,3 +908,14 @@ svg.saraswathi-map text.saraswathi-dimension {
 
 /* Shanmuga Avenue children's park */
 svg.saraswathi-map .pk { fill: #a5d18a; }
+
+/* Admin "Unit plot color" must override the compact-map (Saraswathi / Shanmuga) default green, same as Velavan Nagar. */
+svg.saraswathi-map path.p.cc,
+svg.saraswathi-map path.p.cc.a,
+svg.saraswathi-map path.p.cc.a.pm,
+svg.saraswathi-map path.p.cc.a.dim,
+svg.saraswathi-map path.p.cc.a.pm.dim,
+svg.saraswathi-map path.p.cc:hover,
+svg.saraswathi-map path.p.cc.a:hover,
+svg.saraswathi-map path.p.cc.r:hover { fill: var(--custom-fill) !important; fill-opacity: 1; }
+svg.saraswathi-map path.p.cc:hover { filter: brightness(1.12); }

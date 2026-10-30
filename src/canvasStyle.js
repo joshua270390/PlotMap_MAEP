@@ -73,3 +73,43 @@ export function toHex(c) {
   if (!m || m.length < 3) return '#000000';
   return '#' + m.slice(0, 3).map(v => Math.round(+v).toString(16).padStart(2, '0')).join('');
 }
+
+// ---- Text effects (shadow + background) ----
+export const hasShadow = s => !!(s && s.shColor);
+export const fxId = k => 'tf-' + String(k).replace(/[^\w-]/g, '_');
+
+// ---- Keep plot texts inside their plot ----
+const insetCorners = (b, f = 0.18) => {
+  const ix = b.width * f, iy = b.height * f;
+  return [[b.x + ix, b.y + iy], [b.x + b.width - ix, b.y + iy], [b.x + ix, b.y + b.height - iy], [b.x + b.width - ix, b.y + b.height - iy]];
+};
+const toPath = (text, path, pts) => {
+  const m = path.getScreenCTM().inverse().multiply(text.getScreenCTM());
+  return pts.map(([x, y]) => { const p = new DOMPoint(x, y).matrixTransform(m); return new DOMPoint(p.x, p.y); });
+};
+// The plot (path[data-id]) a text currently sits in, or null (road names etc.).
+export function plotOfText(text) {
+  const svg = text.ownerSVGElement; if (!svg) return null;
+  const b = text.getBBox();
+  for (const p of svg.querySelectorAll('path[data-id]')) {
+    const [c] = toPath(text, p, [[b.x + b.width / 2, b.y + b.height / 2]]);
+    if (p.isPointInFill(c)) return p;
+  }
+  return null;
+}
+// All (inset) corners inside the plot? Falls back to the centre if the text is bigger than the plot.
+export function textFits(text, path, strict) {
+  const b = text.getBBox();
+  const pts = strict ? insetCorners(b) : [[b.x + b.width / 2, b.y + b.height / 2]];
+  return toPath(text, path, pts).every(p => path.isPointInFill(p));
+}
+// Try moving a text wrapper to (dx,dy); stays inside its plot. Returns the accepted [dx,dy].
+export function constrainMove(wrap, text, path, s, dx, dy, last) {
+  const set = (x, y) => { const t = tWrap({ ...s, dx: x, dy: y }, wrap.dataset.cx, wrap.dataset.cy); if (t) wrap.setAttribute('transform', t); else wrap.removeAttribute('transform'); };
+  if (!path) { set(dx, dy); return [dx, dy]; }
+  set(last[0], last[1]);
+  const strict = textFits(text, path, true);
+  for (const [x, y] of [[dx, dy], [dx, last[1]], [last[0], dy]]) { set(x, y); if (textFits(text, path, strict)) return [x, y]; }
+  set(last[0], last[1]);
+  return last;
+}

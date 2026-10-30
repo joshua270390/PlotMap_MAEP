@@ -1,13 +1,14 @@
 // Canva-style selection box + floating toolbar for the admin map editor.
 // Works for every project because it only relies on data-tk (text), data-sk (road/ground) and data-id (plot).
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { FONTS, patchText, resetText, setPlotFill, setShapeFill, snapAngle, tWrap, toHex } from './canvasStyle.js';
+import { FONTS, constrainMove, plotOfText, patchText, resetText, setPlotFill, setShapeFill, snapAngle, tWrap, toHex } from './canvasStyle.js';
 
 const sel = (kind, key) => kind === 'text' ? `[data-tk="${key}"]` : kind === 'plot' ? `path[data-id="${key}"]` : `[data-sk="${key}"]`;
 
 export default function CanvasEditor({ cv, ax, setAd, vpRef, ovRef, onClose }) {
   const boxRef = useRef(null), barRef = useRef(null), geo = useRef(null), act = useRef(null);
   const [base, setBase] = useState(null);
+  const [fx, setFx] = useState(false);
   const items = cv ? (cv.items || [cv]) : [];
   const kOf = o => o.kind === 'plot' ? o.id : o.key;
   const texts = items.filter(o => o.kind === 'text').map(kOf);
@@ -81,6 +82,30 @@ export default function CanvasEditor({ cv, ax, setAd, vpRef, ovRef, onClose }) {
     return () => cancelAnimationFrame(raf);
   }, [kind, key, sig]);
 
+  // Keyboard arrows move the selected text(s); Shift = bigger steps. Plot texts stay inside their plot.
+  const keyRef = useRef(null);
+  keyRef.current = { texts, ad: ax.ad, setAd, root: ovRef.current };
+  useEffect(() => {
+    const onKey = e => {
+      const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+      if (!d || e.ctrlKey || e.metaKey || e.altKey) return;
+      const ae = document.activeElement; if (ae && (/^(TEXTAREA|SELECT)$/.test(ae.tagName) || ae.isContentEditable || (ae.tagName === 'INPUT' && !/^(checkbox|color|button|radio)$/.test(ae.type)))) return;
+      const { texts: ks, ad, setAd: sa, root } = keyRef.current;
+      if (!ks.length || !root) return;
+      e.preventDefault();
+      const step = e.shiftKey ? 10 : 1, out = {};
+      ks.forEach(k => {
+        const text = root.querySelector(`[data-tk="${k}"]`), wrap = text?.closest('[data-tw]'); if (!wrap) return;
+        const st = ad.textStyles?.[k] || {}, x = +st.dx || 0, y = +st.dy || 0;
+        const [nx, ny] = constrainMove(wrap, text, plotOfText(text), st, x + d[0] * step, y + d[1] * step, [x, y]);
+        if (nx !== x || ny !== y) out[k] = { dx: Math.round(nx * 10) / 10, dy: Math.round(ny * 10) / 10 };
+      });
+      if (Object.keys(out).length) sa(a => Object.keys(out).reduce((n, k) => patchText(n, k, out[k]), a));
+    };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, []);
+
   if (!cv) return null;
 
   // ---- handles: resize (corners) and rotate (top) for text ----
@@ -126,6 +151,9 @@ export default function CanvasEditor({ cv, ax, setAd, vpRef, ovRef, onClose }) {
   const f0 = fills[fills.length - 1];
   const fill = !f0 ? null : f0.kind === 'plot' ? ax.ad.colors?.[f0.id] : ax.ad.shapeFills?.[f0.key];
   const setFill = c => setAd(ad => fills.reduce((n, o) => o.kind === 'plot' ? setPlotFill(n, o.id, c) : setShapeFill(n, o.key, c), ad));
+  const nameOf = o => o.kind === 'plot' ? 'Plot No: ' + ax.lbl(o.id) : String(o.key).startsWith('rd') ? 'Road' : String(o.key).startsWith('pk') ? 'Empty Land' : 'Ground';
+  const fillLbl = !fills.length ? '' : fills.length === 1 ? nameOf(fills[0]) : fills.slice(0, 3).map(nameOf).join(', ') + (fills.length > 3 ? ' +' + (fills.length - 3) : '');
+
 
   return (
     <>
@@ -154,15 +182,45 @@ export default function CanvasEditor({ cv, ax, setAd, vpRef, ovRef, onClose }) {
           <button type="button" className={'cv-b' + (italic ? ' on' : '')} aria-pressed={italic} onClick={() => t({ italic: !italic || undefined })} aria-label="Italic"><i>I</i></button>
           <button type="button" className={'cv-b' + (underline ? ' on' : '')} aria-pressed={underline} onClick={() => t({ underline: !underline || undefined })} aria-label="Underline"><u>U</u></button>
           <span className="cv-sep" />
+          <button type="button" className={'cv-txt' + (fx ? ' on' : '')} aria-pressed={fx} onClick={() => setFx(v => !v)}>Effects</button>
           <button type="button" className="cv-txt" onClick={() => setAd(ad => texts.reduce((n, k) => resetText(n, k), ad))}>Reset</button>
+          {fx && <div className="cv-fx">
+            <div className="cv-fx-row">
+              <label className="cv-chk"><input type="checkbox" checked={!!s.shColor} onChange={e => t(e.target.checked ? { shColor: '#000000', shOp: 50, shX: Math.round(size * 0.08 * 10) / 10 || 1, shY: Math.round(size * 0.08 * 10) / 10 || 1, shBlur: Math.round(size * 0.06 * 10) / 10 || 0.5 } : { shColor: undefined, shOp: undefined, shX: undefined, shY: undefined, shBlur: undefined })} /> Text shadow</label>
+              {s.shColor && <>
+                <label className="cv-col" title="Shadow colour"><input type="color" value={toHex(s.shColor)} onChange={e => t({ shColor: e.target.value })} aria-label="Shadow colour" /></label>
+                <Rng lbl="Transparency" v={100 - (s.shOp ?? 100)} min={0} max={100} step={1} unit="%" on={v => t({ shOp: 100 - v })} />
+              </>}
+            </div>
+            {s.shColor && <div className="cv-fx-row">
+              <span className="cv-sub">Position</span>
+              <Rng lbl="X" v={+s.shX || 0} min={-20} max={20} step={0.5} on={v => t({ shX: v })} />
+              <Rng lbl="Y" v={+s.shY || 0} min={-20} max={20} step={0.5} on={v => t({ shY: v })} />
+              <Rng lbl="Blur" v={+s.shBlur || 0} min={0} max={10} step={0.5} on={v => t({ shBlur: v })} />
+            </div>}
+            <div className="cv-fx-row">
+              <label className="cv-chk"><input type="checkbox" checked={!!s.bgColor} onChange={e => t(e.target.checked ? { bgColor: '#ffffff', bgOp: 80 } : { bgColor: undefined, bgOp: undefined })} /> Text BG colour</label>
+              {s.bgColor && <>
+                <label className="cv-col" title="Text background colour"><input type="color" value={toHex(s.bgColor)} onChange={e => t({ bgColor: e.target.value })} aria-label="Text background colour" /></label>
+                <Rng lbl="Transparency" v={100 - (s.bgOp ?? 100)} min={0} max={100} step={1} unit="%" on={v => t({ bgOp: 100 - v })} />
+              </>}
+            </div>
+            <div className="cv-fx-hint">Arrow keys move text · Shift + arrow = faster</div>
+          </div>}
         </>}
         {fills.length > 0 && <>
           {texts.length > 0 && <span className="cv-sep" />}
+          {fillLbl && <span className="cv-lbl" title={fillLbl}>{fillLbl}</span>}
           <label className="cv-col" title="Background colour"><input type="color" value={fill || '#c7dfc7'} onChange={e => setFill(e.target.value)} aria-label="Background colour" /></label>
           <button type="button" className="cv-txt" onClick={() => setFill(null)}>Reset</button>
         </>}
+
         <button type="button" className="cv-x" onClick={onClose} aria-label="Close selection">×</button>
       </div>
     </>
   );
+}
+
+function Rng({ lbl, v, min, max, step, unit = '', on }) {
+  return <label className="cv-rng"><span>{lbl}</span><input type="range" min={min} max={max} step={step} value={v} onChange={e => on(+e.target.value)} aria-label={lbl} /><em>{v}{unit}</em></label>;
 }

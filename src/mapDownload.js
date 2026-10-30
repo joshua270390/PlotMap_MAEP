@@ -9,7 +9,7 @@ const toDataUrl = (url) => fetch(url).then((r) => r.blob()).then((b) => new Prom
   const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = () => res(url); fr.readAsDataURL(b);
 })).catch(() => url);
 
-export async function downloadMap(svg, { plain = false, name = 'plotmap' } = {}) {
+export async function downloadMap(svg, { plain = false, name = 'plotmap', title = name, subtitle = '' } = {}) {
   if (!svg) return;
   const live = [svg, ...svg.querySelectorAll('*')];
   const swapped = [];
@@ -36,13 +36,39 @@ export async function downloadMap(svg, { plain = false, name = 'plotmap' } = {})
       el.style.fill = styles[i].find(([p]) => p === 'fill')[1];
     }
   });
-  clone.querySelectorAll('[data-enquiry-pin], title').forEach((n) => n.remove());
+  clone.querySelectorAll('[data-enquiry-pin], title, .trees').forEach((n) => n.remove());
+  if (plain) {
+    clone.querySelectorAll('path.p').forEach((plot) => {
+      plot.style.setProperty('fill', '#ffffff', 'important');
+      plot.style.setProperty('fill-opacity', '1', 'important');
+      plot.style.removeProperty('--custom-fill');
+    });
+  }
   await Promise.all([...clone.querySelectorAll('image')].map(async (im) => {
     const h = im.getAttribute('href') || im.getAttribute('xlink:href');
     if (h && !h.startsWith('data:')) im.setAttribute('href', await toDataUrl(h));
   }));
 
   const vb = (svg.getAttribute('viewBox') || '0 0 1000 1000').split(/[ ,]+/).map(Number);
+  const headerH = Math.max(110, vb[2] * 0.045);
+  const header = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  const heading = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  heading.setAttribute('x', String(vb[0] + vb[2] / 2)); heading.setAttribute('y', String(vb[1] + headerH * 0.43));
+  heading.setAttribute('text-anchor', 'middle'); heading.setAttribute('font-family', 'Arial, sans-serif');
+  heading.setAttribute('font-size', String(Math.max(34, vb[2] * 0.026))); heading.setAttribute('font-weight', '700'); heading.setAttribute('fill', '#172033');
+  heading.textContent = title || 'Plot Map'; header.appendChild(heading);
+  if (subtitle) {
+    const sub = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    sub.setAttribute('x', String(vb[0] + vb[2] / 2)); sub.setAttribute('y', String(vb[1] + headerH * 0.72));
+    sub.setAttribute('text-anchor', 'middle'); sub.setAttribute('font-family', 'Arial, sans-serif');
+    sub.setAttribute('font-size', String(Math.max(20, vb[2] * 0.014))); sub.setAttribute('font-weight', '500'); sub.setAttribute('fill', '#64748b');
+    sub.textContent = subtitle; header.appendChild(sub);
+  }
+  const rule = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  rule.setAttribute('d', `M${vb[0] + vb[2] * 0.04} ${vb[1] + headerH * 0.9} H${vb[0] + vb[2] * 0.96}`);
+  rule.setAttribute('stroke', '#d8dee8'); rule.setAttribute('stroke-width', String(Math.max(2, vb[2] * 0.001))); header.appendChild(rule);
+  clone.insertBefore(header, clone.firstChild);
+  clone.setAttribute('viewBox', `${vb[0]} ${vb[1] - headerH} ${vb[2]} ${vb[3] + headerH}`);
   const scale = Math.min(4, Math.max(1, 5000 / vb[2]));
   const W = Math.round(vb[2] * scale), H = Math.round(vb[3] * scale);
   clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');

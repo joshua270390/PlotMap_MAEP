@@ -3,10 +3,28 @@ import { P as V_P, G as V_G, LB as V_LB } from './data.js';
 import { COMPANY, LAYOUT, PROJECT } from './config.js';
 import { NAMES, PM, cents, inr } from './plots.js';
 import CanvasEditor from './CanvasEditor.jsx';
-import { tStyle, tWrap } from './canvasStyle.js';
+import { constrainMove, fxId, hasShadow, plotOfText, tStyle, tWrap } from './canvasStyle.js';
 
 // Editable text wrapper: move/rotate lives on the <g>, look lives on the <text>.
-const ET = ({ k, s, cx, cy, children }) => <g data-tw={k} data-cx={cx} data-cy={cy} transform={tWrap(s, cx, cy)}>{children}</g>;
+// Optional text background (rect sized to the text) and text shadow (SVG drop shadow).
+const ET = ({ k, s, cx, cy, children }) => {
+  const rr = useRef(null), gr = useRef(null);
+  const sh = hasShadow(s), bg = s && s.bgColor;
+  useLayoutEffect(() => {
+    if (!bg || !rr.current || !gr.current) return;
+    const t = gr.current.querySelector('text'); if (!t) return;
+    const b = t.getBBox(), px = b.height * 0.22, py = b.height * 0.08, r = rr.current;
+    r.setAttribute('x', b.x - px); r.setAttribute('y', b.y - py); r.setAttribute('width', b.width + px * 2); r.setAttribute('height', b.height + py * 2);
+    r.setAttribute('rx', b.height * 0.15);
+    const tf = t.getAttribute('transform'); if (tf) r.setAttribute('transform', tf); else r.removeAttribute('transform');
+  });
+  const op = v => v == null ? 1 : Math.max(0, Math.min(100, +v)) / 100;
+  return <g data-tw={k} data-cx={cx} data-cy={cy} transform={tWrap(s, cx, cy)}>
+    {sh && <filter id={fxId(k)} x="-100%" y="-100%" width="300%" height="300%"><feDropShadow dx={+s.shX || 0} dy={+s.shY || 0} stdDeviation={+s.shBlur || 0} floodColor={s.shColor} floodOpacity={op(s.shOp)} /></filter>}
+    {bg && <rect ref={rr} className="tbg" fill={s.bgColor} fillOpacity={op(s.bgOp)} pointerEvents="none" />}
+    {sh || bg ? <g ref={gr} filter={sh ? `url(#${fxId(k)})` : undefined}>{children}</g> : children}
+  </g>;
+};
 
 const TREE = `<symbol id="tr1" viewBox="0 0 100 120"><ellipse cx="50" cy="111" rx="30" ry="7" fill="rgba(0,0,0,.24)"/><path class="tk" d="M44 112 L47 66 L53 66 L56 112Z"/><path class="tk" d="M50 88 L36 72 L40 70 L50 80Z"/><circle class="g1" cx="50" cy="46" r="34"/><circle class="g1" cx="25" cy="62" r="22"/><circle class="g1" cx="75" cy="62" r="22"/><circle class="g2" cx="48" cy="42" r="28"/><circle class="g2" cx="28" cy="57" r="16"/><circle class="g2" cx="72" cy="57" r="16"/><circle class="g3" cx="40" cy="32" r="13"/><circle class="g3" cx="63" cy="44" r="9"/><circle class="g3" cx="25" cy="52" r="7"/></symbol>`;
 
@@ -161,7 +179,7 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
       if (ptr.size === 1) {
         moved = 0; tgt = e.target.closest('[data-id]'); tgtD = e.target.closest('[data-dm]'); tgtT = e.target.closest('[data-tk]'); tgtS = e.target.closest('[data-sk]');
         const wrap = tgtT && tgtT.closest('[data-tw]');
-        drag = cb.current.admin && wrap ? { key: tgtT.dataset.tk, wrap, sx: e.clientX, sy: e.clientY, base: cb.current.ax.ad.textStyles?.[tgtT.dataset.tk] || {}, ddx: 0, ddy: 0 } : null;
+        drag = cb.current.admin && wrap ? { key: tgtT.dataset.tk, wrap, text: tgtT, plot: plotOfText(tgtT), sx: e.clientX, sy: e.clientY, base: cb.current.ax.ad.textStyles?.[tgtT.dataset.tk] || {}, ddx: 0, ddy: 0 } : null;
       }
       else { const a = [...ptr.values()]; pd = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); moved = 99; }
     };
@@ -179,9 +197,9 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
         const dx = e.clientX - p.x, dy = e.clientY - p.y; moved += Math.abs(dx) + Math.abs(dy);
         if (drag) {
           if (moved > 6) {
-            drag.ddx = (e.clientX - drag.sx) / v.s; drag.ddy = (e.clientY - drag.sy) / v.s;
-            const b = drag.base, t = tWrap({ ...b, dx: (+b.dx || 0) + drag.ddx, dy: (+b.dy || 0) + drag.ddy }, drag.wrap.dataset.cx, drag.wrap.dataset.cy);
-            if (t) drag.wrap.setAttribute('transform', t); else drag.wrap.removeAttribute('transform');
+            const b = drag.base, bx = +b.dx || 0, by = +b.dy || 0;
+            const [nx, ny] = constrainMove(drag.wrap, drag.text, drag.plot, b, bx + (e.clientX - drag.sx) / v.s, by + (e.clientY - drag.sy) / v.s, [bx + drag.ddx, by + drag.ddy]);
+            drag.ddx = nx - bx; drag.ddy = ny - by;
           }
         } else { v.tx += dx; v.ty += dy; apply(); }
       } else if (ptr.size === 2) {

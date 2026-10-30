@@ -58,9 +58,31 @@ export async function downloadMap(svg, { plain = false, name = 'plotmap' } = {})
   g.fillRect(0, 0, W, H);
   g.drawImage(img, 0, 0, W, H);
   URL.revokeObjectURL(url);
-  const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
+  const jpg = new Uint8Array(await (await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.95))).arrayBuffer());
+  const blob = jpegToPdf(jpg, W, H);
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = `${name}${plain ? '-plain' : ''}.png`;
+  a.href = URL.createObjectURL(blob); a.download = `${name}${plain ? '-plain' : ''}.pdf`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+}
+
+// Build a one-page PDF holding the map picture (no extra library needed).
+function jpegToPdf(jpg, W, H) {
+  const M = 24, max = 1190 - M * 2; // A3-size long side
+  const k = max / Math.max(W, H), iw = +(W * k).toFixed(2), ih = +(H * k).toFixed(2);
+  const pw = iw + M * 2, ph = ih + M * 2;
+  const enc = new TextEncoder(), parts = [], offs = [];
+  let len = 0;
+  const put = (x) => { const b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); len += b.length; };
+  const content = `q ${iw} 0 0 ${ih} ${M} ${M} cm /Im0 Do Q`;
+  put('%PDF-1.4\n');
+  const obj = (n, body, stream) => { offs[n] = len; put(`${n} 0 obj\n${body}\n`); if (stream) { put('stream\n'); put(stream); put('\nendstream\n'); } put('endobj\n'); };
+  obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+  obj(3, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pw} ${ph}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`);
+  obj(4, `<< /Type /XObject /Subtype /Image /Width ${W} /Height ${H} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpg.length} >>`, jpg);
+  obj(5, `<< /Length ${content.length} >>`, content);
+  const x = len;
+  put(`xref\n0 6\n0000000000 65535 f \n${[1, 2, 3, 4, 5].map((n) => String(offs[n]).padStart(10, '0') + ' 00000 n \n').join('')}trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${x}\n%%EOF`);
+  return new Blob(parts, { type: 'application/pdf' });
 }

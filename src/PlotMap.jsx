@@ -263,7 +263,7 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
     setTimeout(() => { const r = vpRef.current.getBoundingClientRect(); tipRef.current.show(id, r.left + r.width / 2, r.top + r.height * 0.4); }, 450);
   };
   const [dlOpen, setDlOpen] = useState(false), [dlBusy, setDlBusy] = useState(false);
-  const doDl = async (plain) => { setDlOpen(false); setDlBusy(true); try { await downloadMap(ovRef.current, { plain, name: (geometry?.key || 'plotmap') }); } catch (e) { console.error(e); alert('Download failed. Please try again.'); } setDlBusy(false); };
+  const doDl = async (plain) => { setDlOpen(false); setDlBusy(true); try { await downloadMap(ovRef.current, { plain, name: (geometry?.key || 'plotmap'), title: (projectName || PROJECT), subtitle: (layoutName || LAYOUT) }); } catch (e) { console.error(e); alert('Download failed. Please try again.'); } setDlBusy(false); };
   const chips = [['a', 'var(--av)'], ['b', 'var(--bk)'], ['s', 'var(--sd)']];
 
   return (

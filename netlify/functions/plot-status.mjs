@@ -12,6 +12,7 @@ function config() {
     key: (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || "").trim(),
     projectId: String(parseInt(process.env.PROJECT_ID || "1", 10)),
     bookingsTable: process.env.BOOKINGS_TABLE || "bookings",
+    employeesTable: process.env.EMPLOYEES_TABLE || "employees",
     plotsTable: process.env.PLOTS_TABLE || "plots",
   };
 }
@@ -40,6 +41,12 @@ export default async function handler(request) {
   const adminAuthorized = Boolean(cfg.pin) && request.headers.get("x-admin-pin") === cfg.pin;
   const employeeClaims = verifyEmployeeToken(request.headers.get("x-employee-token"), process.env.EMPLOYEE_SESSION_SECRET || "");
   if (!adminAuthorized && !employeeClaims) return json({ ok: false, error: "Sign in with an authorized Admin or Employee account." }, 401);
+  if (employeeClaims) {
+    const employeeQuery = new URLSearchParams({ select: "id,active", id: "eq." + employeeClaims.sub, limit: "1" });
+    const employeeCheck = await db(cfg, "GET", cfg.employeesTable, employeeQuery.toString());
+    if (!employeeCheck.ok || !employeeCheck.data?.length || employeeCheck.data[0].active === false)
+      return json({ ok: false, error: "Employee account is no longer active. Please contact the Admin." }, 401);
+  }
   if (!cfg.url || !cfg.key) return json({ ok: false, error: "Plot status updates are not configured on the server." }, 500);
 
   let body; try { body = await request.json(); } catch { body = null; }

@@ -41,7 +41,7 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
   const redo = useCallback(() => { const next = future.current.pop(); if (!next) return; past.current.push(adRef.current); adRef.current = next; setAd(next); bump(x => x + 1); }, []);
   const [adminEnquiries, setAdminEnquiries] = useState([]);
   const [userMode, setUserMode] = useState(false);
-  const [checkingUserSession, setCheckingUserSession] = useState(() => window.sessionStorage.getItem('maep_user_mode') === 'true');
+  const [checkingUserSession, setCheckingUserSession] = useState(() => window.sessionStorage.getItem('maep_user_mode') === 'true' || Boolean(window.sessionStorage.getItem('maep_employee_token')));
   const [panel, setPanel] = useState('off');         // 'off' | 'lock' | 'tools'
   const [adminPin, setAdminPin] = useState('');
   const [employeeToken, setEmployeeToken] = useState(() => window.sessionStorage.getItem('maep_employee_token') || '');

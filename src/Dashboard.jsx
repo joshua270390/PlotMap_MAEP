@@ -144,14 +144,7 @@ export default function Dashboard() {
     let cancelled = false;
     (async () => {
       try {
-        if (role === 'employee') {
-        const response = await fetch('/api/employee-auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: employeeUsername, password: employeePassword }) });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.ok) throw new Error(data.error || 'Employee login failed.');
-        window.sessionStorage.setItem('maep_employee_token', data.token); window.sessionStorage.setItem('maep_employee_username', data.username);
-        window.sessionStorage.removeItem('maep_admin_pin'); setEmployeeToken(data.token); setUserName(data.username); setLoggedIn(true); setAuthChecking(false); setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return;
-      }
-      const response = await fetch('/api/admin-auth', {
+        const response = await fetch('/api/admin-auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pin: savedPin }),
@@ -232,6 +225,14 @@ export default function Dashboard() {
         window.history.replaceState({}, '', '/plot_lists');
         setNotice('Welcome. You can view plot lists and submit enquiries.');
         return;
+      }
+      if (role === 'employee') {
+        const response = await fetch('/api/employee-auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: employeeUsername, password: employeePassword }) });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) throw new Error(data.error || 'Employee login failed.');
+        window.sessionStorage.setItem('maep_employee_token', data.token); window.sessionStorage.setItem('maep_employee_username', data.username);
+        window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_mode');
+        setEmployeeToken(data.token); setUserName(data.username); setLoggedIn(true); setAuthChecking(false); setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return;
       }
       const response = await fetch('/api/admin-auth', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -336,7 +337,7 @@ export default function Dashboard() {
           <h1>Sign in</h1>
           <p className="login-copy">{role === 'admin' ? 'Sign in with your Admin PIN.' : role === 'employee' ? 'Sign in with your employee username and password.' : 'Select User and sign in to view plot lists and submit enquiries.'}</p>
           <label htmlFor="login-role">Role</label>
-          <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setError(''); setNotice(''); setPin(''); }}><option value="admin">Admin</option><option value="employee">Employee</option><option value="user">User</option></select>
+          <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setError(''); setNotice(''); setPin(''); setEmployeeUsername(''); setEmployeePassword(''); }}><option value="admin">Admin</option><option value="employee">Employee</option><option value="user">User</option></select>
           {role === 'admin' && <><label htmlFor="admin-pin">Admin PIN</label><input id="admin-pin" type="password" inputMode="text" autoComplete="current-password" value={pin} onChange={e => setPin(e.target.value)} placeholder="Enter your Admin PIN" required maxLength={32} /></>}
           {role === 'employee' && <><label htmlFor="employee-username">Username</label><input id="employee-username" autoComplete="username" value={employeeUsername} onChange={e => setEmployeeUsername(e.target.value)} required /><label htmlFor="employee-password">Password</label><input id="employee-password" type="password" autoComplete="current-password" value={employeePassword} onChange={e => setEmployeePassword(e.target.value)} required /></>}
           {error && !(role === 'user' && error.includes('User access is not configured')) && <p className="dash-error" role="alert">{error}</p>}{notice && <p className="dash-notice" role="status">{notice}</p>}

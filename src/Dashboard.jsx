@@ -119,7 +119,7 @@ export default function Dashboard() {
         setPage('plots');
         return;
       }
-      const routes = ['/dashboard', '/bookings', '/plot_lists', '/users'];
+      const routes = ['/', '/dashboard', '/bookings', '/plot_lists', '/users'];
       if (!routes.includes(path)) {
         window.location.reload();
         return;

@@ -4,12 +4,12 @@ import App from './App.jsx';
 import Dashboard from './Dashboard.jsx';
 import './style.css';
 
-const dashboardPaths = ['/dashboard', '/bookings', '/plot_lists'];
+const dashboardPaths = ['/', '/dashboard', '/bookings', '/plot_lists'];
 const mapRoutes = new Set(['velavan_nagar', 'saraswathi_garden', 'shanmuga_avenue']);
 const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
 const isDashboard = dashboardPaths.includes(currentPath);
 const routeId = currentPath.slice(1);
-const isMapRoute = currentPath === '/' || mapRoutes.has(routeId);
+const isMapRoute = mapRoutes.has(routeId);
 
 // Keep dashboard routes separate; project slugs use the shared PlotMap page.
 // Unknown one-segment paths return to Plot Lists instead of silently showing

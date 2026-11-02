@@ -401,7 +401,7 @@ export default function Dashboard() {
 
                 </>
               ) : null}
-              <div className={page === 'dashboard' ? "dashboard-recent-layout" : "dashboard-recent-layout dashboard-recent-layout-single"}>
+              {page !== 'users' && <div className={page === 'dashboard' ? "dashboard-recent-layout" : "dashboard-recent-layout dashboard-recent-layout-single"}>
                 <div className="dashboard-recent-main">
               <div className="page-intro"><div><h2>{page === 'dashboard' ? 'Recent enquiries & bookings' : 'Bookings overview'}</h2><p>Review customer enquiries and manage unit availability.</p></div>{page !== 'dashboard' && <div className="record-count"><strong>{selectedProjectBookings.length}</strong><span>Total bookings</span></div>}</div>
               {page === 'bookings' && <div className="booking-project-tabs" role="tablist" aria-label="Filter bookings by project">
@@ -472,7 +472,7 @@ export default function Dashboard() {
                     </article>
                   </div>
                 )}
-              </div>
+              </div>}
             </>
           ) : (
             <section className="project-list-view" aria-label="Project list">

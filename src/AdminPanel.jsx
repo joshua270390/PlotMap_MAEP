@@ -42,7 +42,7 @@ function PlotEditor({ id, ax, setAd }) {
   );
 }
 
-function StatusEditor({ id, ax, status, setStatus, pin, token, setAd }) {
+function StatusEditor({ id, ax, status, setStatus, pin, token, employeeSession, setAd }) {
   const [value, setValue] = useState(({ a: 'Available', r: 'Reserved', b: 'Booked', s: 'Sold' })[status[id] || 'a']);
   const [m, setM] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -106,7 +106,7 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, setAd }) {
       <div className="sec">Availability status</div>
       <label><span>Plot status</span>
         <select value={value} onChange={e => { setValue(e.target.value); setM(null); setSelectedBookingId(''); }}>
-          <option value="Available">Availability</option><option value="Reserved">Reserved</option><option value="Booked">Booked</option><option value="Sold">Sold</option>
+          <option value="Available">Availability</option><option value="Reserved">Reserved</option>{!employeeSession && <><option value="Booked">Booked</option><option value="Sold">Sold</option></>}
         </select>
       </label>
       {['Booked', 'Sold'].includes(value) && <label><span>Reserved customer to {value.toLowerCase()}</span>
@@ -288,7 +288,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
             <div className="sec">Selected</div>
             <div className="card">
               {addMode ? <p className="hint">Click on the map where the new dimension label should go.</p>
-                : sel != null ? <><PlotEditor key={sel} id={sel} ax={ax} setAd={setAd} /><StatusEditor key={'status-' + sel} id={sel} ax={ax} status={status} setStatus={setStatus} pin={authPin} token={employeeToken} setAd={setAd} /></>
+                : sel != null ? <><PlotEditor key={sel} id={sel} ax={ax} setAd={setAd} /><StatusEditor key={'status-' + sel} id={sel} ax={ax} status={status} setStatus={setStatus} pin={authPin} token={employeeToken} employeeSession={employeeSession} setAd={setAd} /></>
                 : selD && ax.dmList().some(d => d.k === selD) ? <DmEditor key={selD} k={selD} ax={ax} setAd={setAd} onGone={clearSel} />
                 : <p className="hint">Click a plot or a dimension label on the map to edit it.</p>}
             </div>

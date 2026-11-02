@@ -204,7 +204,7 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
         customer={plotDetails[ax.lbl(closedPlot.id)] || plotDetails[String(closedPlot.id)] || {}}
         onClose={() => setClosedPlot(null)} />}
       {unit != null && !form && (
-        <UnitModal id={unit} ax={ax} status={status[unit]} setAd={setAdH} admin={adminAuthenticated} onClose={closeUnit} onEnquire={() => setForm(true)}
+        <UnitModal id={unit} ax={ax} status={status[unit]} setAd={setAdH} admin={adminAuthenticated && !employeeToken} onClose={closeUnit} onEnquire={() => setForm(true)}
           reservedCustomers={plotDetails[ax.lbl(unit)]?.reservedCustomers || plotDetails[String(unit)]?.reservedCustomers || []}
           onViewMap={() => { const id = unit; setUnit(null); setSel(id); mapRef.current.focusOn(id); }} />
       )}

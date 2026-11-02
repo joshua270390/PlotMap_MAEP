@@ -44,7 +44,8 @@ export function verifyEmployeeToken(token, secret) {
 }
 export default async function handler(request) {
   const c = cfg();
-  if (!c.url || !c.key || !c.secret) return json({ ok: false, error: "Employee login is not configured. Set Supabase and EMPLOYEE_SESSION_SECRET in Netlify." }, 500);
+  const missing = [!c.url && "SUPABASE_URL", !c.key && "SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_KEY)", !c.secret && "EMPLOYEE_SESSION_SECRET"].filter(Boolean);
+  if (missing.length) return json({ ok: false, error: "Employee login is not configured. Missing Netlify Function environment variable(s): " + missing.join(", ") + ". Check the Deploy Preview context and Functions scope." }, 500);
   if (!["POST", "GET", "PATCH", "DELETE"].includes(request.method)) return json({ ok: false, error: "Method not allowed" }, 405);
   const url = new URL(request.url), action = url.searchParams.get("action") || (request.method === "POST" ? "login" : "list");
   if (action === "login" && request.method === "POST") {

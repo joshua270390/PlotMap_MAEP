@@ -21,3 +21,19 @@ The `/api` route is missing where the page is running. On Vercel, open `https://
 - The enquiry sends the plot number shown on the map, so a renamed plot must have the same `plot_number` in the database.
 - Price rows are hidden while `RATE` in `src/config.js` is 0.
 - Enquiry protection: same-site check, honeypot, validation, best-effort rate limit per instance. Errors are in Vercel > Logs.
+
+
+## Employee map-editor accounts
+
+1. Run `supabase/employee-accounts.sql` once in the Supabase SQL Editor.
+2. In Netlify environment variables, configure:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY` (recommended; never expose this in client-side code)
+   - `ADMIN_PIN` (existing Admin PIN)
+   - `EMPLOYEE_SESSION_SECRET` (a private random secret; generate one with `openssl rand -base64 48`)
+   - Optional: `EMPLOYEES_TABLE=employees`
+3. Trigger a new Netlify deploy after setting the variables.
+
+Admins create employee accounts from Dashboard → Users. Employees sign in with their username and password and are restricted to Plot lists and map editing. Employee passwords are stored as scrypt hashes; employee sessions expire after 12 hours. Employee map-status changes are limited to Available and Reserved; Booked/Sold and all booking/customer APIs remain Admin-only.
+
+**Map edit persistence note:** existing plot geometry, labels, colours and rate edits are still saved in the browser's local storage, as before. An employee's geometry/label edits therefore remain on that browser unless exported/imported; this change does not introduce shared cross-device map-edit storage.

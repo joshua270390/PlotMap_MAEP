@@ -1,3 +1,4 @@
+import { verifyEmployeeToken } from "./employee-auth.mjs";
 const allowedStatuses = new Set(["Available", "Reserved", "Booked", "Sold"]);
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -11,6 +12,7 @@ function config() {
     key: (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || "").trim(),
     projectId: String(parseInt(process.env.PROJECT_ID || "1", 10)),
     bookingsTable: process.env.BOOKINGS_TABLE || "bookings",
+    employeesTable: process.env.EMPLOYEES_TABLE || "employees",
     plotsTable: process.env.PLOTS_TABLE || "plots",
   };
 }
@@ -36,7 +38,15 @@ async function db(cfg, method, table, query = "", body) {
 export default async function handler(request) {
   const cfg = config();
   if (request.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405);
-  if (!cfg.pin || request.headers.get("x-admin-pin") !== cfg.pin) return json({ ok: false, error: "Admin authentication failed. Please sign in again." }, 401);
+  const adminAuthorized = Boolean(cfg.pin) && request.headers.get("x-admin-pin") === cfg.pin;
+  const employeeClaims = verifyEmployeeToken(request.headers.get("x-employee-token"), process.env.EMPLOYEE_SESSION_SECRET || "");
+  if (!adminAuthorized && !employeeClaims) return json({ ok: false, error: "Sign in with an authorized Admin or Employee account." }, 401);
+  if (employeeClaims) {
+    const employeeQuery = new URLSearchParams({ select: "id,active", id: "eq." + employeeClaims.sub, limit: "1" });
+    const employeeCheck = await db(cfg, "GET", cfg.employeesTable, employeeQuery.toString());
+    if (!employeeCheck.ok || !employeeCheck.data?.length || employeeCheck.data[0].active === false)
+      return json({ ok: false, error: "Employee account is no longer active. Please contact the Admin." }, 401);
+  }
   if (!cfg.url || !cfg.key) return json({ ok: false, error: "Plot status updates are not configured on the server." }, 500);
 
   let body; try { body = await request.json(); } catch { body = null; }
@@ -48,6 +58,9 @@ export default async function handler(request) {
   const bookingId = String(body?.booking_id ?? "").trim();
   if (!/^[A-Za-z0-9-]{1,20}$/.test(plotNumber) || !allowedStatuses.has(status))
     return json({ ok: false, error: "Valid unit number and status are required." }, 422);
+
+  if (employeeClaims && ["Booked", "Sold"].includes(status))
+    return json({ ok: false, error: "Employee accounts can update map availability and Reserved status only. Admin access is required for Booked or Sold." }, 403);
 
   if (["Booked", "Sold"].includes(status) && !/^\d+$/.test(bookingId))
     return json({ ok: false, error: "Select a customer from this unit's Reserved customer list before marking it Booked or Sold." }, 422);

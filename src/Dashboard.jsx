@@ -20,17 +20,76 @@ const field = (row, ...keys) => {
   return '';
 };
 
+
+function EmployeeUsersPage({ pin, employees, setEmployees, employeeForm, setEmployeeForm, employeeDelete, setEmployeeDelete, setError, setNotice }) {
+  const [busy, setBusy] = useState(false);
+  const [showFormPassword, setShowFormPassword] = useState(false);
+  const load = async () => {
+    const response = await fetch('/api/employee-auth?action=list', { headers: { 'x-admin-pin': pin }, cache: 'no-store' });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load employees.');
+    setEmployees(data.employees || []);
+  };
+  useEffect(() => { load().catch(error => setError(error.message)); }, [pin]);
+  const save = async event => {
+    event.preventDefault(); if (busy) return; setBusy(true); setError(''); setNotice('');
+    try {
+      const editing = employeeForm.id != null;
+      const response = await fetch('/api/employee-auth?action=' + (editing ? 'update' : 'create'), {
+        method: editing ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
+        body: JSON.stringify(employeeForm),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not save employee.');
+      setEmployeeForm(null); setNotice(editing ? 'Employee updated.' : 'Employee created.'); await load();
+    } catch (error) { setError(error.message); } finally { setBusy(false); }
+  };
+  const remove = async () => {
+    if (!employeeDelete || busy) return; setBusy(true); setError('');
+    try {
+      const response = await fetch('/api/employee-auth?action=delete', { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin }, body: JSON.stringify({ id: employeeDelete.id }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not delete employee.');
+      setEmployeeDelete(null); setNotice('Employee deleted.'); await load();
+    } catch (error) { setError(error.message); } finally { setBusy(false); }
+  };
+  return <>
+    <div className="page-intro"><div><h2>Employee accounts</h2><p>Create and manage employee access to plot map editing.</p></div><button type="button" className="add-customer-btn" onClick={() => setEmployeeForm({ username: '', email: '', password: '' })}>Add Employee +</button></div>
+    <section className="table-card"><div className="table-scroll"><table className="data-table">
+      <thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Action</th></tr></thead>
+      <tbody>{employees.map(row => <tr key={row.id}><td><strong>{row.username}</strong></td><td>{row.username}</td><td>{row.email}</td><td><div className="row-actions"><button className="edit-btn" type="button" onClick={() => setEmployeeForm({ id: row.id, username: row.username, email: row.email, password: '' })}>Edit</button><button className="delete-btn" type="button" onClick={() => setEmployeeDelete(row)}>Delete</button></div></td></tr>)}
+      {!employees.length && <tr><td colSpan="4" className="empty-cell">No employee accounts created yet.</td></tr>}</tbody>
+    </table></div><div className="table-footer">Total employees: {employees.length}</div></section>
+    {employeeForm && <div className="edit-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !busy) setEmployeeForm(null); }}><form className="edit-modal" onSubmit={save}>
+      <button type="button" className="modal-close" onClick={() => setEmployeeForm(null)}>×</button><p className="eyebrow">EMPLOYEE ACCOUNT</p><h2>{employeeForm.id ? 'Edit employee' : 'Create employee'}</h2>
+      <label>Username<input value={employeeForm.username} onChange={e => setEmployeeForm(s => ({ ...s, username: e.target.value }))} required minLength="3" maxLength="40" /></label>
+      <label>Email<input type="email" value={employeeForm.email} onChange={e => setEmployeeForm(s => ({ ...s, email: e.target.value }))} required /></label>
+      <label>Password<div className="password-field"><input type={showFormPassword ? 'text' : 'password'} value={employeeForm.password} onChange={e => setEmployeeForm(s => ({ ...s, password: e.target.value }))} required={!employeeForm.id} minLength="8" placeholder={employeeForm.id ? 'Leave blank to keep current password' : 'At least 8 characters'} /><button type="button" className="password-toggle" aria-label={showFormPassword ? 'Hide password' : 'Show password'} aria-pressed={showFormPassword} onClick={() => setShowFormPassword(value => !value)}>{showFormPassword ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.9 5.2A10.8 10.8 0 0112 5c5.2 0 9 4.6 10 7-.4 1-1.4 2.4-3 3.7M6.2 6.2C3.9 7.6 2.5 9.6 2 12c1 2.4 4.8 7 10 7 1 0 2-.2 2.9-.5" /></svg> : <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>}</button></div></label>
+      <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setEmployeeForm(null)}>Cancel</button><button className="primary-btn" disabled={busy}>{busy ? 'Saving…' : 'Save employee'}</button></div>
+    </form></div>}
+    {employeeDelete && <div className="edit-overlay confirm-overlay" role="presentation"><section className="confirm-modal" role="alertdialog" aria-modal="true"><div className="confirm-icon">!</div><p className="eyebrow">CONFIRM ACTION</p><h2>Delete employee?</h2><p>Are you sure you want to delete <strong>{employeeDelete.username}</strong>? This action cannot be undone.</p><div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setEmployeeDelete(null)} disabled={busy}>Cancel</button><button type="button" className="confirm-delete-btn" onClick={remove} disabled={busy}>{busy ? 'Deleting…' : 'Yes, delete'}</button></div></section></div>}
+  </>;
+}
+
 export default function Dashboard() {
   useEffect(() => {
     document.body.classList.add('dashboard-mode');
     return () => document.body.classList.remove('dashboard-mode');
   }, []);
   const [pin, setPin] = useState('');
+  const [employeeUsername, setEmployeeUsername] = useState('');
+  const [employeePassword, setEmployeePassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [employeeToken, setEmployeeToken] = useState(() => window.sessionStorage.getItem('maep_employee_token') || '');
+  const [employees, setEmployees] = useState([]);
+  const [employeeForm, setEmployeeForm] = useState(null);
+  const [employeeDelete, setEmployeeDelete] = useState(null);
   const [role, setRole] = useState('admin');
   const [userName, setUserName] = useState('');
   const [loggedIn, setLoggedIn] = useState(false);
-  const [authChecking, setAuthChecking] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_mode') || window.sessionStorage.getItem('maep_admin_pin')));
-  const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : 'dashboard'; });
+  const [authChecking, setAuthChecking] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_mode') || window.sessionStorage.getItem('maep_admin_pin') || window.sessionStorage.getItem('maep_employee_token')));
+  const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard'; });
   const [bookings, setBookings] = useState([]);
   const [plots, setPlots] = useState([]);
   const [mapPlotStatuses, setMapPlotStatuses] = useState({});
@@ -55,17 +114,17 @@ export default function Dashboard() {
   useEffect(() => {
     const syncRoute = () => {
       const path = window.location.pathname.replace(/\/+$/, '') || '/';
-      if (role === 'user') {
+      if (role !== 'admin') {
         if (path !== '/plot_lists') window.history.replaceState({}, '', '/plot_lists');
         setPage('plots');
         return;
       }
-      const routes = ['/dashboard', '/bookings', '/plot_lists'];
+      const routes = ['/dashboard', '/bookings', '/plot_lists', '/users'];
       if (!routes.includes(path)) {
         window.location.reload();
         return;
       }
-      setPage(path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : 'dashboard');
+      setPage(path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard');
     };
     window.addEventListener('popstate', syncRoute);
     return () => window.removeEventListener('popstate', syncRoute);
@@ -80,6 +139,8 @@ export default function Dashboard() {
       setAuthChecking(false);
       return;
     }
+    const savedEmployeeToken = window.sessionStorage.getItem('maep_employee_token');
+    if (savedEmployeeToken) { setRole('employee'); setEmployeeToken(savedEmployeeToken); setUserName(window.sessionStorage.getItem('maep_employee_username') || 'Employee'); setLoggedIn(true); setPage('plots'); if (window.location.pathname !== '/plot_lists') window.history.replaceState({}, '', '/plot_lists'); setAuthChecking(false); return; }
     const savedPin = window.sessionStorage.getItem('maep_admin_pin');
     if (!savedPin) { setAuthChecking(false); return; }
     let cancelled = false;
@@ -167,6 +228,14 @@ export default function Dashboard() {
         setNotice('Welcome. You can view plot lists and submit enquiries.');
         return;
       }
+      if (role === 'employee') {
+        const response = await fetch('/api/employee-auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: employeeUsername, password: employeePassword }) });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) throw new Error(data.error || 'Employee login failed.');
+        window.sessionStorage.setItem('maep_employee_token', data.token); window.sessionStorage.setItem('maep_employee_username', data.username);
+        window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_mode');
+        setEmployeeToken(data.token); setUserName(data.username); setLoggedIn(true); setAuthChecking(false); setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return;
+      }
       const response = await fetch('/api/admin-auth', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin }),
@@ -184,8 +253,8 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    if (loggedIn && role === 'user' && page !== 'plots') { setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return; }
-    if (loggedIn && role === 'admin' && page !== 'plots') loadData('bookings', pin);
+    if (loggedIn && role !== 'admin' && page !== 'plots') { setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return; }
+    if (loggedIn && role === 'admin' && page !== 'plots' && page !== 'users') loadData('bookings', pin);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, loggedIn, role]);
 
@@ -268,12 +337,13 @@ export default function Dashboard() {
         <form className="login-card" onSubmit={e => { e.preventDefault(); login(); }}>
           <img className="login-logo" src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" />
           <h1>Sign in</h1>
-          <p className="login-copy">{role === 'admin' ? 'Sign in with your Admin PIN.' : 'Select User and sign in to view plot lists and submit enquiries.'}</p>
+          <p className="login-copy">{role === 'admin' ? 'Sign in with your Admin PIN.' : role === 'employee' ? 'Sign in with your employee username and password.' : 'Select User and sign in to view plot lists and submit enquiries.'}</p>
           <label htmlFor="login-role">Role</label>
-          <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setError(''); setNotice(''); setPin(''); }}><option value="admin">Admin</option><option value="user">User</option></select>
+          <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setError(''); setNotice(''); setPin(''); setEmployeeUsername(''); setEmployeePassword(''); }}><option value="admin">Admin</option><option value="employee">Employee</option><option value="user">User</option></select>
           {role === 'admin' && <><label htmlFor="admin-pin">Admin PIN</label><input id="admin-pin" type="password" inputMode="text" autoComplete="current-password" value={pin} onChange={e => setPin(e.target.value)} placeholder="Enter your Admin PIN" required maxLength={32} /></>}
+          {role === 'employee' && <><label htmlFor="employee-username">Username</label><input id="employee-username" autoComplete="username" value={employeeUsername} onChange={e => setEmployeeUsername(e.target.value)} required /><label htmlFor="employee-password">Password</label><div className="password-field login-password-field"><input id="employee-password" type={showLoginPassword ? 'text' : 'password'} autoComplete="current-password" value={employeePassword} onChange={e => setEmployeePassword(e.target.value)} required /><button type="button" className="password-toggle" aria-label={showLoginPassword ? 'Hide password' : 'Show password'} aria-pressed={showLoginPassword} onClick={() => setShowLoginPassword(value => !value)}>{showLoginPassword ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.9 5.2A10.8 10.8 0 0112 5c5.2 0 9 4.6 10 7-.4 1-1.4 2.4-3 3.7M6.2 6.2C3.9 7.6 2.5 9.6 2 12c1 2.4 4.8 7 10 7 1 0 2-.2 2.9-.5" /></svg> : <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>}</button></div></>}
           {error && !(role === 'user' && error.includes('User access is not configured')) && <p className="dash-error" role="alert">{error}</p>}{notice && <p className="dash-notice" role="status">{notice}</p>}
-          <button className="primary-btn login-submit" disabled={saving || (role === 'admin' && !pin)}>{saving ? 'Please wait…' : 'Sign in'} <span>→</span></button>
+          <button className="primary-btn login-submit" disabled={saving || (role === 'admin' && !pin) || (role === 'employee' && (!employeeUsername || !employeePassword))}>{saving ? 'Please wait…' : 'Sign in'} <span>→</span></button>
         </form>
       </main>
     );
@@ -293,6 +363,7 @@ export default function Dashboard() {
         {role === 'admin' && <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); setSidebarOpen(false); }}>
           <span className="nav-icon">▤</span> Bookings
         </button>}
+        {role === 'admin' && <button className={'nav-item' + (page === 'users' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/users'); setPage('users'); setSidebarOpen(false); }}><span className="nav-icon">♙</span> Users</button>}
         <button className={'nav-item' + (page === 'plots' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/plot_lists'); setPage('plots'); setSidebarOpen(false); }}>
           <span className="nav-icon">▦</span> Plot lists
         </button>
@@ -301,14 +372,14 @@ export default function Dashboard() {
       <main className="dashboard-main">
         <header className="dashboard-topbar">
           <div className="dashboard-mobile-brand-row"><a className="dashboard-mobile-brand" href="/dashboard" aria-label="Mary Ann dashboard home"><img src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" /></a><button type="button" className="dashboard-menu-toggle" aria-label="Open navigation menu" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(true)}><span></span><span></span><span></span></button></div>
-          <div className="dashboard-heading-group"><h1>{page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : 'Plot lists'}</h1></div>
+          <div className="dashboard-heading-group"><h1>{page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : page === 'users' ? 'Users' : 'Plot lists'}</h1></div>
           <div className="topbar-actions profile-wrap">
             <button type="button" className="topbar-avatar profile-trigger" aria-label={role === 'admin' ? 'Open administrator menu' : 'Open user menu'} aria-expanded={profileOpen} onClick={() => setProfileOpen(open => !open)}><img className="topbar-avatar-image" src="/user-avatar.svg" alt="" /></button>
             {profileOpen && <div className="profile-menu" role="menu">
-              <strong className="profile-role">{role === 'admin' ? 'Administrator' : userName || 'User'}</strong>
+              <strong className="profile-role">{role === 'admin' ? 'Administrator' : role === 'employee' ? userName || 'Employee' : userName || 'User'}</strong>
               {role === 'admin' && <span className="profile-company">Mary Ann Elite Properties</span>}
-              <span className="profile-session"><i />{role === 'admin' ? 'Connected to admin session' : 'Approved user session'}</span>
-              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_mode'); setLoggedIn(false); setPin(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); setAuthMode('login'); }}>Sign out</button>
+              <span className="profile-session"><i />{role === 'admin' ? 'Connected to admin session' : role === 'employee' ? 'Employee session' : 'Approved user session'}</span>
+              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_mode'); window.sessionStorage.removeItem('maep_employee_token'); window.sessionStorage.removeItem('maep_employee_username'); setEmployeeToken(''); setLoggedIn(false); setPin(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); }}>Sign out</button>
             </div>}
           </div>
         </header>
@@ -319,7 +390,7 @@ export default function Dashboard() {
 
           {page !== 'plots' ? (
             <>
-              {page === 'dashboard' ? (
+              {page === 'users' ? <EmployeeUsersPage pin={pin} employees={employees} setEmployees={setEmployees} employeeForm={employeeForm} setEmployeeForm={setEmployeeForm} employeeDelete={employeeDelete} setEmployeeDelete={setEmployeeDelete} setError={setError} setNotice={setNotice} /> : page === 'dashboard' ? (
                 <>
                   <div className="dashboard-welcome"><div><span className="dashboard-kicker">MARY ANN ELITE PROPERTIES</span><h2>Property inventory overview</h2><p>Live unit availability and sales progress at a glance.</p></div><div className="inventory-total"><span>Total units</span><strong>{P.length}</strong><small>Across this layout</small></div></div>
                   <div className="kpi-grid">
@@ -332,7 +403,7 @@ export default function Dashboard() {
 
                 </>
               ) : null}
-              <div className={page === 'dashboard' ? "dashboard-recent-layout" : "dashboard-recent-layout dashboard-recent-layout-single"}>
+              {page !== 'users' && <div className={page === 'dashboard' ? "dashboard-recent-layout" : "dashboard-recent-layout dashboard-recent-layout-single"}>
                 <div className="dashboard-recent-main">
               <div className="page-intro"><div><h2>{page === 'dashboard' ? 'Recent enquiries & bookings' : 'Bookings overview'}</h2><p>Review customer enquiries and manage unit availability.</p></div>{page !== 'dashboard' && <div className="record-count"><strong>{selectedProjectBookings.length}</strong><span>Total bookings</span></div>}</div>
               {page === 'bookings' && <div className="booking-project-tabs" role="tablist" aria-label="Filter bookings by project">
@@ -403,7 +474,7 @@ export default function Dashboard() {
                     </article>
                   </div>
                 )}
-              </div>
+              </div>}
             </>
           ) : (
             <section className="project-list-view" aria-label="Project list">

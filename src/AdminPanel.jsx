@@ -42,7 +42,7 @@ function PlotEditor({ id, ax, setAd }) {
   );
 }
 
-function StatusEditor({ id, ax, status, setStatus, pin, setAd }) {
+function StatusEditor({ id, ax, status, setStatus, pin, token, employeeSession, setAd }) {
   const [value, setValue] = useState(({ a: 'Available', r: 'Reserved', b: 'Booked', s: 'Sold' })[status[id] || 'a']);
   const [m, setM] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -88,7 +88,7 @@ function StatusEditor({ id, ax, status, setStatus, pin, setAd }) {
       }
       const response = await fetch('/api/plot-status', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
+        headers: { 'Content-Type': 'application/json', ...(token ? { 'x-employee-token': token } : { 'x-admin-pin': pin }) },
         body: JSON.stringify({ plot_number: ax.lbl(id), status: value, booking_id: selectedBookingId || undefined, project_id: ax.geometry?.projectId || 1 }),
       });
       const result = await response.json().catch(() => ({}));
@@ -106,7 +106,7 @@ function StatusEditor({ id, ax, status, setStatus, pin, setAd }) {
       <div className="sec">Availability status</div>
       <label><span>Plot status</span>
         <select value={value} onChange={e => { setValue(e.target.value); setM(null); setSelectedBookingId(''); }}>
-          <option value="Available">Availability</option><option value="Reserved">Reserved</option><option value="Booked">Booked</option><option value="Sold">Sold</option>
+          <option value="Available">Availability</option><option value="Reserved">Reserved</option>{!employeeSession && <><option value="Booked">Booked</option><option value="Sold">Sold</option></>}
         </select>
       </label>
       {['Booked', 'Sold'].includes(value) && <label><span>Reserved customer to {value.toLowerCase()}</span>
@@ -154,7 +154,7 @@ function DmEditor({ k, ax, setAd, onGone }) {
   );
 }
 
-export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addMode, setAddMode, clearSel, status, setStatus, onAdminAuth, onAdminExit, initialAdminPin = '' }) {
+export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addMode, setAddMode, clearSel, status, setStatus, onAdminAuth, onAdminExit, initialAdminPin = '', employeeSession = false, employeeToken = '' }) {
   const [pin, setPin] = useState(''), [authPin, setAuthPin] = useState(''), [pm, setPm] = useState(''), [note, setNote] = useState(null), [rst, setRst] = useState(false), [authBusy, setAuthBusy] = useState(false);
   const [rate, setRate] = useState(ax.ad.rate || '');
   const [isClosing, setIsClosing] = useState(false);
@@ -172,7 +172,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
   // "Advance options" in the canvas toolbar opens the full editor.
   useEffect(() => { const open = () => setMobileCompact(false); window.addEventListener('maep-advanced', open); return () => window.removeEventListener('maep-advanced', open); }, []);
 
-  if (panel === 'off') return <button id="admbtn" className="fl" type="button" onClick={() => { if (initialAdminPin) { setAuthPin(initialAdminPin); setPanel('tools'); } else setPanel('lock'); }}>Admin</button>;
+  if (panel === 'off') return <button id="admbtn" className="fl" type="button" onClick={() => { if (employeeSession) setPanel('tools'); else if (initialAdminPin) { setAuthPin(initialAdminPin); setPanel('tools'); } else setPanel('lock'); }}>Employee Edit</button>;
 
   const unlock = async () => {
     if (authBusy || !pin) return;
@@ -288,18 +288,18 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
             <div className="sec">Selected</div>
             <div className="card">
               {addMode ? <p className="hint">Click on the map where the new dimension label should go.</p>
-                : sel != null ? <><PlotEditor key={sel} id={sel} ax={ax} setAd={setAd} /><StatusEditor key={'status-' + sel} id={sel} ax={ax} status={status} setStatus={setStatus} pin={authPin} setAd={setAd} /></>
+                : sel != null ? <><PlotEditor key={sel} id={sel} ax={ax} setAd={setAd} /><StatusEditor key={'status-' + sel} id={sel} ax={ax} status={status} setStatus={setStatus} pin={authPin} token={employeeToken} employeeSession={employeeSession} setAd={setAd} /></>
                 : selD && ax.dmList().some(d => d.k === selD) ? <DmEditor key={selD} k={selD} ax={ax} setAd={setAd} onGone={clearSel} />
                 : <p className="hint">Click a plot or a dimension label on the map to edit it.</p>}
             </div>
-            <div className="sec">Customers & bookings</div>
+            {!employeeSession && <><div className="sec">Customers & bookings</div>
             <div className="card">
               <button className="tool admin-add-customer" type="button" onClick={openAddCustomer}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /><circle cx="12" cy="12" r="10" /></svg>
                 Add Customer
               </button>
               <p className="hint">Add a customer here; the saved booking is shared with the Bookings page.</p>
-            </div>
+            </div></>}
             <div className="sec">Map tools</div>
             <div className="card">
               <button className="tool" type="button" aria-pressed={addMode} onClick={() => { clearSel(); setAddMode(!addMode); }}>

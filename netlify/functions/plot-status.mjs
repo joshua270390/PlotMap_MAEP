@@ -52,6 +52,9 @@ export default async function handler(request) {
   if (!/^[A-Za-z0-9-]{1,20}$/.test(plotNumber) || !allowedStatuses.has(status))
     return json({ ok: false, error: "Valid unit number and status are required." }, 422);
 
+  if (employeeClaims && ["Booked", "Sold"].includes(status))
+    return json({ ok: false, error: "Employee accounts can update map availability and Reserved status only. Admin access is required for Booked or Sold." }, 403);
+
   if (["Booked", "Sold"].includes(status) && !/^\d+$/.test(bookingId))
     return json({ ok: false, error: "Select a customer from this unit's Reserved customer list before marking it Booked or Sold." }, 422);
 

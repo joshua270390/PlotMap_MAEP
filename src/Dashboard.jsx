@@ -26,11 +26,17 @@ export default function Dashboard() {
     return () => document.body.classList.remove('dashboard-mode');
   }, []);
   const [pin, setPin] = useState('');
+  const [employeeUsername, setEmployeeUsername] = useState('');
+  const [employeePassword, setEmployeePassword] = useState('');
+  const [employeeToken, setEmployeeToken] = useState(() => window.sessionStorage.getItem('maep_employee_token') || '');
+  const [employees, setEmployees] = useState([]);
+  const [employeeForm, setEmployeeForm] = useState(null);
+  const [employeeDelete, setEmployeeDelete] = useState(null);
   const [role, setRole] = useState('admin');
   const [userName, setUserName] = useState('');
   const [loggedIn, setLoggedIn] = useState(false);
-  const [authChecking, setAuthChecking] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_mode') || window.sessionStorage.getItem('maep_admin_pin')));
-  const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : 'dashboard'; });
+  const [authChecking, setAuthChecking] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_mode') || window.sessionStorage.getItem('maep_admin_pin') || window.sessionStorage.getItem('maep_employee_token')));
+  const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard'; });
   const [bookings, setBookings] = useState([]);
   const [plots, setPlots] = useState([]);
   const [mapPlotStatuses, setMapPlotStatuses] = useState({});
@@ -55,17 +61,17 @@ export default function Dashboard() {
   useEffect(() => {
     const syncRoute = () => {
       const path = window.location.pathname.replace(/\/+$/, '') || '/';
-      if (role === 'user') {
+      if (role !== 'admin') {
         if (path !== '/plot_lists') window.history.replaceState({}, '', '/plot_lists');
         setPage('plots');
         return;
       }
-      const routes = ['/dashboard', '/bookings', '/plot_lists'];
+      const routes = ['/dashboard', '/bookings', '/plot_lists', '/users'];
       if (!routes.includes(path)) {
         window.location.reload();
         return;
       }
-      setPage(path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : 'dashboard');
+      setPage(path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard');
     };
     window.addEventListener('popstate', syncRoute);
     return () => window.removeEventListener('popstate', syncRoute);
@@ -80,12 +86,21 @@ export default function Dashboard() {
       setAuthChecking(false);
       return;
     }
+    const savedEmployeeToken = window.sessionStorage.getItem('maep_employee_token');
+    if (savedEmployeeToken) { setRole('employee'); setEmployeeToken(savedEmployeeToken); setUserName(window.sessionStorage.getItem('maep_employee_username') || 'Employee'); setLoggedIn(true); setPage('plots'); if (window.location.pathname !== '/plot_lists') window.history.replaceState({}, '', '/plot_lists'); setAuthChecking(false); return; }
     const savedPin = window.sessionStorage.getItem('maep_admin_pin');
     if (!savedPin) { setAuthChecking(false); return; }
     let cancelled = false;
     (async () => {
       try {
-        const response = await fetch('/api/admin-auth', {
+        if (role === 'employee') {
+        const response = await fetch('/api/employee-auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: employeeUsername, password: employeePassword }) });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) throw new Error(data.error || 'Employee login failed.');
+        window.sessionStorage.setItem('maep_employee_token', data.token); window.sessionStorage.setItem('maep_employee_username', data.username);
+        window.sessionStorage.removeItem('maep_admin_pin'); setEmployeeToken(data.token); setUserName(data.username); setLoggedIn(true); setAuthChecking(false); setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return;
+      }
+      const response = await fetch('/api/admin-auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pin: savedPin }),
@@ -184,8 +199,8 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    if (loggedIn && role === 'user' && page !== 'plots') { setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return; }
-    if (loggedIn && role === 'admin' && page !== 'plots') loadData('bookings', pin);
+    if (loggedIn && role !== 'admin' && page !== 'plots') { setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return; }
+    if (loggedIn && role === 'admin' && page !== 'plots' && page !== 'users') loadData('bookings', pin);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, loggedIn, role]);
 
@@ -268,12 +283,13 @@ export default function Dashboard() {
         <form className="login-card" onSubmit={e => { e.preventDefault(); login(); }}>
           <img className="login-logo" src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" />
           <h1>Sign in</h1>
-          <p className="login-copy">{role === 'admin' ? 'Sign in with your Admin PIN.' : 'Select User and sign in to view plot lists and submit enquiries.'}</p>
+          <p className="login-copy">{role === 'admin' ? 'Sign in with your Admin PIN.' : role === 'employee' ? 'Sign in with your employee username and password.' : 'Select User and sign in to view plot lists and submit enquiries.'}</p>
           <label htmlFor="login-role">Role</label>
-          <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setError(''); setNotice(''); setPin(''); }}><option value="admin">Admin</option><option value="user">User</option></select>
+          <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setError(''); setNotice(''); setPin(''); }}><option value="admin">Admin</option><option value="employee">Employee</option><option value="user">User</option></select>
           {role === 'admin' && <><label htmlFor="admin-pin">Admin PIN</label><input id="admin-pin" type="password" inputMode="text" autoComplete="current-password" value={pin} onChange={e => setPin(e.target.value)} placeholder="Enter your Admin PIN" required maxLength={32} /></>}
+          {role === 'employee' && <><label htmlFor="employee-username">Username</label><input id="employee-username" autoComplete="username" value={employeeUsername} onChange={e => setEmployeeUsername(e.target.value)} required /><label htmlFor="employee-password">Password</label><input id="employee-password" type="password" autoComplete="current-password" value={employeePassword} onChange={e => setEmployeePassword(e.target.value)} required /></>}
           {error && !(role === 'user' && error.includes('User access is not configured')) && <p className="dash-error" role="alert">{error}</p>}{notice && <p className="dash-notice" role="status">{notice}</p>}
-          <button className="primary-btn login-submit" disabled={saving || (role === 'admin' && !pin)}>{saving ? 'Please wait…' : 'Sign in'} <span>→</span></button>
+          <button className="primary-btn login-submit" disabled={saving || (role === 'admin' && !pin) || (role === 'employee' && (!employeeUsername || !employeePassword))}>{saving ? 'Please wait…' : 'Sign in'} <span>→</span></button>
         </form>
       </main>
     );
@@ -293,6 +309,7 @@ export default function Dashboard() {
         {role === 'admin' && <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); setSidebarOpen(false); }}>
           <span className="nav-icon">▤</span> Bookings
         </button>}
+        {role === 'admin' && <button className={'nav-item' + (page === 'users' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/users'); setPage('users'); setSidebarOpen(false); }}><span className="nav-icon">♙</span> Users</button>}
         <button className={'nav-item' + (page === 'plots' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/plot_lists'); setPage('plots'); setSidebarOpen(false); }}>
           <span className="nav-icon">▦</span> Plot lists
         </button>
@@ -301,14 +318,14 @@ export default function Dashboard() {
       <main className="dashboard-main">
         <header className="dashboard-topbar">
           <div className="dashboard-mobile-brand-row"><a className="dashboard-mobile-brand" href="/dashboard" aria-label="Mary Ann dashboard home"><img src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" /></a><button type="button" className="dashboard-menu-toggle" aria-label="Open navigation menu" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(true)}><span></span><span></span><span></span></button></div>
-          <div className="dashboard-heading-group"><h1>{page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : 'Plot lists'}</h1></div>
+          <div className="dashboard-heading-group"><h1>{page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : page === 'users' ? 'Users' : 'Plot lists'}</h1></div>
           <div className="topbar-actions profile-wrap">
             <button type="button" className="topbar-avatar profile-trigger" aria-label={role === 'admin' ? 'Open administrator menu' : 'Open user menu'} aria-expanded={profileOpen} onClick={() => setProfileOpen(open => !open)}><img className="topbar-avatar-image" src="/user-avatar.svg" alt="" /></button>
             {profileOpen && <div className="profile-menu" role="menu">
-              <strong className="profile-role">{role === 'admin' ? 'Administrator' : userName || 'User'}</strong>
+              <strong className="profile-role">{role === 'admin' ? 'Administrator' : role === 'employee' ? userName || 'Employee' : userName || 'User'}</strong>
               {role === 'admin' && <span className="profile-company">Mary Ann Elite Properties</span>}
-              <span className="profile-session"><i />{role === 'admin' ? 'Connected to admin session' : 'Approved user session'}</span>
-              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_mode'); setLoggedIn(false); setPin(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); setAuthMode('login'); }}>Sign out</button>
+              <span className="profile-session"><i />{role === 'admin' ? 'Connected to admin session' : role === 'employee' ? 'Employee session' : 'Approved user session'}</span>
+              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_mode'); window.sessionStorage.removeItem('maep_employee_token'); window.sessionStorage.removeItem('maep_employee_username'); setEmployeeToken(''); setLoggedIn(false); setPin(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); setAuthMode('login'); }}>Sign out</button>
             </div>}
           </div>
         </header>
@@ -319,7 +336,7 @@ export default function Dashboard() {
 
           {page !== 'plots' ? (
             <>
-              {page === 'dashboard' ? (
+              {page === 'users' ? <EmployeeUsersPage pin={pin} employees={employees} setEmployees={setEmployees} employeeForm={employeeForm} setEmployeeForm={setEmployeeForm} employeeDelete={employeeDelete} setEmployeeDelete={setEmployeeDelete} setError={setError} setNotice={setNotice} /> : page === 'dashboard' ? (
                 <>
                   <div className="dashboard-welcome"><div><span className="dashboard-kicker">MARY ANN ELITE PROPERTIES</span><h2>Property inventory overview</h2><p>Live unit availability and sales progress at a glance.</p></div><div className="inventory-total"><span>Total units</span><strong>{P.length}</strong><small>Across this layout</small></div></div>
                   <div className="kpi-grid">

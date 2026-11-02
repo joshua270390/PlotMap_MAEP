@@ -20,6 +20,57 @@ const field = (row, ...keys) => {
   return '';
 };
 
+
+function EmployeeUsersPage({ pin, employees, setEmployees, employeeForm, setEmployeeForm, employeeDelete, setEmployeeDelete, setError, setNotice }) {
+  const [busy, setBusy] = useState(false);
+  const load = async () => {
+    const response = await fetch('/api/employee-auth?action=list', { headers: { 'x-admin-pin': pin }, cache: 'no-store' });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load employees.');
+    setEmployees(data.employees || []);
+  };
+  useEffect(() => { load().catch(error => setError(error.message)); }, [pin]);
+  const save = async event => {
+    event.preventDefault(); if (busy) return; setBusy(true); setError(''); setNotice('');
+    try {
+      const editing = employeeForm.id != null;
+      const response = await fetch('/api/employee-auth?action=' + (editing ? 'update' : 'create'), {
+        method: editing ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
+        body: JSON.stringify(employeeForm),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not save employee.');
+      setEmployeeForm(null); setNotice(editing ? 'Employee updated.' : 'Employee created.'); await load();
+    } catch (error) { setError(error.message); } finally { setBusy(false); }
+  };
+  const remove = async () => {
+    if (!employeeDelete || busy) return; setBusy(true); setError('');
+    try {
+      const response = await fetch('/api/employee-auth?action=delete', { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin }, body: JSON.stringify({ id: employeeDelete.id }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not delete employee.');
+      setEmployeeDelete(null); setNotice('Employee deleted.'); await load();
+    } catch (error) { setError(error.message); } finally { setBusy(false); }
+  };
+  return <>
+    <div className="page-intro"><div><h2>Employee accounts</h2><p>Create and manage employee access to plot map editing.</p></div><button type="button" className="add-customer-btn" onClick={() => setEmployeeForm({ username: '', email: '', password: '' })}>Add Employee +</button></div>
+    <section className="table-card"><div className="table-scroll"><table className="data-table">
+      <thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Action</th></tr></thead>
+      <tbody>{employees.map(row => <tr key={row.id}><td><strong>{row.username}</strong></td><td>{row.username}</td><td>{row.email}</td><td><div className="row-actions"><button className="edit-btn" type="button" onClick={() => setEmployeeForm({ id: row.id, username: row.username, email: row.email, password: '' })}>Edit</button><button className="delete-btn" type="button" onClick={() => setEmployeeDelete(row)}>Delete</button></div></td></tr>)}
+      {!employees.length && <tr><td colSpan="4" className="empty-cell">No employee accounts created yet.</td></tr>}</tbody>
+    </table></div><div className="table-footer">Total employees: {employees.length}</div></section>
+    {employeeForm && <div className="edit-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !busy) setEmployeeForm(null); }}><form className="edit-modal" onSubmit={save}>
+      <button type="button" className="modal-close" onClick={() => setEmployeeForm(null)}>×</button><p className="eyebrow">EMPLOYEE ACCOUNT</p><h2>{employeeForm.id ? 'Edit employee' : 'Create employee'}</h2>
+      <label>Username<input value={employeeForm.username} onChange={e => setEmployeeForm(s => ({ ...s, username: e.target.value }))} required minLength="3" maxLength="40" /></label>
+      <label>Email<input type="email" value={employeeForm.email} onChange={e => setEmployeeForm(s => ({ ...s, email: e.target.value }))} required /></label>
+      <label>Password<input type="password" value={employeeForm.password} onChange={e => setEmployeeForm(s => ({ ...s, password: e.target.value }))} required={!employeeForm.id} minLength="8" placeholder={employeeForm.id ? 'Leave blank to keep current password' : 'At least 8 characters'} /></label>
+      <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setEmployeeForm(null)}>Cancel</button><button className="primary-btn" disabled={busy}>{busy ? 'Saving…' : 'Save employee'}</button></div>
+    </form></div>}
+    {employeeDelete && <div className="edit-overlay confirm-overlay" role="presentation"><section className="confirm-modal" role="alertdialog" aria-modal="true"><div className="confirm-icon">!</div><p className="eyebrow">CONFIRM ACTION</p><h2>Delete employee?</h2><p>Are you sure you want to delete <strong>{employeeDelete.username}</strong>? This action cannot be undone.</p><div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setEmployeeDelete(null)} disabled={busy}>Cancel</button><button type="button" className="confirm-delete-btn" onClick={remove} disabled={busy}>{busy ? 'Deleting…' : 'Yes, delete'}</button></div></section></div>}
+  </>;
+}
+
 export default function Dashboard() {
   useEffect(() => {
     document.body.classList.add('dashboard-mode');

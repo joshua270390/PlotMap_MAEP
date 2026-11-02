@@ -580,3 +580,13 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 .booking-project-tab:hover{color:#172033;background:#e2e8f0}
 .booking-project-tab.active{background:#fff;color:#166534;box-shadow:0 1px 3px rgba(15,23,42,.12)}
 @media(max-width:600px){.booking-project-tabs{width:100%;gap:4px}.booking-project-tab{flex:1;padding:10px 8px;font-size:12px}}
+
+
+/* Password visibility control */
+.password-field{position:relative;display:flex;align-items:center;width:100%;margin-top:7px}
+.edit-modal .password-field input,.login-card .password-field input{width:100%;padding-right:48px;margin-top:0;box-sizing:border-box}
+.password-toggle{position:absolute;right:7px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;border-radius:7px;background:transparent;color:#718198;cursor:pointer}
+.password-toggle:hover{background:#edf2f8;color:#244f7d}
+.password-toggle:focus-visible{outline:2px solid #6d91bb;outline-offset:1px}
+.password-toggle svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.login-password-field{margin-top:7px}

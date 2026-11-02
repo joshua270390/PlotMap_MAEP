@@ -5,7 +5,7 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
 });
 const cfg = () => ({
   pin: process.env.ADMIN_PIN || "",
-  url: (process.env.SUPABASE_URL || "").replace(/\\/+$/, ""),
+  url: (process.env.SUPABASE_URL || "").replace(/[/]+$/, ""),
   key: (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || "").trim(),
   table: process.env.EMPLOYEES_TABLE || "employees",
   secret: process.env.EMPLOYEE_SESSION_SECRET || "",
@@ -61,7 +61,7 @@ export default async function handler(request) {
     const token = issueToken({ sub: String(employee.id), username: employee.username, role: "employee" }, c.secret);
     return json({ ok: true, token, username: employee.username, role: "employee" });
   }
-  if (request.headers.get("x-admin-pin") !== c.pin || !c.pin)
+  if (!c.pin || request.headers.get("x-admin-pin") !== c.pin)
     return json({ ok: false, error: "Admin authentication failed." }, 401);
   if (action === "list" && request.method === "GET") {
     const result = await db(c, "GET", new URLSearchParams({ select: "id,username,email,created_at", order: "created_at.desc" }).toString());

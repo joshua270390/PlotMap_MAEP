@@ -71,7 +71,7 @@ export default async function handler(request) {
   if (action === "create" && request.method === "POST") {
     let body; try { body = await request.json(); } catch { return json({ ok: false, error: "Invalid request." }, 400); }
     const username = String(body?.username || "").trim(), email = String(body?.email || "").trim().toLowerCase(), password = String(body?.password || "");
-    if (!/^[a-zA-Z0-9._-]{3,40}$/.test(username) || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || password.length < 8)
+    if (!/^[a-zA-Z0-9._-]{3,40}$/.test(username) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8)
       return json({ ok: false, error: "Use a 3–40 character username, valid email and password with at least 8 characters." }, 422);
     const credentials = hashPassword(password);
     const result = await db(c, "POST", "", { username, email, password_salt: credentials.salt, password_hash: credentials.hash, active: true });
@@ -80,7 +80,7 @@ export default async function handler(request) {
   if (action === "update" && request.method === "PATCH") {
     let body; try { body = await request.json(); } catch { return json({ ok: false, error: "Invalid request." }, 400); }
     const id = String(body?.id || ""), username = String(body?.username || "").trim(), email = String(body?.email || "").trim().toLowerCase();
-    if (!/^\\d+$/.test(id) || !/^[a-zA-Z0-9._-]{3,40}$/.test(username) || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) return json({ ok: false, error: "Enter valid username and email." }, 422);
+    if (!/^\d+$/.test(id) || !/^[a-zA-Z0-9._-]{3,40}$/.test(username) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ ok: false, error: "Enter valid username and email." }, 422);
     const patch = { username, email };
     if (body.password) { if (String(body.password).length < 8) return json({ ok: false, error: "Password must be at least 8 characters." }, 422); Object.assign(patch, hashPassword(String(body.password))); patch.password_hash = patch.hash; delete patch.hash; }
     const result = await db(c, "PATCH", new URLSearchParams({ id: "eq." + id }).toString(), patch);
@@ -89,7 +89,7 @@ export default async function handler(request) {
   if (action === "delete" && request.method === "DELETE") {
     let body; try { body = await request.json(); } catch { return json({ ok: false, error: "Invalid request." }, 400); }
     const id = String(body?.id || "");
-    if (!/^\\d+$/.test(id)) return json({ ok: false, error: "Invalid employee." }, 422);
+    if (!/^\d+$/.test(id)) return json({ ok: false, error: "Invalid employee." }, 422);
     const result = await db(c, "DELETE", new URLSearchParams({ id: "eq." + id }).toString());
     return result.ok ? json({ ok: true }) : json({ ok: false, error: "Could not delete employee." }, 502);
   }

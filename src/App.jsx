@@ -44,6 +44,7 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
   const [checkingUserSession, setCheckingUserSession] = useState(() => window.sessionStorage.getItem('maep_user_mode') === 'true');
   const [panel, setPanel] = useState('off');         // 'off' | 'lock' | 'tools'
   const [adminPin, setAdminPin] = useState('');
+  const [employeeToken, setEmployeeToken] = useState(() => window.sessionStorage.getItem('maep_employee_token') || '');
   const [adminAuthenticated, setAdminAuthenticated] = useState(false);
   const [addMode, setAddMode] = useState(false);
   const mapRef = useRef(null);
@@ -58,6 +59,8 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
       setCheckingUserSession(false);
       return;
     }
+    const employee = window.sessionStorage.getItem('maep_employee_token');
+    if (employee) { setEmployeeToken(employee); setAdminAuthenticated(true); }
     setCheckingUserSession(false);
   }, []);
 
@@ -96,7 +99,7 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
 
   // Restore the Admin Studio session when an Admin opens the map from the dashboard.
   useEffect(() => {
-    if (window.sessionStorage.getItem('maep_user_mode') === 'true') return;
+    if (window.sessionStorage.getItem('maep_user_mode') === 'true' || window.sessionStorage.getItem('maep_employee_token')) return;
     const savedPin = window.sessionStorage.getItem('maep_admin_pin');
     if (!savedPin) return;
     let cancelled = false;
@@ -194,7 +197,7 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
       <PlotMap ref={mapRef} geometry={geometry} projectName={geometry.projectName} layoutName={geometry.layoutName} ax={ax} status={status} details={plotDetails} filt={filt} setFilt={setFilt} sel={sel} selD={selD} setSel={setSel}
         onTap={onTap} admin={admin} addMode={addMode} adminEnquiries={adminEnquiries} cv={cv} setCv={setCv} setAd={setAdH}
         history={{ undo, redo, canUndo: past.current.length > 0, canRedo: future.current.length > 0 }}>
-        {!userMode && !checkingUserSession && <AdminPanel geometry={geometry} panel={panel} setPanel={setPanel} ax={ax} setAd={setAdH} sel={sel} selD={selD} status={status} setStatus={setStatus} initialAdminPin={adminPin}
+        {!userMode && !checkingUserSession && <AdminPanel employeeSession={Boolean(employeeToken)} employeeToken={employeeToken} geometry={geometry} panel={panel} setPanel={setPanel} ax={ax} setAd={setAdH} sel={sel} selD={selD} status={status} setStatus={setStatus} initialAdminPin={adminPin}
           addMode={addMode} setAddMode={setAddMode} clearSel={clearSel} onAdminAuth={handleAdminAuth} onAdminExit={() => { setAdminEnquiries([]); setCv(null); }} />}
       </PlotMap>
       {closedPlot != null && <PlotStatusModal id={closedPlot.id} status={closedPlot.status} ax={ax}

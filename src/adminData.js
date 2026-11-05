@@ -68,11 +68,30 @@ export async function fetchServerAd(geometry) {
   if (!r.ok || !j.ok) throw new Error(j.error || 'Could not load map edits.');
   return { data: j.data ? Object.assign(AD0(), j.data) : null, updatedAt: j.updated_at || null };
 }
-export async function pushServerAd(ad, geometry, auth) {
+// base = updated_at of the server copy these edits were built on (null when the server had none).
+// The server refuses the save (409) if someone else saved in between; the caller then merges and retries.
+export async function pushServerAd(ad, geometry, auth, base) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth.employeeToken) headers['x-employee-token'] = auth.employeeToken; else headers['x-admin-pin'] = auth.adminPin;
-  const r = await fetch('/api/map-edits', { method: 'PUT', headers, body: JSON.stringify({ project: serverKey(geometry), data: ad }) });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok || !j.ok) throw new Error(j.error || 'Could not save map edits.');
-  return j.updated_at;
+  try {
+    const r = await fetch('/api/map-edits', { method: 'PUT', headers, cache: 'no-store', body: JSON.stringify({ project: serverKey(geometry), data: ad, base: base ?? null }) });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.ok) return { ok: true, updatedAt: j.updated_at };
+    return { ok: false, status: r.status, code: j.code || '', error: j.error || 'Could not save map changes.' };
+  } catch (e) { return { ok: false, status: 0, code: 'network', error: 'No internet connection. Map changes will be saved when you are back online.' }; }
 }
+// Re-open this tab's Admin session with the saved PIN (after sleep / a lost heartbeat).
+// Fails with 409 when a different device is now the signed-in Admin.
+export async function reclaimAdmin(pin) {
+  if (!pin) return { ok: false, status: 401 };
+  try {
+    const r = await fetch('/api/admin-auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store', body: JSON.stringify({ pin }) });
+    const j = await r.json().catch(() => ({}));
+    return { ok: r.ok && !!j.ok, status: r.status, error: j.error || '' };
+  } catch { return { ok: false, status: 0 }; }
+}
+// Last server copy this browser saw, so offline/unsaved edits can be merged later.
+const baseKey = geometry => projectKey(geometry) + '-server-base';
+export const loadBase = geometry => { try { const o = JSON.parse(localStorage.getItem(baseKey(geometry)) || 'null'); return o && 'stamp' in o ? { data: Object.assign(AD0(), o.data || {}), stamp: o.stamp } : null; } catch (_) { return null; } };
+export const saveBase = (geometry, data, stamp) => { try { localStorage.setItem(baseKey(geometry), JSON.stringify({ data, stamp })); } catch (_) {} };
+export const backupLocal = (geometry, ad) => { try { localStorage.setItem(projectKey(geometry) + '-backup-' + Date.now(), JSON.stringify(ad)); } catch (_) {} };

@@ -6,7 +6,8 @@ import { P as V_P, G as V_G, LB as V_LB, DM as V_DM } from './data.js';
 import { P as S_P, G as S_G, LB as S_LB, DM as S_DM, bounds as S_BOUNDS, plotAreaLabels as S_PLOT_AREA_LABELS, roadLabels as S_ROAD_LABELS, dimensionLabels as S_DIMENSION_LABELS } from './saraswathiGeometry.js';
 import { P as SH_P, G as SH_G, LB as SH_LB, DM as SH_DM, bounds as SH_BOUNDS, plotAreaLabels as SH_PLOT_AREA_LABELS, roadLabels as SH_ROAD_LABELS, dimensionLabels as SH_DIMENSION_LABELS } from './shanmugaGeometry.js';
 import { toStatus } from './plots.js';
-import { addDm, loadAd, makeApi, saveAd, fetchServerAd, pushServerAd } from './adminData.js';
+import { addDm, loadAd, makeApi, saveAd, fetchServerAd, pushServerAd, reclaimAdmin, loadBase, saveBase, backupLocal, AD0 } from './adminData.js';
+import { diffAd, applyDiff, isEmptyDiff, hasEdits, sameDoc, sameStamp } from './mapSync.js';
 
 const GEOMETRIES = {
   velavan_nagar: { key: 'velavan_nagar', projectId: 1, P: V_P, G: V_G, LB: V_LB, DM: V_DM, bounds: { x: 369, y: 160, width: 2501, height: 3012 }, canvasWidth: 4400, canvasHeight: 3400, projectName: 'Velavan Nagar', layoutName: 'Kurayur layout' },
@@ -30,7 +31,7 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
   // Undo / redo history for every admin edit.
   const adRef = useRef(ad); adRef.current = ad;
   const past = useRef([]), future = useRef([]);
-  const dirty = useRef(false), serverStamp = useRef(null), saving = useRef(false);
+  const dirty = useRef(false);
   const [, bump] = useState(0);
   const setAdH = useCallback(fn => {
     const prev = adRef.current, next = typeof fn === 'function' ? fn(prev) : fn;
@@ -67,44 +68,92 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
 
   useEffect(() => { saveAd(ad, geometry); }, [ad, geometry]);
   const [syncNote, setSyncNote] = useState('');
-  // Load the shared edits from the server, then keep checking for changes made
-  // by the Admin or Employees on other devices.
-  useEffect(() => {
-    let stop = false;
+  // ---- Shared edits: everyone (Admin, Employees, Users) sees the same map ----
+  // sync.base = last server copy this browser saw; our own changes = diff(base, current).
+  // Pull: newest server copy + our unsaved changes replayed on top (nothing is lost).
+  // Push: only if nobody saved in between (server checks `base`), else merge and retry.
+  const authRef = useRef({}); authRef.current = { employeeToken, adminPin: adminPin || window.sessionStorage.getItem('maep_admin_pin') || '' };
+  const syncRef = useRef(null);
+  if (!syncRef.current || syncRef.current.geo !== geometry) {
+    const saved = loadBase(geometry);
+    syncRef.current = { geo: geometry, base: saved ? saved.data : null, stamp: saved ? saved.stamp : null, known: Boolean(saved), busy: false, again: false };
+  }
+  const applyRemote = useCallback(next => {
+    if (sameDoc(next, adRef.current)) return;
+    past.current = []; future.current = [];          // history belonged to the old copy
+    adRef.current = next; setAd(next); bump(x => x + 1);
+  }, []);
+  const sync = useCallback(async () => {
+    const s = syncRef.current;
+    if (s.busy) { s.again = true; return; }
+    s.busy = true;
+    const auth = authRef.current, canEdit = Boolean(auth.employeeToken || auth.adminPin);
     const pull = async () => {
-      if (dirty.current || saving.current) return;
-      try {
-        const { data, updatedAt } = await fetchServerAd(geometry);
-        if (stop || dirty.current || saving.current) return;
-        if (!data) {
-          // First time: upload edits already saved in this Admin/Employee browser.
-          const canEdit = window.sessionStorage.getItem('maep_employee_token') || window.sessionStorage.getItem('maep_admin_pin');
-          if (canEdit && serverStamp.current === null) { serverStamp.current = 'local'; dirty.current = true; const copy = { ...adRef.current }; adRef.current = copy; setAd(copy); }
-          return;
-        }
-        if (updatedAt === serverStamp.current) return;
-        serverStamp.current = updatedAt; adRef.current = data; setAd(data);
-      } catch (e) { console.warn('[map-edits]', e.message); }
+      const { data, updatedAt } = await fetchServerAd(geometry);
+      if (s.known && sameStamp(updatedAt, s.stamp)) return;
+      const server = data || AD0(), local = adRef.current;
+      let next;
+      if (!canEdit) next = server;                      // Users only view: always show the shared copy
+      else if (!s.known) {
+        // First time this browser talks to the server for this project.
+        if (data && hasEdits(server)) { if (hasEdits(local) && !sameDoc(local, server)) backupLocal(geometry, local); next = server; }
+        else next = local;                               // server empty: keep (and, for Admin/Employee, upload) this browser's edits
+      } else next = applyDiff(server, diffAd(s.base, local));
+      s.base = server; s.stamp = updatedAt; s.known = true; saveBase(geometry, server, updatedAt);
+      applyRemote(next);
     };
-    pull();
-    const t = window.setInterval(pull, 10000);
-    const onFocus = () => pull();
-    window.addEventListener('focus', onFocus);
-    return () => { stop = true; window.clearInterval(t); window.removeEventListener('focus', onFocus); };
-  }, [geometry]);
-  // Save this person's edits to the server (Admin or Employee only).
+    const push = async () => {
+      if (!canEdit) return 'done';
+      const local = adRef.current;
+      if (isEmptyDiff(diffAd(s.base || AD0(), local))) return 'done';
+      dirty.current = false;
+      const r = await pushServerAd(local, geometry, auth, s.stamp);
+      if (r.ok) { s.base = local; s.stamp = r.updatedAt; saveBase(geometry, local, r.updatedAt); return 'done'; }
+      if (r.status === 409) return 'conflict';
+      if (r.status === 401 && !auth.employeeToken) {
+        const re = await reclaimAdmin(auth.adminPin);
+        if (re.ok) return 'retry';
+        throw new Error(re.status === 409 ? 'Another device is signed in as Admin, so your map changes cannot be saved. Sign in again after they sign out.' : 'Your Admin session has ended. Please sign in again to save map changes.');
+      }
+      if (r.status === 401) throw new Error('Your Employee session has ended. Please sign in again to save map changes.');
+      throw new Error(r.error);
+    };
+    try {
+      let rounds = 0;
+      do {
+        s.again = false;
+        await pull();
+        for (let i = 0; i < 4; i++) {
+          const res = await push();
+          if (res === 'conflict') { await pull(); continue; }
+          if (res === 'retry') continue;
+          break;
+        }
+      } while (s.again && ++rounds < 3);
+      setSyncNote('');
+    } catch (e) {
+      console.warn('[map-edits]', e.message);
+      if (canEdit) setSyncNote(e.message || 'Could not save map changes.');
+    } finally { s.busy = false; }
+  }, [geometry, applyRemote]);
+  // Check for changes from other devices every few seconds and whenever the tab is opened again.
+  useEffect(() => {
+    sync();
+    const t = window.setInterval(() => { if (!document.hidden) sync(); }, 5000);
+    const onShow = () => { if (!document.hidden) sync(); };
+    window.addEventListener('focus', onShow);
+    document.addEventListener('visibilitychange', onShow);
+    window.addEventListener('online', onShow);
+    return () => { window.clearInterval(t); window.removeEventListener('focus', onShow); document.removeEventListener('visibilitychange', onShow); window.removeEventListener('online', onShow); };
+  }, [sync]);
+  // Save this person's edits shortly after they make them (Admin or Employee only).
   useEffect(() => {
     if (!dirty.current) return;
-    const auth = { employeeToken, adminPin: adminPin || window.sessionStorage.getItem('maep_admin_pin') || '' };
-    if (!auth.employeeToken && !auth.adminPin) return;
-    const t = window.setTimeout(async () => {
-      saving.current = true; dirty.current = false;
-      try { serverStamp.current = await pushServerAd(adRef.current, geometry, auth); setSyncNote(''); }
-      catch (e) { dirty.current = true; setSyncNote(e.message || 'Could not save map changes.'); }
-      finally { saving.current = false; }
-    }, 700);
+    const t = window.setTimeout(() => sync(), 600);
     return () => window.clearTimeout(t);
-  }, [ad, geometry, employeeToken, adminPin]);
+  }, [ad, sync]);
+  // Signing in (Admin or Employee) uploads any edits this browser still holds.
+  useEffect(() => { if (employeeToken || adminPin) sync(); }, [employeeToken, adminPin, sync]);
   useEffect(() => {
     // Read each project's authoritative inventory status from the database.
     fetch('/api/plots?project_id=' + encodeURIComponent(geometry.projectId)).then(r => r.json()).then(j => {

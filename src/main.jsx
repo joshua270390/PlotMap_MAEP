@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import Dashboard from './Dashboard.jsx';
 import './style.css';
+import { reclaimAdmin } from './adminData.js';
 
 // ---- Admin session (only one Admin signed in at a time) ----
 // Every /api call carries this tab's admin session id. The login reply hands
@@ -32,7 +33,11 @@ window.setInterval(async () => {
   if (!window.sessionStorage.getItem('maep_admin_pin') || !window.sessionStorage.getItem(SKEY)) return;
   try {
     const r = await window.fetch('/api/admin-auth?action=ping', { method: 'POST', headers: { 'x-admin-pin': window.sessionStorage.getItem('maep_admin_pin') }, cache: 'no-store' });
-    if (r.status === 401) endAdminSession();
+    if (r.status === 401) {
+      // Session lapsed (laptop sleep, slow network): take it back if no other device is the Admin now.
+      const re = await reclaimAdmin(window.sessionStorage.getItem('maep_admin_pin'));
+      if (!re.ok && re.status !== 0) endAdminSession();
+    }
   } catch { /* offline: try again next beat */ }
 }, 30000);
 

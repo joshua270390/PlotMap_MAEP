@@ -977,3 +977,6 @@ svg.adm [data-sk]:hover{filter:brightness(1.06)}
 @media (max-width:820px){.top .dl-menu{left:auto;right:0}}
 .top .dl-btn{flex-direction:row;white-space:nowrap}.top .dl-btn svg{flex:none;display:block}
 .top .dl-btn svg{position:static;inset:auto}
+
+/* ===== Velavan: road names white with road-coloured halo (hides centre line), PDF-safe ===== */
+svg:not(.saraswathi-map) text.saraswathi-dimension.road-name{fill:#fff;font-size:22px;font-weight:700;letter-spacing:.1em;stroke:var(--road);stroke-width:18px;stroke-linejoin:round;paint-order:stroke fill;opacity:1}

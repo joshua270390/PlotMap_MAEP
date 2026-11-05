@@ -21,7 +21,12 @@ export async function downloadMap(svg, { plain = false, name = 'plotmap', title 
     if (plain && rm.some((c) => STATUS.includes(c)) && !el.classList.contains('a')) { el.classList.add('a'); rm.push('__a'); }
     if (rm.length) { rm.forEach((c) => c !== '__a' && el.classList.remove(c)); swapped.push([el, rm]); }
   });
+  // capture text at the 'zoomed-in' sizes (plot no. bigger than dimensions), without admin/zoom-only styling
+  const oldZ = svg.getAttribute('data-z'), hadAdm = svg.classList.contains('adm'), hadZm = svg.classList.contains('zm');
+  svg.setAttribute('data-z', '3'); svg.classList.remove('adm'); svg.classList.add('zm'); svg.classList.add('dlx');
   const styles = live.map((el) => { const cs = getComputedStyle(el); return PROPS.map((p) => [p, cs.getPropertyValue(p)]); });
+  if (oldZ == null) svg.removeAttribute('data-z'); else svg.setAttribute('data-z', oldZ);
+  if (hadAdm) svg.classList.add('adm'); if (!hadZm) svg.classList.remove('zm'); svg.classList.remove('dlx');
   swapped.forEach(([el, rm]) => rm.forEach((c) => c === '__a' ? el.classList.remove('a') : el.classList.add(c)));
 
   const clone = svg.cloneNode(true);
@@ -42,6 +47,12 @@ export async function downloadMap(svg, { plain = false, name = 'plotmap', title 
     if (h && !h.startsWith('data:')) im.setAttribute('href', await toDataUrl(h));
   }));
 
+  // embed the map fonts so the PDF uses the exact same letters and alignment
+  try {
+    const css = await embedFonts();
+    if (css) { const st = document.createElementNS('http://www.w3.org/2000/svg', 'style'); st.textContent = css; clone.insertBefore(st, clone.firstChild); }
+  } catch { /* fall back to system font */ }
+  clone.classList.remove('adm'); clone.setAttribute('data-z', '3');
   const vb = (svg.getAttribute('viewBox') || '0 0 1000 1000').split(/[ ,]+/).map(Number);
   const scale = Math.min(4, Math.max(1, 5000 / vb[2]));
   const W = Math.round(vb[2] * scale), H = Math.round(vb[3] * scale);
@@ -114,4 +125,23 @@ async function compose(c, g, W, H, title, kind, subtitle) {
   q.fillStyle = '#07533e'; q.fillRect(pad, pad + Math.round(108 * u), o.width - pad * 2, Math.max(2, Math.round(3 * u)));
   q.drawImage(c, x0, y0, mw, mh, pad, pad + head, mw, mh);
   return o;
+}
+
+let fontCss;
+async function embedFonts() {
+  if (fontCss !== undefined) return fontCss;
+  const links = [...document.querySelectorAll('link[rel="stylesheet"][href*="fonts.googleapis"]')];
+  let out = '';
+  for (const l of links) {
+    const css = await fetch(l.href).then((r) => r.text());
+    const faces = css.match(/@font-face\s*{[^}]*}/g) || [];
+    for (const f of faces) {
+      if (!/Instrument Sans/.test(f) || !/U\+0000-00FF/.test(f)) continue;
+      const m = f.match(/url\(([^)]+)\)/); if (!m) continue;
+      const data = await toDataUrl(m[1].replace(/["']/g, ''));
+      out += f.replace(m[0], `url(${data})`) + '\n';
+    }
+  }
+  fontCss = out;
+  return out;
 }

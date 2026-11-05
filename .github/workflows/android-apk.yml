@@ -7,14 +7,19 @@ permissions:
   contents: write
 jobs:
   apk:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 21 }
-      - uses: android-actions/setup-android@v3
+      # Ubuntu 24.04 already includes the Android SDK required by Capacitor 7.
+      - name: Verify preinstalled Android SDK
+        run: |
+          test -d "$ANDROID_HOME/platforms/android-35"
+          test -d "$ANDROID_HOME/build-tools/35.0.0"
+          echo "Android SDK 35 is ready"
       - name: Build web
         run: |
           npm install

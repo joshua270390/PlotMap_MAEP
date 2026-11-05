@@ -172,7 +172,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
   // "Advance options" in the canvas toolbar opens the full editor.
   useEffect(() => { const open = () => setMobileCompact(false); window.addEventListener('maep-advanced', open); return () => window.removeEventListener('maep-advanced', open); }, []);
 
-  if (panel === 'off') return <button id="admbtn" className="fl" type="button" onClick={() => { if (employeeSession) setPanel('tools'); else if (initialAdminPin) { setAuthPin(initialAdminPin); setPanel('tools'); } else setPanel('lock'); }}>Employee Edit</button>;
+  if (panel === 'off') return <button id="admbtn" className="fl" type="button" onClick={() => { if (employeeSession) setPanel('tools'); else if (initialAdminPin) { setAuthPin(initialAdminPin); setPanel('tools'); } else setPanel('lock'); }}>{employeeSession ? 'Employee Edit' : 'Admin Edit'}</button>;
 
   const unlock = async () => {
     if (authBusy || !pin) return;

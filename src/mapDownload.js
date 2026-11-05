@@ -74,17 +74,37 @@ export async function downloadMap(svg, { plain = false, name = 'plotmap', title 
   const blob = jpegToPdf(jpg, out.width, out.height);
   const filename = `${name}${plain ? '-plain' : ''}.pdf`;
 
-  // Mobile / APK: Android WebView-la direct blob download aagaadhu, 
-  // so Web Share API moolama Save/Share sheet open aagum (Save to Downloads, Drive, WhatsApp, PDF Viewer).
+  // 1. Android APK (Capacitor): save to cache, then open the Android Save/Share sheet
+  const cap = typeof window !== 'undefined' ? window.Capacitor : null;
+  if (cap && cap.isNativePlatform && cap.isNativePlatform()) {
+    const Filesystem = cap.Plugins?.Filesystem || cap.registerPlugin?.('Filesystem');
+    const Share = cap.Plugins?.Share || cap.registerPlugin?.('Share');
+    try {
+      const base64Data = await new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onloadend = () => resolve(String(fr.result).split(',')[1] || '');
+        fr.onerror = reject; fr.readAsDataURL(blob);
+      });
+      const written = await Filesystem.writeFile({ path: filename, data: base64Data, directory: 'CACHE' });
+      await Share.share({ title: filename, files: [written.uri], dialogTitle: 'Save or Share Plot Map PDF' });
+      return;
+    } catch (capErr) {
+      if (/cancel/i.test(capErr?.message || '')) return;
+      console.error('App download failed:', capErr);
+      alert('Download needs the latest app. Please download the app again from the website and install it.');
+      return;
+    }
+  }
+
+  // 2. Mobile browser: share sheet
   try {
     const file = new File([blob], filename, { type: 'application/pdf' });
-    if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+    if (navigator.canShare && /Android|iPhone|iPad/i.test(navigator.userAgent) && navigator.canShare({ files: [file] })) {
       await navigator.share({ files: [file], title: filename });
       return;
     }
   } catch (err) {
-    if (err && err.name === 'AbortError') return; // User cancel pannina error kaattaadhu
-    console.warn('Native share skipped, falling back to download:', err);
+    if (err && err.name === 'AbortError') return;
   }
 
   // Desktop / Laptop: Standard browser download

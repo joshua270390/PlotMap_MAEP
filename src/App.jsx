@@ -68,6 +68,8 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
 
   useEffect(() => { saveAd(ad, geometry); }, [ad, geometry]);
   const [syncNote, setSyncNote] = useState('');
+  const [savedAt, setSavedAt] = useState(0);         // last time this browser's edits reached the server
+  useEffect(() => { if (!savedAt) return; const t = window.setTimeout(() => setSavedAt(0), 2500); return () => window.clearTimeout(t); }, [savedAt]);
   // ---- Shared edits: everyone (Admin, Employees, Users) sees the same map ----
   // sync.base = last server copy this browser saw; our own changes = diff(base, current).
   // Pull: newest server copy + our unsaved changes replayed on top (nothing is lost).
@@ -108,7 +110,7 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
       if (isEmptyDiff(diffAd(s.base || AD0(), local))) return 'done';
       dirty.current = false;
       const r = await pushServerAd(local, geometry, auth, s.stamp);
-      if (r.ok) { s.base = local; s.stamp = r.updatedAt; saveBase(geometry, local, r.updatedAt); return 'done'; }
+      if (r.ok) { s.base = local; s.stamp = r.updatedAt; saveBase(geometry, local, r.updatedAt); s.pushed = true; return 'done'; }
       if (r.status === 409) return 'conflict';
       if (r.status === 401 && !auth.employeeToken) {
         const re = await reclaimAdmin(auth.adminPin);
@@ -131,6 +133,7 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
         }
       } while (s.again && ++rounds < 3);
       setSyncNote('');
+      if (s.pushed) { s.pushed = false; setSavedAt(Date.now()); }
     } catch (e) {
       console.warn('[map-edits]', e.message);
       if (canEdit) setSyncNote(e.message || 'Could not save map changes.');
@@ -154,15 +157,35 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
   }, [ad, sync]);
   // Signing in (Admin or Employee) uploads any edits this browser still holds.
   useEffect(() => { if (employeeToken || adminPin) sync(); }, [employeeToken, adminPin, sync]);
+  // Plot status (Available/Reserved/Booked/Sold) + customer details live in the database.
+  // Re-read them every few seconds so a status saved on another system shows up here too.
+  const plotsJson = useRef('');
   useEffect(() => {
-    // Read each project's authoritative inventory status from the database.
-    fetch('/api/plots?project_id=' + encodeURIComponent(geometry.projectId)).then(r => r.json()).then(j => {
-      if (!j.ok) return;
-      const m = {};
-      P.forEach(([id]) => { const v = j.plots[String(id)]; if (v) m[id] = toStatus(v); });
-      setStatus(m);
-      setPlotDetails(j.details || {});
-    }).catch(() => {});   // no API (plain `vite` dev): every plot shows as Available
+    let stop = false, busy = false;
+    plotsJson.current = '';
+    const load = async () => {
+      if (busy || stop) return; busy = true;
+      try {
+        const r = await fetch('/api/plots?project_id=' + encodeURIComponent(geometry.projectId) + '&_=' + Date.now(), { cache: 'no-store' });
+        const j = await r.json();
+        if (stop || !j.ok) return;
+        const m = {};
+        P.forEach(([id]) => { const v = j.plots[String(id)]; if (v) m[id] = toStatus(v); });
+        const key = JSON.stringify([m, j.details || {}]);
+        if (key === plotsJson.current) return;      // nothing changed: skip re-render
+        plotsJson.current = key;
+        setStatus(m);
+        setPlotDetails(j.details || {});
+      } catch { /* no API (plain `vite` dev) or offline: try again next round */ }
+      finally { busy = false; }
+    };
+    load();
+    const t = window.setInterval(() => { if (!document.hidden) load(); }, 5000);
+    const onShow = () => { if (!document.hidden) load(); };
+    window.addEventListener('focus', onShow);
+    document.addEventListener('visibilitychange', onShow);
+    window.addEventListener('maep-plots-changed', load);
+    return () => { stop = true; window.clearInterval(t); window.removeEventListener('focus', onShow); document.removeEventListener('visibilitychange', onShow); window.removeEventListener('maep-plots-changed', load); };
   }, [geometry, P]);
 
   const loadAdminEnquiries = useCallback(async adminPin => {
@@ -286,7 +309,7 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
       <PlotMap ref={mapRef} geometry={geometry} projectName={geometry.projectName} layoutName={geometry.layoutName} ax={ax} status={status} details={plotDetails} filt={filt} setFilt={setFilt} sel={sel} selD={selD} setSel={setSel}
         onTap={onTap} admin={admin} addMode={addMode} adminEnquiries={adminEnquiries} cv={cv} setCv={setCv} setAd={setAdH}
         history={{ undo, redo, canUndo: past.current.length > 0, canRedo: future.current.length > 0 }}>
-        {syncNote && <div className="sync-note" role="alert">{syncNote}</div>}
+        {syncNote ? <div className="sync-note" role="alert">{syncNote}</div> : savedAt ? <div className="sync-note ok" role="status">✓ Saved — everyone can see this change</div> : null}
         {!userMode && !checkingUserSession && <AdminPanel employeeSession={Boolean(employeeToken)} employeeToken={employeeToken} geometry={geometry} panel={panel} setPanel={setPanel} ax={ax} setAd={setAdH} sel={sel} selD={selD} status={status} setStatus={setStatus} initialAdminPin={adminPin}
           addMode={addMode} setAddMode={setAddMode} clearSel={clearSel} onAdminAuth={handleAdminAuth} onAdminExit={() => { setAdminEnquiries([]); setCv(null); }} />}
       </PlotMap>

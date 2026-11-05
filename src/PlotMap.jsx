@@ -228,12 +228,9 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
     };
     const onKey = e => { if (e.key === '/' && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); qRef.current.focus(); } };
     const positionAdminBelowSearch = () => {
-      const isResponsive = window.matchMedia('(max-width: 1199px)').matches;
-      const search = isResponsive
-        ? topRef.current?.querySelector('.sw .search')
-        : topRef.current?.querySelector('.search');
-      if (!search) return;
-      const rect = search.getBoundingClientRect();
+      const header = topRef.current;
+      if (!header) return;
+      const rect = header.getBoundingClientRect();
       document.documentElement.style.setProperty('--admin-search-top', Math.ceil(rect.bottom + 12) + 'px');
     };
     const onResize = () => { v.fit(false); positionAdminBelowSearch(); };
@@ -269,7 +266,7 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
   return (
     <main id="vp" ref={vpRef}>
       <div className="top" ref={topRef}>
-        <button type="button" className="map-back-button" onClick={() => { if (window.sessionStorage.getItem("maep_user_token")) { window.location.assign("/plot_lists"); return; } if (window.history.length > 1 && document.referrer && new URL(document.referrer).origin === window.location.origin) window.history.back(); else window.location.assign("/dashboard"); }} aria-label="Go back to previous page">← Back</button>
+        <button type="button" className="map-back-button" onClick={() => { if (window.sessionStorage.getItem("maep_user_token")) { window.location.assign("/plot_lists"); return; } if (window.history.length > 1 && document.referrer && new URL(document.referrer).origin === window.location.origin) window.history.back(); else window.location.assign("/dashboard"); }} aria-label="Go back to previous page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18 9 12l6-6" /></svg><span className="back-label">Back</span></button>
         <div className="brand fl" aria-label={COMPANY}>
           <div className="brand-copy">
             <b>{projectName || PROJECT}</b>
@@ -280,9 +277,9 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
           const next = !searchOpen;
           setSearchOpen(next);
           setTimeout(() => {
-            const anchor = topRef.current?.querySelector('.sw.mobile-search-open .search') || topRef.current?.querySelector('.search-toggle');
-            if (anchor) {
-              const rect = anchor.getBoundingClientRect();
+            const header = topRef.current;
+            if (header) {
+              const rect = header.getBoundingClientRect();
               document.documentElement.style.setProperty('--admin-search-top', Math.ceil(rect.bottom + 12) + 'px');
             }
             if (next) qRef.current?.focus();

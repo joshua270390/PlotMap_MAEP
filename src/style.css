@@ -451,8 +451,8 @@ path.p.s{fill:#b4313f;fill-opacity:.95}
 }
 
 
-/* Hide the plot map Back control on responsive screens up to 991px. */
-@media(max-width:991px){.map-back-button{display:none!important}}
+/* The plot map Back control stays available on responsive screens; it becomes an icon button below. */
+@media(max-width:991px){.map-back-button .back-label{display:none}}
 
 /* Unit popup inline editor for contact, WhatsApp and area. */
 .unit-edit-trigger{display:block;width:100%;margin:12px 0 8px;padding:10px 14px;border:1px solid #c8d9ce;border-radius:10px;background:#f0f8f2;color:#07533e;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
@@ -712,13 +712,14 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
 @media (max-width:1199px){
   .top{
     display:grid!important;
-    grid-template-columns:max-content minmax(0,1fr) minmax(112px,170px)!important;
-    grid-template-areas:"back title search" "legend legend legend"!important;
+    grid-template-columns:max-content minmax(0,1fr) minmax(112px,170px) max-content!important;
+    grid-template-areas:"back title search dl" "legend legend legend legend"!important;
     align-items:center!important;
     gap:8px!important;
     flex-wrap:initial!important;
   }
   .top>.map-back-button{grid-area:back!important;white-space:nowrap!important}
+  .top>.dl-wrap{grid-area:dl!important;align-self:center!important}
   .top>.brand{
     grid-area:title!important;
     min-width:0!important;
@@ -791,6 +792,42 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
   .top .brand-copy .sub{font-size:9px!important}
   .top>.sw .search{height:38px!important;padding:0 7px!important;gap:5px!important}
   .top>.sw .search input{font-size:11px!important}
+}
+
+
+/* Phone and installed-app header: Back and Download sit on the ends as icon buttons,
+   the layout name keeps the whole middle of the first row, search on its own row. */
+@media(max-width:991px){
+  .top{
+    grid-template-columns:max-content minmax(0,1fr) max-content!important;
+    grid-template-areas:
+      "back title dl"
+      "search search search"
+      "legend legend legend"!important;
+    gap:7px!important;
+  }
+  .top>.map-back-button{
+    display:inline-flex!important;
+    width:42px;min-width:42px;height:42px;min-height:42px;
+    padding:0!important;gap:0!important;border-radius:12px!important;
+  }
+  .top>.map-back-button svg{width:20px;height:20px}
+  .top>.dl-wrap{grid-area:dl!important}
+  .top .dl-btn{
+    width:42px;min-width:42px;height:42px;min-height:42px;
+    padding:0!important;justify-content:center;gap:0!important;border-radius:12px!important;
+  }
+  .top .dl-btn span{display:none}
+  .top .dl-btn svg{width:20px;height:20px}
+  .top>.sw,.top>.sw.mobile-search-open{grid-area:search!important}
+  .top>.brand{padding:7px 12px!important}
+  .top .brand-copy b{font-size:14px!important}
+  .top .brand-copy .sub{font-size:10px!important}
+}
+@media(max-width:420px){
+  .top>.map-back-button,
+  .top .dl-btn{width:38px;min-width:38px;height:38px;min-height:38px}
+  .top .brand-copy b{font-size:13px!important}
 }
 
 
@@ -970,7 +1007,7 @@ svg.adm [data-sk]:hover{filter:brightness(1.06)}
 .top .dl-wrap{position:relative;align-self:stretch;display:flex}
 .top .dl-btn{display:flex;align-items:center;gap:7px;padding:0 14px;min-height:40px;border-radius:14px;border:1px solid rgba(255,255,255,.22);background:linear-gradient(135deg,#07533e,#033b2d);color:#fff;font:600 13px/1 inherit;cursor:pointer;box-shadow:0 8px 22px rgba(0,35,25,.2)}
 .top .dl-btn svg{width:18px;height:18px}.top .dl-btn:disabled{opacity:.7;cursor:wait}
-.top .dl-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:20;min-width:230px;background:#fff;border:1px solid rgba(27,36,51,.12);border-radius:12px;box-shadow:0 12px 30px rgba(15,35,28,.2);padding:6px;display:flex;flex-direction:column}
+.top .dl-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:40;min-width:230px;background:#fff;border:1px solid rgba(27,36,51,.12);border-radius:12px;box-shadow:0 12px 30px rgba(15,35,28,.2);padding:6px;display:flex;flex-direction:column}
 .top .dl-menu button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:9px 11px;border:0;border-radius:8px;background:none;color:#1b2433;font:600 13px/1.2 inherit;cursor:pointer}
 .top .dl-menu button small{font-weight:400;font-size:11px;color:#667085}
 .top .dl-menu button:hover{background:#ecf5f1}

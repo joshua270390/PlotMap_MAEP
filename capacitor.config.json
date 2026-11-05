@@ -1,0 +1,11 @@
+{
+  "appId": "com.maryanneliteproperties.plotmap",
+  "appName": "Mary Ann Plot Map",
+  "webDir": "dist",
+  "server": {
+    "url": "https://maryanneliteproperties.netlify.app/dashboard",
+    "cleartext": false,
+    "allowNavigation": ["maryanneliteproperties.netlify.app"]
+  },
+  "android": { "appendUserAgent": "MAEPApp" }
+}

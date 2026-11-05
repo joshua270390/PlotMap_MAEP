@@ -114,9 +114,9 @@ text.dm.dsel{fill:var(--sd);font-weight:700;opacity:1}
 @media (max-width:600px){.apn{left:8px;right:62px;top:auto;bottom:8px;width:auto;max-width:none;max-height:58%}}
 
 /* ===== v2 updates ===== */
-:root{--plot:#ffffff;--plot2:#dcdfe5;--gap:#aab0ba}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--plot:#eef0f3;--plot2:#b4bac4;--gap:#394659}}
-:root[data-theme="dark"]{--plot:#eef0f3;--plot2:#b4bac4;--gap:#394659}
+:root{--plot:#ffffff;--plot2:#ffffff;--gap:#aab0ba}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--plot:#ffffff;--plot2:#ffffff;--gap:#394659}}
+:root[data-theme="dark"]{--plot:#ffffff;--plot2:#ffffff;--gap:#394659}
 text.n.a{fill:#1b2433;stroke:var(--plot)}
 text.n.a.pm{stroke:var(--plot2)}
 .top{flex-wrap:wrap;align-items:flex-start;gap:10px}
@@ -857,9 +857,9 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
 svg.saraswathi-map path.p.a,
 svg.saraswathi-map path.p.a.pm,
 svg.saraswathi-map path.p.a.dim,
-svg.saraswathi-map path.p.a.pm.dim { fill: #8ab800 !important; fill-opacity: 1; }
+svg.saraswathi-map path.p.a.pm.dim { fill: #ffffff !important; fill-opacity: 1; }
 svg.saraswathi-map path.p.a:hover,
-svg.saraswathi-map path.p.a.pm:hover { fill: #b7e03a !important; filter: none; }
+svg.saraswathi-map path.p.a.pm:hover { fill: #e8e8e8 !important; filter: none; }
 svg.saraswathi-map path.p:hover { stroke: #4f7000; stroke-width: 5; }
 svg.saraswathi-map path.p.sel { stroke: #244000; stroke-width: 8; }
 svg.saraswathi-map .rd { fill: #0877c9; }
@@ -876,7 +876,7 @@ svg.saraswathi-map text.dm {
   font-size: 21px;
   font-weight: 700;
   fill: #000;
-  stroke: #8ab800;
+  stroke: #fff;
   stroke-width: 4px;
   paint-order: stroke;
   stroke-linejoin: round;
@@ -965,15 +965,3 @@ svg.adm [data-sk]:hover{filter:brightness(1.06)}
 .cv-bar .cv-rng em{font-style:normal;min-width:30px;color:#1b2433;font-variant-numeric:tabular-nums}
 .cv-bar .cv-fx-hint{font-size:11px;color:#98a2b3}
 .cv-bar:has(.cv-fx){width:min(660px,calc(100% - 16px))}
-
-/* map download */
-.top .dl-wrap{position:relative;align-self:stretch;display:flex}
-.top .dl-btn{display:flex;align-items:center;gap:7px;padding:0 14px;min-height:40px;border-radius:14px;border:1px solid rgba(255,255,255,.22);background:linear-gradient(135deg,#07533e,#033b2d);color:#fff;font:600 13px/1 inherit;cursor:pointer;box-shadow:0 8px 22px rgba(0,35,25,.2)}
-.top .dl-btn svg{width:18px;height:18px}.top .dl-btn:disabled{opacity:.7;cursor:wait}
-.top .dl-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:20;min-width:230px;background:#fff;border:1px solid rgba(27,36,51,.12);border-radius:12px;box-shadow:0 12px 30px rgba(15,35,28,.2);padding:6px;display:flex;flex-direction:column}
-.top .dl-menu button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:9px 11px;border:0;border-radius:8px;background:none;color:#1b2433;font:600 13px/1.2 inherit;cursor:pointer}
-.top .dl-menu button small{font-weight:400;font-size:11px;color:#667085}
-.top .dl-menu button:hover{background:#ecf5f1}
-@media (max-width:820px){.top .dl-menu{left:auto;right:0}}
-.top .dl-btn{flex-direction:row;white-space:nowrap}.top .dl-btn svg{flex:none;display:block}
-.top .dl-btn svg{position:static;inset:auto}

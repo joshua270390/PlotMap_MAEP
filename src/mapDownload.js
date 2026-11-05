@@ -70,13 +70,33 @@ export async function downloadMap(svg, { plain = false, name = 'plotmap', title 
   g.drawImage(img, 0, 0, W, H);
   URL.revokeObjectURL(url);
   const out = await compose(c, g, W, H, title, plain ? 'Plain Plot Map' : 'Plot Map', subtitle);
-  const jpg = new Uint8Array(await (await new Promise((r) => out.toBlob(r, 'image/jpeg', 0.95))).arrayBuffer());
+    const jpg = new Uint8Array(await (await new Promise((r) => out.toBlob(r, 'image/jpeg', 0.95))).arrayBuffer());
   const blob = jpegToPdf(jpg, out.width, out.height);
+  const filename = `${name}${plain ? '-plain' : ''}.pdf`;
+
+  // Mobile / APK: Android WebView-la direct blob download aagaadhu, 
+  // so Web Share API moolama Save/Share sheet open aagum (Save to Downloads, Drive, WhatsApp, PDF Viewer).
+  try {
+    const file = new File([blob], filename, { type: 'application/pdf' });
+    if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: filename });
+      return;
+    }
+  } catch (err) {
+    if (err && err.name === 'AbortError') return; // User cancel pannina error kaattaadhu
+    console.warn('Native share skipped, falling back to download:', err);
+  }
+
+  // Desktop / Laptop: Standard browser download
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = `${name}${plain ? '-plain' : ''}.pdf`;
-  document.body.appendChild(a); a.click(); a.remove();
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 30000);
 }
+
 
 // Build a one-page PDF holding the map picture (no extra library needed).
 function jpegToPdf(jpg, W, H) {

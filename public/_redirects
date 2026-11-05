@@ -5,4 +5,5 @@
 /api/plots  /.netlify/functions/plots  200
 /api/projects  /.netlify/functions/projects  200
 /api/enquiry  /.netlify/functions/enquiry  200
+/api/map-edits  /.netlify/functions/map-edits  200
 /*  /index.html  200

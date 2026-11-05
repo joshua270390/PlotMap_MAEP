@@ -1,3 +1,4 @@
+import { verifyAdmin } from "../lib/admin-session.mjs";
 import { randomBytes, scryptSync, timingSafeEqual, createHmac } from "node:crypto";
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
@@ -62,7 +63,7 @@ export default async function handler(request) {
     const token = issueToken({ sub: String(employee.id), username: employee.username, role: "employee" }, c.secret);
     return json({ ok: true, token, username: employee.username, role: "employee" });
   }
-  if (!c.pin || request.headers.get("x-admin-pin") !== c.pin)
+  if (!c.pin || !(await verifyAdmin(request)))
     return json({ ok: false, error: "Admin authentication failed." }, 401);
   if (action === "list" && request.method === "GET") {
     const result = await db(c, "GET", new URLSearchParams({ select: "id,username,email,created_at", order: "created_at.desc" }).toString());

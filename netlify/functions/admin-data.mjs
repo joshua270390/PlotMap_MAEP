@@ -1,3 +1,4 @@
+import { verifyAdmin } from "../lib/admin-session.mjs";
 const allowedStatuses = new Set(["Available", "Reserved", "Booked", "Sold"]);
 const json = (body, status = 200, extraHeaders = {}) =>
   new Response(JSON.stringify(body), {
@@ -66,7 +67,7 @@ export default async function handler(request) {
   if (!["GET", "POST", "PATCH", "DELETE"].includes(method))
     return json({ ok: false, error: "Method not allowed" }, 405, { Allow: "GET, POST, PATCH, DELETE" });
 
-  if (!cfg.pin || request.headers.get("x-admin-pin") !== cfg.pin)
+  if (!cfg.pin || !(await verifyAdmin(request)))
     return json({ ok: false, error: "Admin authentication failed. Please log in again." }, 401);
   if (!cfg.url || !cfg.key) {
     console.error("[admin-data] Missing Supabase URL/key environment variables.");

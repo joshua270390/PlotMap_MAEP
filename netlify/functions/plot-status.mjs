@@ -1,3 +1,4 @@
+import { verifyAdmin } from "../lib/admin-session.mjs";
 import { verifyEmployeeToken } from "./employee-auth.mjs";
 const allowedStatuses = new Set(["Available", "Reserved", "Booked", "Sold"]);
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
@@ -38,7 +39,7 @@ async function db(cfg, method, table, query = "", body) {
 export default async function handler(request) {
   const cfg = config();
   if (request.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405);
-  const adminAuthorized = Boolean(cfg.pin) && request.headers.get("x-admin-pin") === cfg.pin;
+  const adminAuthorized = Boolean(cfg.pin) && request.headers.get("x-admin-pin") === cfg.pin && await verifyAdmin(request);
   const employeeClaims = verifyEmployeeToken(request.headers.get("x-employee-token"), process.env.EMPLOYEE_SESSION_SECRET || "");
   if (!adminAuthorized && !employeeClaims) return json({ ok: false, error: "Sign in with an authorized Admin or Employee account." }, 401);
   if (employeeClaims) {

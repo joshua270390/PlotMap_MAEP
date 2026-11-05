@@ -47,7 +47,7 @@ const Trees = memo(({ G }) => {
   return <><defs dangerouslySetInnerHTML={{ __html: TREE }} /><g className="trees">{uses}</g></>;
 });
 const Dims = memo(({ LB, ts = {} }) => LB.map(([s, x, y, r], i) => (
-  <ET key={i} k={'lb' + i} s={ts['lb' + i]} cx={x} cy={y}><text data-tk={'lb' + i} data-saraswathi-dimension={i} className="saraswathi-dimension" style={tStyle(ts['lb' + i])} transform={`translate(${x} ${y}) rotate(${r}) translate(0 0)`}>{s}</text></ET>
+  <ET key={i} k={'lb' + i} s={ts['lb' + i]} cx={x} cy={y}><text data-tk={'lb' + i} data-saraswathi-dimension={i} className={'saraswathi-dimension' + (/ROAD/i.test(s) ? ' road-name' : '')} style={tStyle(ts['lb' + i])} transform={`translate(${x} ${y}) rotate(${r}) translate(0 0)`}>{s}</text></ET>
 )));
 
 const Measures = memo(({ ax, selD, ts = {} }) => ax.dmList().map(d => (

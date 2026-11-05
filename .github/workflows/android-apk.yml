@@ -26,7 +26,7 @@ jobs:
           npm run build
       - name: Add Capacitor Android
         run: |
-          npm install --no-save @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/assets@3
+          npm install --no-save @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/filesystem@7 @capacitor/share@7 @capacitor/assets@3
           npx cap add android
           mkdir -p assets
           cp public/mary-ann-logo.svg assets/logo.svg 2>/dev/null || true

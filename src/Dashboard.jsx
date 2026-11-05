@@ -345,6 +345,7 @@ export default function Dashboard() {
           {error && !(role === 'user' && error.includes('User access is not configured')) && <p className="dash-error" role="alert">{error}</p>}{notice && <p className="dash-notice" role="status">{notice}</p>}
           <button className="primary-btn login-submit" disabled={saving || (role === 'admin' && !pin) || (role === 'employee' && (!employeeUsername || !employeePassword))}>{saving ? 'Please wait…' : 'Sign in'} <span>→</span></button>
         </form>
+        <AppDownload className="login-app-dl" />
       </main>
     );
   }
@@ -557,4 +558,10 @@ export default function Dashboard() {
       </div>}
     </div>
   );
+}
+
+const APK_URL = 'https://github.com/joshua270390/PlotMap_MAEP/releases/latest/download/MaryAnn-PlotMap.apk';
+function AppDownload({ className }) {
+  if (typeof navigator !== 'undefined' && /MAEPApp/.test(navigator.userAgent)) return null;
+  return <a className={className} href={APK_URL} rel="noopener"><span className="nav-icon">📱</span> Download the App</a>;
 }

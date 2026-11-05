@@ -590,3 +590,7 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 .password-toggle:focus-visible{outline:2px solid #6d91bb;outline-offset:1px}
 .password-toggle svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .login-password-field{margin-top:7px}
+
+.login-app-dl{display:flex;align-items:center;justify-content:center;gap:8px;margin:16px auto 0;padding:12px 20px;max-width:420px;width:100%;box-sizing:border-box;border:1.5px solid #07533e;border-radius:12px;color:#07533e;background:#fff;font-weight:600;text-decoration:none}
+.login-app-dl:hover{background:#eef6f1}
+.nav-app-dl{margin-top:auto;text-decoration:none}

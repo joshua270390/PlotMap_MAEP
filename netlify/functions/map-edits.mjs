@@ -60,7 +60,27 @@ export default async function handler(request) {
     return json({ ok: false, error: "Invalid map edits." }, 422);
 
   const updated_at = new Date().toISOString();
-  const w = await db(c, c.table, "POST", "on_conflict=project_key", { project_key: project, data: body.data, updated_at, updated_by: who }, "resolution=merge-duplicates,return=minimal");
-  if (!w.ok) { console.error("[map-edits] write failed:", w.status, w.error); return json({ ok: false, error: "Could not save map edits. Run supabase/admin-session-and-map-edits.sql if not done yet." }, 502); }
-  return json({ ok: true, updated_at });
+  const row = { project_key: project, data: body.data, updated_at, updated_by: who };
+  const conflict = () => json({ ok: false, code: "conflict", error: "Someone else saved changes first. Merging and retrying." }, 409);
+  const failed = w => { console.error("[map-edits] write failed:", w.status, w.error); return json({ ok: false, error: "Could not save map edits. Run supabase/admin-session-and-map-edits.sql if not done yet." }, 502); };
+
+  if (!("base" in body)) {
+    // Old clients: plain overwrite.
+    const w = await db(c, c.table, "POST", "on_conflict=project_key", row, "resolution=merge-duplicates,return=minimal");
+    return w.ok ? json({ ok: true, updated_at }) : failed(w);
+  }
+  if (body.base == null) {
+    // First save for this project: insert only if nobody created it meanwhile.
+    const w = await db(c, c.table, "POST", "", row, "return=minimal");
+    if (w.ok) return json({ ok: true, updated_at });
+    return w.status === 409 ? conflict() : failed(w);
+  }
+  const baseTime = Date.parse(String(body.base));
+  if (!Number.isFinite(baseTime)) return json({ ok: false, error: "Invalid base version." }, 422);
+  // Save only if the row is still the version this browser started from (atomic check in the database).
+  const q = new URLSearchParams({ project_key: "eq." + project, updated_at: "eq." + String(body.base) }).toString();
+  const w = await db(c, c.table, "PATCH", q, { data: body.data, updated_at, updated_by: who }, "return=representation");
+  if (!w.ok) return failed(w);
+  if (!w.data?.length) return conflict();
+  return json({ ok: true, updated_at: w.data[0].updated_at || updated_at });
 }

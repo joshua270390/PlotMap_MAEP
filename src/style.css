@@ -965,3 +965,15 @@ svg.adm [data-sk]:hover{filter:brightness(1.06)}
 .cv-bar .cv-rng em{font-style:normal;min-width:30px;color:#1b2433;font-variant-numeric:tabular-nums}
 .cv-bar .cv-fx-hint{font-size:11px;color:#98a2b3}
 .cv-bar:has(.cv-fx){width:min(660px,calc(100% - 16px))}
+
+/* map download */
+.top .dl-wrap{position:relative;align-self:stretch;display:flex}
+.top .dl-btn{display:flex;align-items:center;gap:7px;padding:0 14px;min-height:40px;border-radius:14px;border:1px solid rgba(255,255,255,.22);background:linear-gradient(135deg,#07533e,#033b2d);color:#fff;font:600 13px/1 inherit;cursor:pointer;box-shadow:0 8px 22px rgba(0,35,25,.2)}
+.top .dl-btn svg{width:18px;height:18px}.top .dl-btn:disabled{opacity:.7;cursor:wait}
+.top .dl-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:20;min-width:230px;background:#fff;border:1px solid rgba(27,36,51,.12);border-radius:12px;box-shadow:0 12px 30px rgba(15,35,28,.2);padding:6px;display:flex;flex-direction:column}
+.top .dl-menu button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:9px 11px;border:0;border-radius:8px;background:none;color:#1b2433;font:600 13px/1.2 inherit;cursor:pointer}
+.top .dl-menu button small{font-weight:400;font-size:11px;color:#667085}
+.top .dl-menu button:hover{background:#ecf5f1}
+@media (max-width:820px){.top .dl-menu{left:auto;right:0}}
+.top .dl-btn{flex-direction:row;white-space:nowrap}.top .dl-btn svg{flex:none;display:block}
+.top .dl-btn svg{position:static;inset:auto}

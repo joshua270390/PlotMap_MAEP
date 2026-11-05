@@ -114,9 +114,9 @@ text.dm.dsel{fill:var(--sd);font-weight:700;opacity:1}
 @media (max-width:600px){.apn{left:8px;right:62px;top:auto;bottom:8px;width:auto;max-width:none;max-height:58%}}
 
 /* ===== v2 updates ===== */
-:root{--plot:#ffffff;--plot2:#ffffff;--gap:#aab0ba}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--plot:#ffffff;--plot2:#ffffff;--gap:#394659}}
-:root[data-theme="dark"]{--plot:#ffffff;--plot2:#ffffff;--gap:#394659}
+:root{--plot:#ffffff;--plot2:#dcdfe5;--gap:#aab0ba}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--plot:#eef0f3;--plot2:#b4bac4;--gap:#394659}}
+:root[data-theme="dark"]{--plot:#eef0f3;--plot2:#b4bac4;--gap:#394659}
 text.n.a{fill:#1b2433;stroke:var(--plot)}
 text.n.a.pm{stroke:var(--plot2)}
 .top{flex-wrap:wrap;align-items:flex-start;gap:10px}
@@ -857,9 +857,9 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
 svg.saraswathi-map path.p.a,
 svg.saraswathi-map path.p.a.pm,
 svg.saraswathi-map path.p.a.dim,
-svg.saraswathi-map path.p.a.pm.dim { fill: #ffffff !important; fill-opacity: 1; }
+svg.saraswathi-map path.p.a.pm.dim { fill: #8ab800 !important; fill-opacity: 1; }
 svg.saraswathi-map path.p.a:hover,
-svg.saraswathi-map path.p.a.pm:hover { fill: #e8e8e8 !important; filter: none; }
+svg.saraswathi-map path.p.a.pm:hover { fill: #b7e03a !important; filter: none; }
 svg.saraswathi-map path.p:hover { stroke: #4f7000; stroke-width: 5; }
 svg.saraswathi-map path.p.sel { stroke: #244000; stroke-width: 8; }
 svg.saraswathi-map .rd { fill: #0877c9; }
@@ -876,7 +876,7 @@ svg.saraswathi-map text.dm {
   font-size: 21px;
   font-weight: 700;
   fill: #000;
-  stroke: #fff;
+  stroke: #8ab800;
   stroke-width: 4px;
   paint-order: stroke;
   stroke-linejoin: round;
@@ -978,5 +978,5 @@ svg.adm [data-sk]:hover{filter:brightness(1.06)}
 .top .dl-btn{flex-direction:row;white-space:nowrap}.top .dl-btn svg{flex:none;display:block}
 .top .dl-btn svg{position:static;inset:auto}
 
-/* ===== Velavan: road names white with road-coloured halo (hides centre line), PDF-safe ===== */
-svg:not(.saraswathi-map) text.saraswathi-dimension.road-name{fill:#fff;font-size:22px;font-weight:700;letter-spacing:.1em;stroke:var(--road);stroke-width:18px;stroke-linejoin:round;paint-order:stroke fill;opacity:1}
+/* Shared map-edit save error */
+.sync-note{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;background:#b42318;color:#fff;padding:8px 14px;border-radius:8px;font:500 13px/1.3 'Instrument Sans',system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.2);max-width:90vw}

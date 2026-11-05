@@ -4,7 +4,7 @@ import { RATE } from './config.js';
 
 export const AKEY = 'velavan-plot-admin-v1';
 // Existing projects keep their old keys; any new project gets its own key automatically.
-const projectKey = geometry => !geometry?.key || geometry.key === 'velavan_nagar' ? AKEY : geometry.key === 'saraswathi_garden' ? 'saraswathi-gardens-plot-admin-v1' : geometry.key === 'shanmuga_avenue' ? 'shanmuga-avenue-plot-admin-v1' : geometry.key.replace(/_/g, '-') + '-plot-admin-v1';
+export const projectKey = geometry => !geometry?.key || geometry.key === 'velavan_nagar' ? AKEY : geometry.key === 'saraswathi_garden' ? 'saraswathi-gardens-plot-admin-v1' : geometry.key === 'shanmuga_avenue' ? 'shanmuga-avenue-plot-admin-v1' : geometry.key.replace(/_/g, '-') + '-plot-admin-v1';
 const modelFor = geometry => {
   const P = geometry?.P || V_P;
   const AREAS = {}, POS = {};
@@ -58,4 +58,21 @@ export function addDm(ad, x, y) {
   const n = clone(ad);
   n.dmAdd.push(['36', Math.round(x * 10) / 10, Math.round(y * 10) / 10, -90.8]);
   return [n, 'a' + (n.dmAdd.length - 1)];
+}
+
+// ---- Shared edits on the server (everyone sees the same map) ----
+export const serverKey = geometry => geometry?.key || 'velavan_nagar';
+export async function fetchServerAd(geometry) {
+  const r = await fetch('/api/map-edits?project=' + encodeURIComponent(serverKey(geometry)), { cache: 'no-store' });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.ok) throw new Error(j.error || 'Could not load map edits.');
+  return { data: j.data ? Object.assign(AD0(), j.data) : null, updatedAt: j.updated_at || null };
+}
+export async function pushServerAd(ad, geometry, auth) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (auth.employeeToken) headers['x-employee-token'] = auth.employeeToken; else headers['x-admin-pin'] = auth.adminPin;
+  const r = await fetch('/api/map-edits', { method: 'PUT', headers, body: JSON.stringify({ project: serverKey(geometry), data: ad }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.ok) throw new Error(j.error || 'Could not save map edits.');
+  return j.updated_at;
 }

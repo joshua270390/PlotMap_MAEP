@@ -95,7 +95,8 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, employeeSession, 
       if (!response.ok || !result.ok) throw new Error(result.error || 'Could not update plot status.');
       const code = ({ Available: 'a', Reserved: 'r', Booked: 'b', Sold: 's' })[value];
       setStatus(old => ({ ...old, [id]: code }));
-      setM({ t: 'Status saved to Supabase.', ok: true });
+      window.dispatchEvent(new Event('maep-plots-changed'));
+      setM({ t: 'Status saved. Everyone will see it within a few seconds.', ok: true });
     } catch (e) {
       setM({ t: e.message || 'Could not update plot status.' });
     } finally { setBusy(false); }
@@ -123,7 +124,7 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, employeeSession, 
         <label className="plot-custom-color"><span>Custom</span><input type="color" value={currentColor} onChange={e => chooseColor(e.target.value)} aria-label="Choose custom plot color" /></label>
         <button type="button" className="plot-color-reset" onClick={() => setAd(ad => { const colors = { ...(ad.colors || {}) }; delete colors[id]; return { ...ad, colors }; })}>Default</button>
       </div>
-      <p className="hint">Color changes apply immediately and are saved in this browser.</p>
+      <p className="hint">Color changes are saved and shown to everyone within a few seconds.</p>
       <p className={'hint' + (m ? (m.ok ? ' ok' : ' err') : '')}>{m && m.t}</p>
     </>
   );

@@ -17,6 +17,10 @@ const GEOMETRIES = {
 
 export default function App({ projectSlug = 'velavan_nagar' }) {
   const geometry = GEOMETRIES[projectSlug] || GEOMETRIES.velavan_nagar;
+  // Keep the browser/APK page title aligned with the selected map, not index.html's default.
+  useEffect(() => {
+    document.title = geometry.projectName + ' plot map';
+  }, [geometry.projectName]);
   const P = geometry.P;
   const [status, setStatus] = useState({});          // a=Available, r=Reserved, b=Booked, s=Sold (from Supabase)
   const [plotDetails, setPlotDetails] = useState({});

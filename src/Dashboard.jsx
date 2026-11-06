@@ -108,6 +108,12 @@ export default function Dashboard() {
   const [projectTab, setProjectTab] = useState('all');
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [nativeApp] = useState(() => /MAEPApp/i.test(navigator.userAgent) || window.Capacitor?.isNativePlatform?.() === true);
+
+  useEffect(() => {
+    const title = page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : page === 'users' ? 'Users' : 'Plot lists';
+    document.title = (loggedIn ? title : 'Sign in') + ' | Mary Ann Elite Properties';
+  }, [page, loggedIn]);
 
   // Keep the rendered dashboard page aligned with browser Back/Forward navigation.
   // Returning from a dashboard route to '/' must remount the PlotMap app, not leave stale dashboard UI.
@@ -351,7 +357,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className={"dashboard-shell" + (sidebarOpen ? " mobile-sidebar-open" : "")}>
+    <div className={"dashboard-shell" + (sidebarOpen ? " mobile-sidebar-open" : "")} data-native-app={String(nativeApp)}>
       {sidebarOpen && <button type="button" className="dashboard-sidebar-backdrop" aria-label="Close navigation menu" onClick={() => setSidebarOpen(false)} />}
       <aside className="dashboard-sidebar">
         <div className="dashboard-sidebar-header">

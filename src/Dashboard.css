@@ -594,3 +594,10 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 .login-app-dl{display:flex;align-items:center;justify-content:center;gap:8px;margin:16px auto 0;padding:12px 20px;max-width:420px;width:100%;box-sizing:border-box;border:1.5px solid #07533e;border-radius:12px;color:#07533e;background:#fff;font-weight:600;text-decoration:none}
 .login-app-dl:hover{background:#eef6f1}
 .nav-app-dl{margin-top:auto;text-decoration:none}
+
+/* Installed APK only: remove the two stacked separator lines below the logo.
+   Keep all normal website/sidebar typography, colours and spacing unchanged. */
+.dashboard-shell[data-native-app="true"] .dashboard-sidebar-header,
+.dashboard-shell[data-native-app="true"] .dashboard-sidebar .dashboard-brand{
+  border-bottom:0;
+}

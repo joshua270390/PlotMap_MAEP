@@ -251,6 +251,14 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
 
   useEffect(() => { ovRef.current.classList.toggle('adm', !!admin); }, [admin]);
   useEffect(() => { vpRef.current.classList.toggle('addm', !!addMode); }, [addMode]);
+  useEffect(() => {
+    if (!searchOpen) return;
+    const close = e => { if (!e.target.closest('.sw') && !e.target.closest('.search-toggle')) setSearchOpen(false); };
+    const esc = e => { if (e.key === 'Escape') setSearchOpen(false); };
+    document.addEventListener('pointerdown', close);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', esc); };
+  }, [searchOpen]);
 
   const n = { a: 0, r: 0, b: 0, s: 0 };
   P.forEach(([id]) => { n[status[id] || 'a']++; });

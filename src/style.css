@@ -799,11 +799,10 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
    the layout name keeps the whole middle of the first row, search on its own row. */
 @media(max-width:991px){
   .top{
-    grid-template-columns:max-content minmax(0,1fr) max-content!important;
+    grid-template-columns:max-content minmax(0,1fr) max-content max-content!important;
     grid-template-areas:
-      "back title dl"
-      "search search search"
-      "legend legend legend"!important;
+      "back title search dl"
+      "legend legend legend legend"!important;
     gap:7px!important;
   }
   .top>.map-back-button{
@@ -819,7 +818,6 @@ path.p.r:hover{fill:#f28c28!important;stroke:#d96f0b!important;stroke-width:6}
   }
   .top .dl-btn span{display:none}
   .top .dl-btn svg{width:20px;height:20px}
-  .top>.sw,.top>.sw.mobile-search-open{grid-area:search!important}
   .top>.brand{padding:7px 12px!important}
   .top .brand-copy b{font-size:14px!important}
   .top .brand-copy .sub{font-size:10px!important}
@@ -1068,3 +1066,47 @@ body:has(#vp[data-native-app="true"] .cv-hist) .sync-note{
 #vp[data-native-app="true"] #adm .admin-header-actions{
   grid-column:2;grid-row:2;justify-content:flex-start;flex-wrap:wrap;
 }
+
+/* Plot search as a popup: only the magnifier icon sits at the end of the
+   title row; the search field stays hidden until the icon is tapped.
+   Applies to tablet/phone widths only — the desktop header is unchanged. */
+@media(max-width:1199px){
+  .top{
+    grid-template-columns:max-content minmax(0,1fr) max-content max-content!important;
+  }
+  .top>.search-toggle{
+    display:inline-flex!important;
+    grid-area:search!important;
+    order:initial!important;
+  }
+  .top>.sw,.top>.sw.mobile-search-open{
+    position:absolute!important;
+    grid-area:auto!important;
+    top:calc(100% + 8px)!important;
+    right:0!important;
+    left:auto!important;
+    width:min(290px,calc(100vw - 24px))!important;
+    max-width:calc(100vw - 24px)!important;
+    flex:initial!important;
+    margin:0!important;
+    padding:0!important;
+    z-index:40!important;
+  }
+  .top>.sw{display:none!important}
+  .top>.sw.mobile-search-open{display:block!important;animation:searchPop .16s ease-out}
+  .top>.sw .search{width:100%!important;box-sizing:border-box!important}
+  .top>.sw.mobile-search-open #msg{
+    display:block!important;
+    margin:6px 2px 0!important;
+    padding:6px 10px!important;
+    font-size:12px!important;
+    background:var(--surface)!important;
+    border:1px solid var(--line)!important;
+    border-radius:10px!important;
+  }
+  .top>.sw.mobile-search-open #msg:empty{display:none!important}
+}
+@media(max-width:420px){
+  .top{grid-template-columns:max-content minmax(0,1fr) max-content max-content!important}
+}
+@keyframes searchPop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}

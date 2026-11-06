@@ -1,0 +1,19 @@
+.project-map-static.project-map-thumbnail{
+  --preview-ground:#e8e4dc;
+  --preview-road:#363e4c;
+  --preview-park:#cdd3c3;
+  --preview-land:#ded6c6;
+  --preview-line:#aab0ba;
+  --preview-plot:#ffffff;
+  --preview-label:#1b2433;
+  background:var(--preview-ground);
+}
+.project-map-thumbnail .preview-road{fill:var(--preview-road)}
+.project-map-thumbnail .preview-park{fill:var(--preview-park)}
+.project-map-thumbnail .preview-land{fill:var(--preview-land)}
+.project-map-thumbnail .preview-road-mark{fill:none;stroke:var(--preview-ground)}
+.project-map-thumbnail .preview-plots{fill:var(--preview-plot);stroke:var(--preview-line);stroke-linejoin:round}
+.project-map-thumbnail .preview-labels text{
+  fill:var(--preview-label);stroke:var(--preview-plot);paint-order:stroke;
+  text-anchor:middle;dominant-baseline:central;font-weight:700;letter-spacing:0;
+}

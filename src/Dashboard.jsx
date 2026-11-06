@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import './Dashboard.css';
 import { P, G } from './data.js';
+import ProjectMapThumbnail from './ProjectMapThumbnail.jsx';
 
 const PROJECT_IDS = { velavan_nagar: 1, saraswathi_garden: 3, shanmuga_avenue: 2 };
 const PROJECT_NAMES = { 1: 'Velavan Nagar', 3: 'Saraswathi Garden', 2: 'Shanmuga Avenue' };
@@ -510,7 +511,7 @@ export default function Dashboard() {
                             <g fill="#1b2433" stroke="#ffffff" strokeWidth="10" paintOrder="stroke" fontSize="44" fontWeight="700" textAnchor="middle" dominantBaseline="central">{P.map(([id, x, y]) => <text key={'number-' + id} x={x} y={y}>{id}</text>)}</g>
                           </svg>
                         ) : (
-                          <div className="project-map-pending" role="img" aria-label="Saraswathi Garden map preview will be added from its layout PDF"><span className="project-visual-mark">MA</span><span className="project-visual-tag">LAYOUT MAP</span></div>
+                          <ProjectMapThumbnail project={project} />
                         )}
                         <div className="project-preview-overlay" aria-hidden="true"><span className="project-visual-mark">MA</span><span className="project-visual-tag">INTERACTIVE PLOT MAP</span></div>
                       </div>

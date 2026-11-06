@@ -141,6 +141,9 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
 
   useEffect(() => {
     const vp = vpRef.current, stage = stageRef.current, ov = ovRef.current, v = view.current;
+    // Keep the installed Android app's toolbar layout separate from the website.
+    const nativeApp = /MAEPApp/i.test(navigator.userAgent) || window.Capacitor?.isNativePlatform?.() === true;
+    vp.dataset.nativeApp = String(nativeApp);
     Object.assign(v, { s: 0.2, tx: 0, ty: 0, fitS: 0.2, z: null });
     const hideTip = () => tipRef.current && tipRef.current.hide();
     const apply = () => {

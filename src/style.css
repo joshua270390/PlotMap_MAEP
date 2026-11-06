@@ -1046,3 +1046,25 @@ svg.adm [data-sk]:hover{filter:brightness(1.06)}
 body:has(#vp[data-native-app="true"] .cv-hist) .sync-note{
   bottom:calc(112px + env(safe-area-inset-bottom,0px));max-width:calc(100vw - 128px);
 }
+
+/* Installed APK: icon centered beside the title and its action row.
+   Preserve existing typography, icon dimensions and colours. */
+#vp[data-native-app="true"] #adm .ah{
+  display:grid;grid-template-columns:max-content minmax(0,1fr);
+  align-items:center;column-gap:8px;row-gap:8px;
+}
+#vp[data-native-app="true"] #adm .at{display:contents}
+#vp[data-native-app="true"] #adm .ai{
+  grid-column:1;grid-row:1 / 3;align-self:center;
+}
+#vp[data-native-app="true"] #adm .at>div{
+  grid-column:2;grid-row:1;min-width:0;overflow-wrap:anywhere;
+}
+#vp[data-native-app="true"] #adm .at b,
+#vp[data-native-app="true"] #adm .at small{display:inline}
+#vp[data-native-app="true"] #adm .at small{margin-top:0;margin-left:4px}
+#vp[data-native-app="true"] #adm .at small::before{content:"("}
+#vp[data-native-app="true"] #adm .at small::after{content:")"}
+#vp[data-native-app="true"] #adm .admin-header-actions{
+  grid-column:2;grid-row:2;justify-content:flex-start;flex-wrap:wrap;
+}

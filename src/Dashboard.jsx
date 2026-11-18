@@ -273,7 +273,7 @@ export default function Dashboard() {
     try {
       const response = await fetch('/api/admin-data', {
         method: rowId == null ? 'POST' : 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
+        headers: { 'Content-Type': 'application/json', ...(employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': pin }) },
         body: JSON.stringify({ ...(rowId == null ? {} : { id: rowId }), ...values, project_id: Number(values.project_id || (PROJECT_IDS[projectTab] || PROJECT_IDS.velavan_nagar)) }),
       });
       const data = await response.json().catch(() => ({}));

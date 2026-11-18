@@ -121,12 +121,14 @@ export default function Dashboard() {
   useEffect(() => {
     const syncRoute = () => {
       const path = window.location.pathname.replace(/\/+$/, '') || '/';
-      if (role !== 'admin') {
+      if (role === 'user') {
         if (path !== '/plot_lists') window.history.replaceState({}, '', '/plot_lists');
-        setPage('plots');
-        return;
+        setPage('plots'); return;
       }
-      const routes = ['/', '/dashboard', '/bookings', '/plot_lists', '/users'];
+      if (role === 'employee' && !['/bookings', '/plot_lists'].includes(path)) {
+        window.history.replaceState({}, '', '/plot_lists'); setPage('plots'); return;
+      }
+      const routes = role === 'employee' ? ['/bookings', '/plot_lists'] : ['/', '/dashboard', '/bookings', '/plot_lists', '/users'];
       if (!routes.includes(path)) {
         window.location.reload();
         return;
@@ -147,7 +149,7 @@ export default function Dashboard() {
       return;
     }
     const savedEmployeeToken = window.sessionStorage.getItem('maep_employee_token');
-    if (savedEmployeeToken) { setRole('employee'); setEmployeeToken(savedEmployeeToken); setUserName(window.sessionStorage.getItem('maep_employee_username') || 'Employee'); setLoggedIn(true); setPage('plots'); if (window.location.pathname !== '/plot_lists') window.history.replaceState({}, '', '/plot_lists'); setAuthChecking(false); return; }
+    if (savedEmployeeToken) { const savedPath = window.location.pathname; const employeePage = savedPath === '/bookings' ? 'bookings' : 'plots'; setRole('employee'); setEmployeeToken(savedEmployeeToken); setUserName(window.sessionStorage.getItem('maep_employee_username') || 'Employee'); setLoggedIn(true); setPage(employeePage); if (!['/bookings', '/plot_lists'].includes(savedPath)) window.history.replaceState({}, '', '/plot_lists'); setAuthChecking(false); return; }
     const savedPin = window.sessionStorage.getItem('maep_admin_pin');
     if (!savedPin) { setAuthChecking(false); return; }
     let cancelled = false;
@@ -196,7 +198,7 @@ export default function Dashboard() {
     setLoading(true); setError('');
     try {
       const requests = [fetch('/api/admin-data?view=' + encodeURIComponent(view) + (view === 'bookings' ? '&project_id=all' : ''), {
-        headers: { 'x-admin-pin': currentPin },
+        headers: employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': currentPin },
         cache: 'no-store',
       })];
       // Dashboard KPIs must use the exact public status feed used by the plot map,
@@ -260,8 +262,9 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    if (loggedIn && role !== 'admin' && page !== 'plots') { setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return; }
-    if (loggedIn && role === 'admin' && page !== 'plots' && page !== 'users') loadData('bookings', pin);
+    if (loggedIn && role === 'user' && page !== 'plots') { setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return; }
+    if (loggedIn && role === 'employee' && !['plots', 'bookings'].includes(page)) { setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return; }
+    if (loggedIn && role !== 'user' && page !== 'plots' && page !== 'users') loadData('bookings', pin);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, loggedIn, role]);
 
@@ -270,7 +273,7 @@ export default function Dashboard() {
     try {
       const response = await fetch('/api/admin-data', {
         method: rowId == null ? 'POST' : 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
+        headers: { 'Content-Type': 'application/json', ...(employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': pin }) },
         body: JSON.stringify({ ...(rowId == null ? {} : { id: rowId }), ...values, project_id: Number(values.project_id || (PROJECT_IDS[projectTab] || PROJECT_IDS.velavan_nagar)) }),
       });
       const data = await response.json().catch(() => ({}));
@@ -368,7 +371,7 @@ export default function Dashboard() {
           <button type="button" className="dashboard-sidebar-close" aria-label="Close navigation menu" onClick={() => setSidebarOpen(false)}>×</button>
         </div>
         {role === 'admin' && <button className={'nav-item' + (page === 'dashboard' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/dashboard'); setPage('dashboard'); setSidebarOpen(false); }}><span className="nav-icon">▦</span> Dashboard</button>}
-        {role === 'admin' && <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); setSidebarOpen(false); }}>
+        {role !== 'user' && <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); setSidebarOpen(false); }}>
           <span className="nav-icon">▤</span> Bookings
         </button>}
         {role === 'admin' && <button className={'nav-item' + (page === 'users' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/users'); setPage('users'); setSidebarOpen(false); }}><span className="nav-icon">♙</span> Users</button>}
@@ -440,7 +443,7 @@ export default function Dashboard() {
                           <td>{field(row, 'phone', 'phone_number') || '—'}</td>
                           <td>{row.plot_id ?? '—'}</td>
                           <td><span className="unit-pill">{field(plot, 'plot_number', 'unit_number') || '—'}</span></td>
-                          <td><select className={'status-select status-' + normalizedStatus(row.status).toLowerCase()} value={normalizedStatus(row.status)} onChange={e => saveBooking({
+                          <td>{role === 'employee' ? <span className={'status-select status-' + normalizedStatus(row.status).toLowerCase()}>{statusLabel(row.status)}</span> : <select className={'status-select status-' + normalizedStatus(row.status).toLowerCase()} value={normalizedStatus(row.status)} onChange={e => saveBooking({
                             customer_name: field(row, 'customer_name', 'name'),
                             phone: field(row, 'phone', 'phone_number'),
                             plot_id: row.plot_id,
@@ -448,11 +451,11 @@ export default function Dashboard() {
                             status: e.target.value,
                           }, row.id, true)} disabled={saving} aria-label={'Status for booking ' + row.id}>
                             {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                          </select></td>
-                          <td><div className="row-actions"><button className="edit-btn" onClick={() => { setError(''); setEdit({
+                          </select>}</td>
+                          <td>{role === 'employee' ? '—' : <div className="row-actions"><button className="edit-btn" onClick={() => { setError(''); setEdit({
                             id: row.id, customer_name: field(row, 'customer_name', 'name'), phone: field(row, 'phone', 'phone_number'),
                             plot_id: String(row.plot_id ?? ''), project_id: Number(row.project_id || 1), status: normalizedStatus(row.status),
-                          }); }}>Edit</button><button className="delete-btn" onClick={() => setDeleteTarget(row)} disabled={saving}>Delete</button></div></td>
+                          }); }}>Edit</button><button className="delete-btn" onClick={() => setDeleteTarget(row)} disabled={saving}>Delete</button></div>}</td>
                         </tr>;
                       })}
                       {!visibleBookings.length && <tr><td colSpan={projectTab === 'all' ? 8 : 7} className="empty-cell">{selectedProjectBookings.length ? 'No bookings match your search.' : 'No bookings found in Supabase.'}</td></tr>}
@@ -545,7 +548,8 @@ export default function Dashboard() {
             <option value="" disabled>Select a unit</option>
             {plots.filter(plot => {
               const plotStatus = normalizedStatus(plot.status);
-              return (edit?.id != null && String(plot.id) === String(edit.plot_id)) || !['Booked', 'Sold'].includes(plotStatus);
+              const sameProject = String(plot.project_id) === String(edit.project_id);
+              return sameProject && ((edit?.id != null && String(plot.id) === String(edit.plot_id)) || !['Booked', 'Sold'].includes(plotStatus));
             }).map(plot => <option key={plot.id} value={String(plot.id)}>{field(plot, 'plot_number', 'unit_number')} (Plot ID: {plot.id})</option>)}
           </select></label>
           <label>Status<select value={edit.status} onChange={e => setEdit(s => ({ ...s, status: e.target.value }))}>{STATUSES.filter(s => edit.id != null || ['Available', 'Reserved'].includes(s.value)).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></label>

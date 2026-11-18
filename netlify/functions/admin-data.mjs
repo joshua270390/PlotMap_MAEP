@@ -1,4 +1,5 @@
 import { verifyAdmin } from "../lib/admin-session.mjs";
+import { verifyEmployeeToken } from "./employee-auth.mjs";
 const allowedStatuses = new Set(["Available", "Reserved", "Booked", "Sold"]);
 const json = (body, status = 200, extraHeaders = {}) =>
   new Response(JSON.stringify(body), {
@@ -14,6 +15,7 @@ function config() {
     projectId: String(parseInt(process.env.PROJECT_ID || "1", 10)),
     bookingsTable: process.env.BOOKINGS_TABLE || "bookings",
     plotsTable: process.env.PLOTS_TABLE || "plots",
+    employeesTable: process.env.EMPLOYEES_TABLE || "employees",
   };
 }
 
@@ -67,8 +69,15 @@ export default async function handler(request) {
   if (!["GET", "POST", "PATCH", "DELETE"].includes(method))
     return json({ ok: false, error: "Method not allowed" }, 405, { Allow: "GET, POST, PATCH, DELETE" });
 
-  if (!cfg.pin || !(await verifyAdmin(request)))
-    return json({ ok: false, error: "Admin authentication failed. Please log in again." }, 401);
+  const adminAuthorized = Boolean(cfg.pin) && request.headers.get("x-admin-pin") === cfg.pin && await verifyAdmin(request);
+  const employeeClaims = verifyEmployeeToken(request.headers.get("x-employee-token"), process.env.EMPLOYEE_SESSION_SECRET || "");
+  let employeeAuthorized = false;
+  if (employeeClaims) {
+    const employeeCheck = await db(cfg, "GET", cfg.employeesTable, new URLSearchParams({ select: "id,active", id: "eq." + employeeClaims.sub, limit: "1" }).toString());
+    employeeAuthorized = Boolean(employeeCheck.ok && employeeCheck.data?.length && employeeCheck.data[0].active !== false);
+  }
+  if (!adminAuthorized && !employeeAuthorized) return json({ ok: false, error: "Sign in with an authorized Admin or Employee account." }, 401);
+  if (employeeAuthorized && !["GET", "POST"].includes(method)) return json({ ok: false, error: "Employees can view bookings and add customers. Admin access is required for this action." }, 403);
   if (!cfg.url || !cfg.key) {
     console.error("[admin-data] Missing Supabase URL/key environment variables.");
     return json({ ok: false, error: "Dashboard database access is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (recommended), or SUPABASE_KEY with suitable RLS permissions." }, 500);

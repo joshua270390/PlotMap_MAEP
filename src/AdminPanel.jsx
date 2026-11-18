@@ -54,11 +54,11 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, employeeSession, 
   useEffect(() => {
     let cancelled = false;
     async function loadReservedCustomers() {
-      if (!pin) return;
+      if (!pin && !token) return;
       setCustomersLoading(true);
       try {
         const response = await fetch('/api/admin-data?view=bookings&project_id=' + encodeURIComponent(ax.geometry?.projectId || 1), {
-          headers: { 'x-admin-pin': pin }, cache: 'no-store',
+          headers: token ? { 'x-employee-token': token } : { 'x-admin-pin': pin }, cache: 'no-store',
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load Reserved customers.');
@@ -107,7 +107,7 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, employeeSession, 
       <div className="sec">Availability status</div>
       <label><span>Plot status</span>
         <select value={value} onChange={e => { setValue(e.target.value); setM(null); setSelectedBookingId(''); }}>
-          <option value="Available">Availability</option><option value="Reserved">Reserved</option>{!employeeSession && <><option value="Booked">Booked</option><option value="Sold">Sold</option></>}
+          <option value="Available">Availability</option><option value="Reserved">Reserved</option><option value="Booked">Booked</option><option value="Sold">Sold</option>
         </select>
       </label>
       {['Booked', 'Sold'].includes(value) && <label><span>Reserved customer to {value.toLowerCase()}</span>
@@ -223,10 +223,24 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
     setCustomerForm({ customer_name: '', phone: '', plot_id: '', status: 'Available' });
     setCustomerLoading(true);
     try {
-      const response = await fetch('/api/admin-data?view=bookings', { headers: { 'x-admin-pin': authPin }, cache: 'no-store', signal: AbortSignal.timeout(15000) });
+      const response = await fetch('/api/admin-data?view=bookings&project_id=' + encodeURIComponent(ax.geometry?.projectId || 1), { headers: employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': authPin }, cache: 'no-store', signal: AbortSignal.timeout(15000) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load plot units.');
       setCustomerPlots(data.plots || []);
+      // Preselect the plot currently highlighted on the map, for every project geometry.
+      if (sel != null) {
+        const selectedPlotNumber = String(ax.lbl(sel));
+        const selectedPlot = (data.plots || []).find(plot =>
+          String(plot.plot_number ?? plot.unit_number ?? plot.id) === selectedPlotNumber
+        );
+        if (selectedPlot && !['booked', 'sold'].includes(String(selectedPlot.status || '').trim().toLowerCase())) {
+          setCustomerForm(old => ({
+            ...old,
+            plot_id: String(selectedPlot.id),
+            status: String(selectedPlot.status || '').trim().toLowerCase() === 'reserved' ? 'Reserved' : old.status,
+          }));
+        }
+      }
       if (data.warning) setCustomerError(data.warning);
       else if (!(data.plots || []).length) setCustomerError('No plot units were returned by the database for this project. Check PROJECT_ID and the plots table project_id values in Netlify environment variables.');
     } catch (error) {
@@ -241,8 +255,8 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
     try {
       const response = await fetch('/api/admin-data', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-pin': authPin },
-        body: JSON.stringify(customerForm),
+        headers: { 'Content-Type': 'application/json', ...(employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': authPin }) },
+        body: JSON.stringify({ ...customerForm, project_id: ax.geometry?.projectId || 1 }),
         signal: AbortSignal.timeout(20000),
       });
       const data = await response.json().catch(() => ({}));
@@ -268,7 +282,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
       <div className="ah">
         <div className="at">
           <span className="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.3 8-8 9-4.7-1-8-4.5-8-9V6z" /><path d="m9 12 2 2 4-4" /></svg></span>
-          <div><b>Admin studio</b><small>Plots, labels and rates</small></div>
+          <div><b>{employeeSession ? 'Employee studio' : 'Admin studio'}</b><small>Plots, labels and rates</small></div>
         </div>
         <div className="admin-header-actions">
           {panel === "tools" && <button className="admin-compact-toggle" type="button" onClick={() => setMobileCompact(value => !value)} aria-expanded={!mobileCompact} aria-label={mobileCompact ? "Expand Admin Studio editor" : "Collapse Admin Studio editor"}>{mobileCompact ? "Expand editor ＋" : "Collapse −"}</button>}
@@ -293,14 +307,14 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
                 : selD && ax.dmList().some(d => d.k === selD) ? <DmEditor key={selD} k={selD} ax={ax} setAd={setAd} onGone={clearSel} />
                 : <p className="hint">Click a plot or a dimension label on the map to edit it.</p>}
             </div>
-            {!employeeSession && <><div className="sec">Customers & bookings</div>
+            <div className="sec">Customers & bookings</div>
             <div className="card">
               <button className="tool admin-add-customer" type="button" onClick={openAddCustomer}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /><circle cx="12" cy="12" r="10" /></svg>
                 Add Customer
               </button>
               <p className="hint">Add a customer here; the saved booking is shared with the Bookings page.</p>
-            </div></>}
+            </div>
             <div className="sec">Map tools</div>
             <div className="card">
               <button className="tool" type="button" aria-pressed={addMode} onClick={() => { clearSel(); setAddMode(!addMode); }}>
@@ -340,7 +354,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
         <label>Unit Number<select value={customerForm.plot_id} onChange={event => {
             const selected = customerPlots.find(plot => String(plot.id) === event.target.value);
             setCustomerForm(old => ({ ...old, plot_id: event.target.value, status: String(selected?.status || '').toLowerCase() === 'reserved' ? 'Reserved' : old.status }));
-          }} required disabled={customerLoading || customerBusy || !customerPlots.length}>
+          }} required disabled={customerLoading || customerBusy || !customerPlots.length || (sel != null && customerPlots.some(plot => String(plot.id) === String(customerForm.plot_id) && String(plot.plot_number ?? plot.unit_number ?? plot.id) === String(ax.lbl(sel))))}>
           <option value="" disabled>{customerLoading ? 'Loading units…' : 'Select a unit'}</option>
           {customerPlots.filter(plot => !['booked', 'sold'].includes(String(plot.status || 'Available').trim().toLowerCase())).map(plot => <option key={plot.id} value={String(plot.id)}>{String(plot.plot_number ?? plot.unit_number ?? plot.id)}{String(plot.status || '').toLowerCase() === 'reserved' ? ' · Reserved' : ''} (Plot ID: {plot.id})</option>)}
         </select></label>

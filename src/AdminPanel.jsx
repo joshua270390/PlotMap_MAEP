@@ -107,7 +107,7 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, employeeSession, 
       <div className="sec">Availability status</div>
       <label><span>Plot status</span>
         <select value={value} onChange={e => { setValue(e.target.value); setM(null); setSelectedBookingId(''); }}>
-          <option value="Available">Availability</option><option value="Reserved">Reserved</option><><option value="Booked">Booked</option><option value="Sold">Sold</option></>
+          <option value="Available">Availability</option><option value="Reserved">Reserved</option><option value="Booked">Booked</option><option value="Sold">Sold</option>
         </select>
       </label>
       {['Booked', 'Sold'].includes(value) && <label><span>Reserved customer to {value.toLowerCase()}</span>

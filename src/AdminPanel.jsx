@@ -54,7 +54,7 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, employeeSession, 
   useEffect(() => {
     let cancelled = false;
     async function loadReservedCustomers() {
-      if (!pin) return;
+      if (!pin && !token) return;
       setCustomersLoading(true);
       try {
         const response = await fetch('/api/admin-data?view=bookings&project_id=' + encodeURIComponent(ax.geometry?.projectId || 1), {
@@ -223,7 +223,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
     setCustomerForm({ customer_name: '', phone: '', plot_id: '', status: 'Available' });
     setCustomerLoading(true);
     try {
-      const response = await fetch('/api/admin-data?view=bookings', { headers: employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': authPin }, cache: 'no-store', signal: AbortSignal.timeout(15000) });
+      const response = await fetch('/api/admin-data?view=bookings&project_id=' + encodeURIComponent(ax.geometry?.projectId || 1), { headers: employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': authPin }, cache: 'no-store', signal: AbortSignal.timeout(15000) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load plot units.');
       setCustomerPlots(data.plots || []);
@@ -256,7 +256,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
       const response = await fetch('/api/admin-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': authPin }) },
-        body: JSON.stringify(customerForm),
+        body: JSON.stringify({ ...customerForm, project_id: ax.geometry?.projectId || 1 }),
         signal: AbortSignal.timeout(20000),
       });
       const data = await response.json().catch(() => ({}));
@@ -314,7 +314,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
                 Add Customer
               </button>
               <p className="hint">Add a customer here; the saved booking is shared with the Bookings page.</p>
-            </div></>}
+            </div>
             <div className="sec">Map tools</div>
             <div className="card">
               <button className="tool" type="button" aria-pressed={addMode} onClick={() => { clearSel(); setAddMode(!addMode); }}>

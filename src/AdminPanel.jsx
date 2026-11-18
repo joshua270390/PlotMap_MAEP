@@ -227,6 +227,20 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load plot units.');
       setCustomerPlots(data.plots || []);
+      // Preselect the plot currently highlighted on the map, for every project geometry.
+      if (sel != null) {
+        const selectedPlotNumber = String(ax.lbl(sel));
+        const selectedPlot = (data.plots || []).find(plot =>
+          String(plot.plot_number ?? plot.unit_number ?? plot.id) === selectedPlotNumber
+        );
+        if (selectedPlot && !['booked', 'sold'].includes(String(selectedPlot.status || '').trim().toLowerCase())) {
+          setCustomerForm(old => ({
+            ...old,
+            plot_id: String(selectedPlot.id),
+            status: String(selectedPlot.status || '').trim().toLowerCase() === 'reserved' ? 'Reserved' : old.status,
+          }));
+        }
+      }
       if (data.warning) setCustomerError(data.warning);
       else if (!(data.plots || []).length) setCustomerError('No plot units were returned by the database for this project. Check PROJECT_ID and the plots table project_id values in Netlify environment variables.');
     } catch (error) {
@@ -340,7 +354,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
         <label>Unit Number<select value={customerForm.plot_id} onChange={event => {
             const selected = customerPlots.find(plot => String(plot.id) === event.target.value);
             setCustomerForm(old => ({ ...old, plot_id: event.target.value, status: String(selected?.status || '').toLowerCase() === 'reserved' ? 'Reserved' : old.status }));
-          }} required disabled={customerLoading || customerBusy || !customerPlots.length}>
+          }} required disabled={customerLoading || customerBusy || !customerPlots.length || (sel != null && customerPlots.some(plot => String(plot.id) === String(customerForm.plot_id) && String(plot.plot_number ?? plot.unit_number ?? plot.id) === String(ax.lbl(sel))))}>
           <option value="" disabled>{customerLoading ? 'Loading units…' : 'Select a unit'}</option>
           {customerPlots.filter(plot => !['booked', 'sold'].includes(String(plot.status || 'Available').trim().toLowerCase())).map(plot => <option key={plot.id} value={String(plot.id)}>{String(plot.plot_number ?? plot.unit_number ?? plot.id)}{String(plot.status || '').toLowerCase() === 'reserved' ? ' · Reserved' : ''} (Plot ID: {plot.id})</option>)}
         </select></label>

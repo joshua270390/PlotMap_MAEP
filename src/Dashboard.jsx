@@ -49,7 +49,7 @@ function EmployeeUsersPage({ pin, employees, setEmployees, employeeForm, setEmpl
   const remove = async () => {
     if (!employeeDelete || busy) return; setBusy(true); setError('');
     try {
-      const response = await fetch('/api/employee-auth?action=delete', { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin }, body: JSON.stringify({ id: employeeDelete.id }) });
+      const response = await fetch('/api/employee-auth?action=delete', { method: 'DELETE', headers: { 'Content-Type': 'application/json', ...(employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': pin }) }, body: JSON.stringify({ id: employeeDelete.id }) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not delete employee.');
       setEmployeeDelete(null); setNotice('Employee deleted.'); await load();

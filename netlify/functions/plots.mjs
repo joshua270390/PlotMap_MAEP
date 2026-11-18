@@ -1,3 +1,6 @@
+import { verifyAdmin } from "../lib/admin-session.mjs";
+import { verifyEmployeeToken } from "./employee-auth.mjs";
+
 const allowedStatuses = new Set(["Available", "Reserved", "Booked", "Sold"]);
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },

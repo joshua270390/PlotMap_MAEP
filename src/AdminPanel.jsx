@@ -58,7 +58,7 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, employeeSession, 
       setCustomersLoading(true);
       try {
         const response = await fetch('/api/admin-data?view=bookings&project_id=' + encodeURIComponent(ax.geometry?.projectId || 1), {
-          headers: { 'x-admin-pin': pin }, cache: 'no-store',
+          headers: token ? { 'x-employee-token': token } : { 'x-admin-pin': pin }, cache: 'no-store',
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load Reserved customers.');
@@ -107,7 +107,7 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, employeeSession, 
       <div className="sec">Availability status</div>
       <label><span>Plot status</span>
         <select value={value} onChange={e => { setValue(e.target.value); setM(null); setSelectedBookingId(''); }}>
-          <option value="Available">Availability</option><option value="Reserved">Reserved</option>{!employeeSession && <><option value="Booked">Booked</option><option value="Sold">Sold</option></>}
+          <option value="Available">Availability</option><option value="Reserved">Reserved</option><><option value="Booked">Booked</option><option value="Sold">Sold</option></>
         </select>
       </label>
       {['Booked', 'Sold'].includes(value) && <label><span>Reserved customer to {value.toLowerCase()}</span>
@@ -223,7 +223,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
     setCustomerForm({ customer_name: '', phone: '', plot_id: '', status: 'Available' });
     setCustomerLoading(true);
     try {
-      const response = await fetch('/api/admin-data?view=bookings', { headers: { 'x-admin-pin': authPin }, cache: 'no-store', signal: AbortSignal.timeout(15000) });
+      const response = await fetch('/api/admin-data?view=bookings', { headers: employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': authPin }, cache: 'no-store', signal: AbortSignal.timeout(15000) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load plot units.');
       setCustomerPlots(data.plots || []);
@@ -255,7 +255,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
     try {
       const response = await fetch('/api/admin-data', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-pin': authPin },
+        headers: { 'Content-Type': 'application/json', ...(employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': authPin }) },
         body: JSON.stringify(customerForm),
         signal: AbortSignal.timeout(20000),
       });
@@ -282,7 +282,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
       <div className="ah">
         <div className="at">
           <span className="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.3 8-8 9-4.7-1-8-4.5-8-9V6z" /><path d="m9 12 2 2 4-4" /></svg></span>
-          <div><b>Admin studio</b><small>Plots, labels and rates</small></div>
+          <div><b>{employeeSession ? 'Employee studio' : 'Admin studio'}</b><small>Plots, labels and rates</small></div>
         </div>
         <div className="admin-header-actions">
           {panel === "tools" && <button className="admin-compact-toggle" type="button" onClick={() => setMobileCompact(value => !value)} aria-expanded={!mobileCompact} aria-label={mobileCompact ? "Expand Admin Studio editor" : "Collapse Admin Studio editor"}>{mobileCompact ? "Expand editor ＋" : "Collapse −"}</button>}
@@ -307,7 +307,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
                 : selD && ax.dmList().some(d => d.k === selD) ? <DmEditor key={selD} k={selD} ax={ax} setAd={setAd} onGone={clearSel} />
                 : <p className="hint">Click a plot or a dimension label on the map to edit it.</p>}
             </div>
-            {!employeeSession && <><div className="sec">Customers & bookings</div>
+            <><div className="sec">Customers & bookings</div>
             <div className="card">
               <button className="tool admin-add-customer" type="button" onClick={openAddCustomer}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /><circle cx="12" cy="12" r="10" /></svg>

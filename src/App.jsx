@@ -170,7 +170,13 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
     const load = async () => {
       if (busy || stop) return; busy = true;
       try {
-        const r = await fetch('/api/plots?project_id=' + encodeURIComponent(geometry.projectId) + '&_=' + Date.now(), { cache: 'no-store' });
+        const auth = authRef.current;
+        const headers = {};
+        if (auth.employeeToken) headers['x-employee-token'] = auth.employeeToken;
+        else if (auth.adminPin) headers['x-admin-pin'] = auth.adminPin;
+        const r = await fetch('/api/plots?project_id=' + encodeURIComponent(geometry.projectId) + '&_=' + Date.now(), {
+          headers, credentials: 'same-origin', cache: 'no-store',
+        });
         const j = await r.json();
         if (stop || !j.ok) return;
         const m = {};

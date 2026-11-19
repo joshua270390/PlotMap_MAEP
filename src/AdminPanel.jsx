@@ -67,7 +67,7 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, setAd, onOpenAddC
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load Reserved customers.');
-        const plot = (data.plots || []).find(item => String(item.plot_number ?? item.unit_number ?? item.id) === String(ax.lbl(id)));
+        const plot = (data.plots || []).find(item => String(item.plot_number ?? item.unit_number ?? item.plot_no ?? item.unit_no ?? '') === String(id));
         const rows = (data.bookings || []).filter(row =>
           String(row.plot_id) === String(plot?.id) &&
           String(row.status).toLowerCase() === 'reserved' &&
@@ -94,7 +94,7 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, setAd, onOpenAddC
       const response = await fetch('/api/plot-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { 'x-employee-token': token } : { 'x-admin-pin': pin }) },
-        body: JSON.stringify({ plot_number: ax.lbl(id), status: value, booking_id: selectedBookingId || undefined, project_id: ax.geometry?.projectId || 1 }),
+        body: JSON.stringify({ plot_number: String(id), display_plot_number: ax.lbl(id), status: value, booking_id: selectedBookingId || undefined, project_id: ax.geometry?.projectId || 1 }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || 'Could not update plot status.');
@@ -179,9 +179,9 @@ function ResetAvailabilityEditor({ ids, ax, status, setStatus, pin, token }) {
         const blocked = [];
         candidates.forEach(id => {
           const plotNumber = String(ax.lbl(id));
-          const normalizedNumber = normalizePlotKey(plotNumber);
+          const inventoryKey = normalizePlotKey(id);
           const plot = (data.plots || []).find(item =>
-            [item.plot_number, item.unit_number, item.plot_no, item.id].some(value => normalizePlotKey(value) === normalizedNumber)
+            [item.plot_number, item.unit_number, item.plot_no, item.unit_no].some(value => normalizePlotKey(value) === inventoryKey)
           );
           if (!plot) {
             blocked.push({ number: plotNumber, reason: 'Plot record was not found in the project inventory.' });
@@ -217,14 +217,14 @@ function ResetAvailabilityEditor({ ids, ax, status, setStatus, pin, token }) {
       const response = await fetch('/api/plot-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { 'x-employee-token': token } : { 'x-admin-pin': pin }) },
-        body: JSON.stringify({ action: 'reset-empty-customer-plots', plot_numbers: eligibleIds.map(id => ax.lbl(id)), project_id: ax.geometry?.projectId || 1 }),
+        body: JSON.stringify({ action: 'reset-empty-customer-plots', plot_numbers: eligibleIds.map(id => String(id)), display_plot_numbers: eligibleIds.map(id => ax.lbl(id)), project_id: ax.geometry?.projectId || 1 }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || 'Could not reset selected plots.');
       const resetSet = new Set((result.reset || []).map(normalizePlotKey));
       setStatus(old => {
         const next = { ...old };
-        ids.forEach(id => { if (resetSet.has(normalizePlotKey(ax.lbl(id)))) next[id] = 'a'; });
+        ids.forEach(id => { if (resetSet.has(normalizePlotKey(id))) next[id] = 'a'; });
         return next;
       });
       window.dispatchEvent(new Event('maep-plots-changed'));

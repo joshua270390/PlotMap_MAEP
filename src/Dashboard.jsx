@@ -304,8 +304,8 @@ export default function Dashboard() {
     try {
       const response = await fetch('/api/admin-data', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
-        body: JSON.stringify({ id: row.id }),
+        headers: { 'Content-Type': 'application/json', ...(employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': pin }) },
+        body: JSON.stringify({ id: row.id, project_id: row.project_id }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not delete booking.');
@@ -452,10 +452,10 @@ export default function Dashboard() {
                           }, row.id, true)} disabled={saving} aria-label={'Status for booking ' + row.id}>
                             {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                           </select>}</td>
-                          <td>{role === 'employee' ? '—' : <div className="row-actions"><button className="edit-btn" onClick={() => { setError(''); setEdit({
+                          <td><div className="row-actions"><button className="edit-btn" type="button" onClick={() => { setError(''); setEdit({
                             id: row.id, customer_name: field(row, 'customer_name', 'name'), phone: field(row, 'phone', 'phone_number'),
                             plot_id: String(row.plot_id ?? ''), project_id: Number(row.project_id || 1), status: normalizedStatus(row.status),
-                          }); }}>Edit</button><button className="delete-btn" onClick={() => setDeleteTarget(row)} disabled={saving}>Delete</button></div>}</td>
+                          }); }} disabled={saving}>Edit</button><button className="delete-btn" type="button" onClick={() => setDeleteTarget(row)} disabled={saving}>Delete</button></div></td>
                         </tr>;
                       })}
                       {!visibleBookings.length && <tr><td colSpan={projectTab === 'all' ? 8 : 7} className="empty-cell">{selectedProjectBookings.length ? 'No bookings match your search.' : 'No bookings found in Supabase.'}</td></tr>}

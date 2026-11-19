@@ -148,8 +148,8 @@ export default async function handler(request) {
   const plotLookup = await db(cfg, "GET", cfg.plotsTable, plotQuery.toString());
   if (!plotLookup.ok) return json({ ok: false, error: "Could not look up the unit in Supabase." }, 502);
   const normalizePlotKey = value => {
-    let key = String(value ?? "").trim().toLowerCase().replace(/^plot[\\s-]*/, "");
-    if (/^\\d+$/.test(key)) key = String(Number(key));
+    let key = String(value ?? "").trim().toLowerCase().replace(/^plot[\s-]*/, "");
+    if (/^\d+$/.test(key)) key = String(Number(key));
     return key;
   };
   const matchingPlots = (plotLookup.data || []).filter(item =>

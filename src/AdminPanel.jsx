@@ -82,7 +82,7 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, setAd, onOpenAddC
 
   const presets = ['#c7dfc7', '#9fd7c2', '#a9c9f2', '#f6d58b', '#f4b6b6', '#d6c2f0', '#f2c6a0', '#d5dde6'];
   const save = async () => {
-    if (!['Available', 'Booked', 'Sold'].includes(value)) return;
+    if (!['Available', 'Reserved', 'Booked', 'Sold'].includes(value)) return;
     if (['Booked', 'Sold'].includes(value) && !selectedBookingId) {
       setM({ t: 'Select a Reserved customer with name and phone number first.' }); return;
     }
@@ -110,7 +110,8 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, setAd, onOpenAddC
       <label><span>Plot status</span>
         <select value={value} onChange={e => {
           const next = e.target.value; setM(null); setSelectedBookingId('');
-          if (next === 'Available') setValue(next);
+          if (['Available', 'Reserved'].includes(next) && ['Booked', 'Sold'].includes(currentStatus)) setValue(next);
+          else if (next === 'Available') setValue(next);
           else { setValue(''); onOpenAddCustomer('Reserved', id); }
         }}>
           <option value="">Select status</option>

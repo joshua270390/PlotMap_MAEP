@@ -154,8 +154,8 @@ function ResetAvailabilityEditor({ ids, ax, status, setStatus, pin, token }) {
   const [checking, setChecking] = useState(true);
   const statusKey = ids.map(id => String(id) + ':' + (status[id] || 'a')).join('|');
   const normalizePlotKey = value => {
-    let key = String(value ?? '').trim().toLowerCase().replace(/^plot[\\s-]*/, '');
-    if (/^\\d+$/.test(key)) key = String(Number(key));
+    let key = String(value ?? '').trim().toLowerCase().replace(/^plot[\s-]*/, '');
+    if (/^\d+$/.test(key)) key = String(Number(key));
     return key;
   };
   const hasCustomerDetails = row => [

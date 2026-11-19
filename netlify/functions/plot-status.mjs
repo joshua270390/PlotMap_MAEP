@@ -130,15 +130,15 @@ export default async function handler(request) {
   const plotId = plotLookup.data[0].id;
   const currentInventoryStatus = String(plotLookup.data[0].status || "Available");
   // Releasing a Booked/Sold plot also updates its active booking row to Available.
-  if (status === "Available" && ["Booked", "Sold"].includes(currentInventoryStatus)) {
+  if (["Available", "Reserved"].includes(status) && ["Booked", "Sold"].includes(currentInventoryStatus)) {
     const bookingUpdate = await db(cfg, "PATCH", cfg.bookingsTable,
       new URLSearchParams({
         project_id: "eq." + cfg.projectId,
         plot_id: "eq." + plotId,
         status: "in.(Booked,Sold)",
-      }).toString(), { status: "Available" });
+      }).toString(), { status });
     if (!bookingUpdate.ok)
-      return json({ ok: false, error: "Could not update the booking availability to Available." }, 502);
+      return json({ ok: false, error: "Could not update the booking availability to " + status + "." }, 502);
   }
 
   if (["Booked", "Sold"].includes(status)) {

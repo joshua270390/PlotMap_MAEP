@@ -210,16 +210,14 @@ function ResetAvailabilityEditor({ ids, ax, status, setStatus, pin, token }) {
   }, [statusKey, pin, token, ax]);
 
   if (checking) return null;
-  if (eligibleIds.length === 0 && blockedPlots.length === 0 && !message) return null;
-
   const reset = async () => {
-    if (!eligibleIds.length || busy) return;
+    if (!ids.length || busy) return;
     setBusy(true); setMessage(null);
     try {
       const response = await fetch('/api/plot-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { 'x-employee-token': token } : { 'x-admin-pin': pin }) },
-        body: JSON.stringify({ action: 'reset-empty-customer-plots', plot_numbers: eligibleIds.map(id => ax.lbl(id)), project_id: ax.geometry?.projectId || 1 }),
+        body: JSON.stringify({ action: 'reset-empty-customer-plots', plot_numbers: ids.map(id => ax.lbl(id)), project_id: ax.geometry?.projectId || 1 }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || 'Could not reset selected plots.');
@@ -245,8 +243,8 @@ function ResetAvailabilityEditor({ ids, ax, status, setStatus, pin, token }) {
   return (
     <>
       <div className="sec">Reset plot availability</div>
-      <p className="hint">{eligibleIds.length} selected plot(s) are eligible for reset. Booking records will not be changed or deleted.</p>
-      {eligibleIds.length > 0 && <div className="arow"><button type="button" className="dng" disabled={busy} onClick={reset}>{busy ? 'Resetting…' : 'Reset selected to Available'}</button></div>}
+      <p className="hint">Selected plot(s): {ids.length}. The server will verify the actual inventory status and confirm that no customer name or phone exists before resetting. Booking records will not be changed or deleted.</p>
+      <div className="arow"><button type="button" className="dng" disabled={busy || checking} onClick={reset}>{busy ? 'Resetting…' : 'Reset selected to Available'}</button></div>
       {message && <p className={'hint' + (message.ok ? ' ok' : ' err')}>{message.text}</p>}
       {!message && blockedPlots.length > 0 && <p className="hint err">{blockedPlots.map(item => 'Plot ' + item.number + ': ' + item.reason).join(' ')}</p>}
     </>

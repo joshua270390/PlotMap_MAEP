@@ -320,7 +320,7 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
         onTap={onTap} admin={admin} addMode={addMode} adminEnquiries={adminEnquiries} cv={cv} setCv={setCv} setAd={setAdH}
         history={{ undo, redo, canUndo: past.current.length > 0, canRedo: future.current.length > 0 }}>
         {syncNote ? <div className="sync-note" role="alert">{syncNote}</div> : savedAt ? <div className="sync-note ok" role="status">✓ Saved — everyone can see this change</div> : null}
-        {!userMode && !checkingUserSession && <AdminPanel employeeSession={Boolean(employeeToken)} employeeToken={employeeToken} geometry={geometry} panel={panel} setPanel={setPanel} ax={ax} setAd={setAdH} sel={sel} selD={selD} status={status} setStatus={setStatus} initialAdminPin={adminPin}
+        {!userMode && !checkingUserSession && <AdminPanel employeeSession={Boolean(employeeToken)} employeeToken={employeeToken} geometry={geometry} panel={panel} setPanel={setPanel} ax={ax} setAd={setAdH} sel={sel} selD={selD} status={status} setStatus={setStatus} initialAdminPin={adminPin} cv={cv}
           addMode={addMode} setAddMode={setAddMode} clearSel={clearSel} onAdminAuth={handleAdminAuth} onAdminExit={() => { setAdminEnquiries([]); setCv(null); }} />}
       </PlotMap>
       {closedPlot != null && <PlotStatusModal id={closedPlot.id} status={closedPlot.status} ax={ax}

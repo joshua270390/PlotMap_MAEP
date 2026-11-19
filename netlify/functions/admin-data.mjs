@@ -148,9 +148,11 @@ export default async function handler(request) {
     const inventoryStatus = String(lookup.data[0].status || "Available");
     if (["Booked", "Sold"].includes(inventoryStatus))
       return json({ ok: false, error: "This unit is already Booked or Sold and cannot accept another customer." }, 409);
-    if (status === "Booked" || status === "Sold")
-      return json({ ok: false, error: "Add the customer as Reserved first, then change that specific reserved customer's status to Booked or Sold." }, 422);
-    const effectivePlotStatus = inventoryStatus === "Reserved" || status === "Reserved" ? "Reserved" : "Available";
+    // Admins and Employees may add a customer directly with any of the four
+    // statuses. Booked/Sold closes the inventory unit immediately.
+    const effectivePlotStatus = ["Booked", "Sold"].includes(status)
+      ? status
+      : inventoryStatus === "Reserved" || status === "Reserved" ? "Reserved" : "Available";
 
     const inserted = await db(cfg, "POST", cfg.bookingsTable, "", {
       project_id: Number(cfg.projectId), customer_name: customerName, phone, plot_id: Number(plotId), status,

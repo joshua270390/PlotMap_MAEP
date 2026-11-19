@@ -350,9 +350,9 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, cv, 
       setCustomerPlots(data.plots || []);
       // Preselect the plot currently highlighted on the map, for every project geometry.
       if (targetPlotId != null) {
-        const selectedPlotNumber = String(ax.lbl(targetPlotId));
+        const selectedPlotNumber = String(targetPlotId);
         const selectedPlot = (data.plots || []).find(plot =>
-          String(plot.plot_number ?? plot.unit_number ?? plot.id) === selectedPlotNumber
+          String(plot.plot_number ?? plot.unit_number ?? plot.plot_no ?? plot.unit_no ?? '') === selectedPlotNumber
         );
         if (selectedPlot) {
           setCustomerForm(old => ({
@@ -383,7 +383,9 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, cv, 
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not add customer.');
       const selectedPlot = customerPlots.find(plot => String(plot.id) === String(customerForm.plot_id));
-      const plotMapId = selectedPlot ? ax.findId(String(selectedPlot.plot_number ?? selectedPlot.unit_number ?? '')) : null;
+      const selectedOriginalNumber = String(selectedPlot?.plot_number ?? selectedPlot?.unit_number ?? selectedPlot?.plot_no ?? selectedPlot?.unit_no ?? '');
+      const plotMapEntry = (ax.geometry?.P || []).find(([mapId]) => String(mapId) === selectedOriginalNumber);
+      const plotMapId = plotMapEntry ? plotMapEntry[0] : null;
       const statusCode = ({ Available: 'a', Reserved: 'r', Booked: 'b', Sold: 's' })[customerForm.status] || 'a';
       if (plotMapId != null) setStatus(previous => ({ ...previous, [plotMapId]: statusCode }));
       setCustomerOpen(false);

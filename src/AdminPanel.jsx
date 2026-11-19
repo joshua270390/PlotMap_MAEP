@@ -47,47 +47,87 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, setAd, onOpenAddC
   const [value, setValue] = useState('');
   const [m, setM] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [reservedCustomers, setReservedCustomers] = useState([]);
+  const [selectedBookingId, setSelectedBookingId] = useState('');
+  const [customersLoading, setCustomersLoading] = useState(false);
   const currentColor = ax.ad.colors?.[id] || '#c7dfc7';
 
-  useEffect(() => { setValue(''); setM(null); }, [id, currentStatus]);
+  useEffect(() => {
+    setValue(''); setM(null); setSelectedBookingId('');
+    let cancelled = false;
+    async function loadReservedCustomers() {
+      if (currentStatus !== 'Reserved' || (!pin && !token)) { setReservedCustomers([]); return; }
+      setCustomersLoading(true);
+      try {
+        const response = await fetch('/api/admin-data?view=bookings&project_id=' + encodeURIComponent(ax.geometry?.projectId || 1), {
+          headers: token ? { 'x-employee-token': token } : { 'x-admin-pin': pin }, cache: 'no-store',
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load Reserved customers.');
+        const plot = (data.plots || []).find(item => String(item.plot_number ?? item.unit_number ?? item.id) === String(ax.lbl(id)));
+        const rows = (data.bookings || []).filter(row =>
+          String(row.plot_id) === String(plot?.id) &&
+          String(row.status).toLowerCase() === 'reserved' &&
+          String(row.customer_name || row.name || '').trim() !== '' &&
+          String(row.phone || row.phone_number || '').trim() !== ''
+        );
+        if (!cancelled) setReservedCustomers(rows);
+      } catch (error) {
+        if (!cancelled) setM({ t: error.message || 'Could not load Reserved customers.' });
+      } finally { if (!cancelled) setCustomersLoading(false); }
+    }
+    loadReservedCustomers();
+    return () => { cancelled = true; };
+  }, [id, currentStatus, pin, token, ax]);
+
   const presets = ['#c7dfc7', '#9fd7c2', '#a9c9f2', '#f6d58b', '#f4b6b6', '#d6c2f0', '#f2c6a0', '#d5dde6'];
   const save = async () => {
-    if (value !== 'Available') return;
+    if (!['Available', 'Booked', 'Sold'].includes(value)) return;
+    if (['Booked', 'Sold'].includes(value) && !selectedBookingId) {
+      setM({ t: 'Select a Reserved customer with name and phone number first.' }); return;
+    }
     setBusy(true); setM(null);
     try {
       const response = await fetch('/api/plot-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { 'x-employee-token': token } : { 'x-admin-pin': pin }) },
-        body: JSON.stringify({ plot_number: ax.lbl(id), status: 'Available', project_id: ax.geometry?.projectId || 1 }),
+        body: JSON.stringify({ plot_number: ax.lbl(id), status: value, booking_id: selectedBookingId || undefined, project_id: ax.geometry?.projectId || 1 }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || 'Could not update plot status.');
-      setStatus(old => ({ ...old, [id]: 'a' }));
+      setStatus(old => ({ ...old, [id]: ({ Available: 'a', Reserved: 'r', Booked: 'b', Sold: 's' })[value] }));
       window.dispatchEvent(new Event('maep-plots-changed'));
-      setValue('');
-      setM({ t: 'Plot is now Available.', ok: true });
-    } catch (e) {
-      setM({ t: e.message || 'Could not update plot status.' });
-    } finally { setBusy(false); }
+      setValue(''); setSelectedBookingId('');
+      setM({ t: 'Status saved.', ok: true });
+    } catch (e) { setM({ t: e.message || 'Could not update plot status.' }); }
+    finally { setBusy(false); }
   };
   const chooseColor = color => setAd(ad => ({ ...ad, colors: { ...(ad.colors || {}), [id]: color } }));
   return (
     <>
       <div className="sec">Availability status</div>
       <p className="hint">Current status: <strong>{currentStatus}</strong></p>
-      {!['Booked', 'Sold'].includes(currentStatus) && <>
-        <label><span>Plot status</span>
-          <select value={value} onChange={e => {
-            const next = e.target.value;
-            setM(null);
-            if (next === 'Reserved') { setValue(''); onOpenAddCustomer('Reserved', id); }
-            else setValue(next);
-          }}>
-            <option value="">Select status</option><option value="Available">Available</option><option value="Reserved">Reserved</option>
+      <label><span>Plot status</span>
+        <select value={value} onChange={e => {
+          const next = e.target.value; setM(null); setSelectedBookingId('');
+          if (next === 'Reserved') { setValue(''); onOpenAddCustomer('Reserved', id); }
+          else setValue(next);
+        }}>
+          <option value="">Select status</option>
+          <option value="Available">Available</option>
+          {currentStatus !== 'Booked' && currentStatus !== 'Sold' && <option value="Reserved">Reserved</option>}
+          {currentStatus === 'Reserved' && reservedCustomers.length > 0 && <><option value="Booked">Booked</option><option value="Sold">Sold</option></>}
+        </select>
+      </label>
+      {['Booked', 'Sold'].includes(value) && <>
+        <label><span>Reserved customer</span>
+          <select value={selectedBookingId} onChange={e => setSelectedBookingId(e.target.value)} disabled={customersLoading || !reservedCustomers.length} required>
+            <option value="">{customersLoading ? 'Loading customers…' : 'Select customer'}</option>
+            {reservedCustomers.map(row => <option key={row.id} value={String(row.id)}>{row.customer_name || row.name} · {row.phone || row.phone_number}</option>)}
           </select>
         </label>
-        {value === 'Available' && <div className="arow"><button className="pri" type="button" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save status'}</button></div>}
       </>}
+      {value && <div className="arow"><button className="pri" type="button" disabled={busy || (['Booked', 'Sold'].includes(value) && !selectedBookingId)} onClick={save}>{busy ? 'Saving…' : 'Save status'}</button></div>}
       <div className="sec plot-color-heading">Unit plot color</div>
       <div className="plot-color-palette" role="group" aria-label="Choose unit plot color">
         {presets.map(color => <button key={color} type="button" className={'plot-color-swatch' + (currentColor.toLowerCase() === color ? ' selected' : '')} style={{ backgroundColor: color }} aria-label={'Set plot color ' + color} aria-pressed={currentColor.toLowerCase() === color} onClick={() => chooseColor(color)} />)}
@@ -103,16 +143,52 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, setAd, onOpenAddC
 function ResetAvailabilityEditor({ ids, ax, status, setStatus, pin, token }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(null);
-  const eligible = ids.filter(id => ['r', 'b', 's'].includes(status[id] || 'a'));
-  if (!ids.length) return null;
+  const [eligibleIds, setEligibleIds] = useState([]);
+  const [checking, setChecking] = useState(true);
+  const statusKey = ids.map(id => String(id) + ':' + (status[id] || 'a')).join('|');
+
+  useEffect(() => {
+    let cancelled = false;
+    async function checkEligibility() {
+      setChecking(true); setEligibleIds([]); setMessage(null);
+      const candidates = ids.filter(id => ['r', 'b', 's'].includes(status[id] || 'a'));
+      if (!candidates.length) { setChecking(false); return; }
+      try {
+        const response = await fetch('/api/admin-data?view=bookings&project_id=' + encodeURIComponent(ax.geometry?.projectId || 1), {
+          headers: token ? { 'x-employee-token': token } : { 'x-admin-pin': pin }, cache: 'no-store',
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) throw new Error(data.error || 'Could not verify customer details.');
+        const eligible = candidates.filter(id => {
+          const plotNumber = String(ax.lbl(id));
+          const plot = (data.plots || []).find(item => String(item.plot_number ?? item.unit_number ?? item.id) === plotNumber);
+          if (!plot) return false;
+          const bookings = (data.bookings || []).filter(row => String(row.plot_id) === String(plot.id));
+          return !bookings.some(row =>
+            String(row.customer_name || row.name || '').trim() !== '' ||
+            String(row.phone || row.phone_number || '').trim() !== ''
+          );
+        });
+        if (!cancelled) setEligibleIds(eligible);
+      } catch (error) {
+        if (!cancelled) setMessage({ ok: false, text: error.message || 'Could not verify customer details.' });
+      } finally { if (!cancelled) setChecking(false); }
+    }
+    checkEligibility();
+    return () => { cancelled = true; };
+  }, [statusKey, pin, token, ax]);
+
+  if (!checking && eligibleIds.length === 0 && !message) return null;
+  if (checking) return null;
+
   const reset = async () => {
-    if (!eligible.length || busy) return;
+    if (!eligibleIds.length || busy) return;
     setBusy(true); setMessage(null);
     try {
       const response = await fetch('/api/plot-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { 'x-employee-token': token } : { 'x-admin-pin': pin }) },
-        body: JSON.stringify({ action: 'reset-empty-customer-plots', plot_numbers: eligible.map(id => ax.lbl(id)), project_id: ax.geometry?.projectId || 1 }),
+        body: JSON.stringify({ action: 'reset-empty-customer-plots', plot_numbers: eligibleIds.map(id => ax.lbl(id)), project_id: ax.geometry?.projectId || 1 }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || 'Could not reset selected plots.');
@@ -127,15 +203,14 @@ function ResetAvailabilityEditor({ ids, ax, status, setStatus, pin, token }) {
       setMessage({ ok: skipped.length === 0, text: result.reset?.length
         ? result.reset.length + ' plot(s) reset to Available.' + (skipped.length ? ' ' + skipped.length + ' skipped because customer details exist or status changed.' : '')
         : 'No plots were reset. Customer details exist or the plot status is no longer eligible.' });
-    } catch (error) {
-      setMessage({ ok: false, text: error.message || 'Could not reset selected plots.' });
-    } finally { setBusy(false); }
+    } catch (error) { setMessage({ ok: false, text: error.message || 'Could not reset selected plots.' }); }
+    finally { setBusy(false); }
   };
   return (
     <>
       <div className="sec">Reset plot availability</div>
-      <p className="hint">{ids.length} plot(s) selected. Reserved, Booked or Sold plots can be reset only when no customer name or phone number is saved in the Bookings table.</p>
-      <div className="arow"><button type="button" className="dng" disabled={!eligible.length || busy} onClick={reset}>{busy ? 'Checking…' : 'Reset selected to Available'}</button></div>
+      <p className="hint">{eligibleIds.length} selected plot(s) have no customer name or phone number in the Bookings table.</p>
+      <div className="arow"><button type="button" className="dng" disabled={busy} onClick={reset}>{busy ? 'Resetting…' : 'Reset selected to Available'}</button></div>
       {message && <p className={'hint' + (message.ok ? ' ok' : ' err')}>{message.text}</p>}
     </>
   );

@@ -64,8 +64,8 @@ export default async function handler(request) {
       return json({ ok: false, error: "Select between 1 and 100 valid plots to reset." }, 422);
 
     const normalizePlotKey = value => {
-      let key = String(value ?? "").trim().toLowerCase().replace(/^plot[\\s-]*/, "");
-      if (/^\\d+$/.test(key)) key = String(Number(key));
+      let key = String(value ?? "").trim().toLowerCase().replace(/^plot[\s-]*/, "");
+      if (/^\d+$/.test(key)) key = String(Number(key));
       return key;
     };
     const hasCustomerDetails = row => [

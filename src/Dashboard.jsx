@@ -343,6 +343,7 @@ export default function Dashboard() {
 
   useEffect(() => { setBookingPage(1); setSelectedBookingKeys([]); }, [search, statusFilter, projectTab, bookingPageSize]);
   const bookingPageCount = Math.max(1, Math.ceil(visibleBookings.length / bookingPageSize));
+  useEffect(() => { if (bookingPage > bookingPageCount) setBookingPage(bookingPageCount); }, [bookingPage, bookingPageCount]);
   const paginatedBookings = useMemo(() => visibleBookings.slice((bookingPage - 1) * bookingPageSize, bookingPage * bookingPageSize), [visibleBookings, bookingPage, bookingPageSize]);
   const bookingKey = row => String(row.project_id) + ':' + String(row.id);
   const currentPageKeys = paginatedBookings.map(bookingKey);
@@ -472,6 +473,7 @@ export default function Dashboard() {
                       {(page === 'bookings' ? paginatedBookings : visibleBookings.slice(0, 5)).map(row => {
                         const plot = plotById.get(String(row.project_id) + ':' + String(row.plot_id)) || plotById.get(String(row.plot_id));
                         return <tr key={String(row.project_id) + ':' + row.id}>
+                          {page === 'bookings' && <td><input type="checkbox" aria-label={'Select booking ' + row.id} checked={selectedBookingKeys.includes(bookingKey(row))} onChange={e => toggleBookingSelection(row, e.target.checked)} /></td>}
                           <td className="id-cell">#{row.id}</td>
                           {projectTab === 'all' && <td><span className="unit-pill">{PROJECT_NAMES[row.project_id] || ('Project ' + row.project_id)}</span></td>}
                           <td><strong>{field(row, 'customer_name', 'name') || '—'}</strong></td>

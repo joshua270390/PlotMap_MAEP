@@ -87,9 +87,14 @@ export default async function handler(request) {
     const skipped = [];
     for (const number of requestedNumbers) {
       const normalizedNumber = normalizePlotKey(number);
-      const plot = (plotLookup.data || []).find(item =>
-        [item.plot_number, item.unit_number, item.plot_no, item.id].some(value => normalizePlotKey(value) === normalizedNumber)
+      const matches = (plotLookup.data || []).filter(item =>
+        [item.plot_number, item.unit_number, item.plot_no, item.unit_no].some(value => normalizePlotKey(value) === normalizedNumber)
       );
+      if (matches.length > 1) {
+        skipped.push({ plot_number: number, reason: "More than one inventory record matches this original plot number." });
+        continue;
+      }
+      const plot = matches[0];
       if (!plot) { skipped.push({ plot_number: number, reason: "Plot not found in this project's inventory." }); continue; }
 
       const current = String(plot.status || "Available").trim();
@@ -136,12 +141,25 @@ export default async function handler(request) {
   if (["Booked", "Sold"].includes(status) && !/^\d+$/.test(bookingId))
     return json({ ok: false, error: "Select a customer from this unit's Reserved customer list before marking it Booked or Sold." }, 422);
 
-  const plotQuery = new URLSearchParams({ select: "id,plot_number,status", project_id: "eq." + cfg.projectId, plot_number: "eq." + plotNumber });
+  // The frontend sends the plot's original geometry/inventory number here.
+  // Admin Studio display-label edits (for example 145 -> 474) must never
+  // change which Supabase inventory row is updated.
+  const plotQuery = new URLSearchParams({ select: "*", project_id: "eq." + cfg.projectId, limit: "10000" });
   const plotLookup = await db(cfg, "GET", cfg.plotsTable, plotQuery.toString());
   if (!plotLookup.ok) return json({ ok: false, error: "Could not look up the unit in Supabase." }, 502);
-  if (!Array.isArray(plotLookup.data) || !plotLookup.data.length) return json({ ok: false, error: "No unit matched this number and project." }, 404);
-  const plotId = plotLookup.data[0].id;
-  const currentInventoryStatus = String(plotLookup.data[0].status || "Available");
+  const normalizePlotKey = value => {
+    let key = String(value ?? "").trim().toLowerCase().replace(/^plot[\\s-]*/, "");
+    if (/^\\d+$/.test(key)) key = String(Number(key));
+    return key;
+  };
+  const matchingPlots = (plotLookup.data || []).filter(item =>
+    [item.plot_number, item.unit_number, item.plot_no, item.unit_no]
+      .some(value => normalizePlotKey(value) === normalizePlotKey(plotNumber))
+  );
+  if (!matchingPlots.length) return json({ ok: false, error: "No original plot number matched this project inventory." }, 404);
+  if (matchingPlots.length > 1) return json({ ok: false, error: "More than one inventory record matches this original plot number. No changes were made." }, 409);
+  const plotId = matchingPlots[0].id;
+  const currentInventoryStatus = String(matchingPlots[0].status || "Available");
   // Releasing a Booked/Sold plot also updates its active booking row to Available.
   if (["Available", "Reserved"].includes(status) && ["Booked", "Sold"].includes(currentInventoryStatus)) {
     const bookingUpdate = await db(cfg, "PATCH", cfg.bookingsTable,

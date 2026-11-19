@@ -321,7 +321,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, cv, 
         const selectedPlot = (data.plots || []).find(plot =>
           String(plot.plot_number ?? plot.unit_number ?? plot.id) === selectedPlotNumber
         );
-        if (selectedPlot && !['booked', 'sold'].includes(String(selectedPlot.status || '').trim().toLowerCase())) {
+        if (selectedPlot) {
           setCustomerForm(old => ({
             ...old,
             plot_id: String(selectedPlot.id),
@@ -367,7 +367,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, cv, 
   const selectedPlotIds = [];
   const selectedItems = cv && Array.isArray(cv.items) ? cv.items : (cv ? [cv] : (sel != null ? [{ kind: 'plot', id: sel }] : []));
   selectedItems.forEach(item => { if (item && item.kind === 'plot' && item.id != null && !selectedPlotIds.includes(item.id)) selectedPlotIds.push(item.id); });
-  const selectedHasClosedStatus = selectedPlotIds.some(id => ['b', 's'].includes(status[id] || 'a'));
+  const selectedHasClosedStatus = selectedPlotIds.some(id => ['r', 'b', 's'].includes(status[id] || 'a'));
 
   return (
     <>
@@ -451,7 +451,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, cv, 
             setCustomerForm(old => ({ ...old, plot_id: event.target.value, status: String(selected?.status || '').toLowerCase() === 'reserved' ? 'Reserved' : old.status }));
           }} required disabled={customerLoading || customerBusy || !customerPlots.length || (sel != null && customerPlots.some(plot => String(plot.id) === String(customerForm.plot_id) && String(plot.plot_number ?? plot.unit_number ?? plot.id) === String(ax.lbl(sel))))}>
           <option value="" disabled>{customerLoading ? 'Loading units…' : 'Select a unit'}</option>
-          {customerPlots.filter(plot => !['booked', 'sold'].includes(String(plot.status || 'Available').trim().toLowerCase())).map(plot => <option key={plot.id} value={String(plot.id)}>{String(plot.plot_number ?? plot.unit_number ?? plot.id)}{String(plot.status || '').toLowerCase() === 'reserved' ? ' · Reserved' : ''} (Plot ID: {plot.id})</option>)}
+          {customerPlots.filter(plot => String(plot.id) === String(customerForm.plot_id) || !['booked', 'sold'].includes(String(plot.status || 'Available').trim().toLowerCase())).map(plot => <option key={plot.id} value={String(plot.id)}>{String(plot.plot_number ?? plot.unit_number ?? plot.id)}{String(plot.status || '').toLowerCase() === 'reserved' ? ' · Reserved' : ''} (Plot ID: {plot.id})</option>)}
         </select></label>
         <label>Status<select value={customerForm.status} onChange={event => setCustomerForm(old => ({ ...old, status: event.target.value }))}>
           <option value="Available">Availability</option><option value="Reserved">Reserved</option>

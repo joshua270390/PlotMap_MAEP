@@ -129,8 +129,17 @@ export default async function handler(request) {
   if (!Array.isArray(plotLookup.data) || !plotLookup.data.length) return json({ ok: false, error: "No unit matched this number and project." }, 404);
   const plotId = plotLookup.data[0].id;
   const currentInventoryStatus = String(plotLookup.data[0].status || "Available");
-  if (["Booked", "Sold"].includes(currentInventoryStatus) && ["Available", "Reserved"].includes(status))
-    return json({ ok: false, error: "This unit is already Booked or Sold. Reopen it from the selected customer's booking in the Bookings page." }, 409);
+  // Releasing a Booked/Sold plot also updates its active booking row to Available.
+  if (status === "Available" && ["Booked", "Sold"].includes(currentInventoryStatus)) {
+    const bookingUpdate = await db(cfg, "PATCH", cfg.bookingsTable,
+      new URLSearchParams({
+        project_id: "eq." + cfg.projectId,
+        plot_id: "eq." + plotId,
+        status: "in.(Booked,Sold)",
+      }).toString(), { status: "Available" });
+    if (!bookingUpdate.ok)
+      return json({ ok: false, error: "Could not update the booking availability to Available." }, 502);
+  }
 
   if (["Booked", "Sold"].includes(status)) {
     const bookingQuery = new URLSearchParams({

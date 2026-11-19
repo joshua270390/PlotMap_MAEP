@@ -99,6 +99,10 @@ export default function Dashboard() {
   const [notice, setNotice] = useState('');
   const [edit, setEdit] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [selectedBookingKeys, setSelectedBookingKeys] = useState([]);
+  const [bookingPage, setBookingPage] = useState(1);
+  const [bookingPageSize, setBookingPageSize] = useState(10);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [plotSearch, setPlotSearch] = useState('');
@@ -337,6 +341,36 @@ export default function Dashboard() {
     return matchesSearch && matchesStatus && matchesProject;
   }), [bookings, plotById, search, statusFilter, projectTab, page]);
 
+  useEffect(() => { setBookingPage(1); setSelectedBookingKeys([]); }, [search, statusFilter, projectTab, bookingPageSize]);
+  const bookingPageCount = Math.max(1, Math.ceil(visibleBookings.length / bookingPageSize));
+  const paginatedBookings = useMemo(() => visibleBookings.slice((bookingPage - 1) * bookingPageSize, bookingPage * bookingPageSize), [visibleBookings, bookingPage, bookingPageSize]);
+  const bookingKey = row => String(row.project_id) + ':' + String(row.id);
+  const currentPageKeys = paginatedBookings.map(bookingKey);
+  const allCurrentPageSelected = currentPageKeys.length > 0 && currentPageKeys.every(key => selectedBookingKeys.includes(key));
+  const togglePageSelection = checked => setSelectedBookingKeys(current => checked ? Array.from(new Set([...current, ...currentPageKeys])) : current.filter(key => !currentPageKeys.includes(key)));
+  const toggleBookingSelection = (row, checked) => setSelectedBookingKeys(current => checked ? Array.from(new Set([...current, bookingKey(row)])) : current.filter(key => key !== bookingKey(row)));
+  const selectedBookingRows = visibleBookings.filter(row => selectedBookingKeys.includes(bookingKey(row)));
+
+  async function bulkDeleteBookings() {
+    if (!selectedBookingRows.length || saving) return;
+    setSaving(true); setError(''); setNotice('');
+    let deleted = 0; const failures = [];
+    try {
+      for (const row of selectedBookingRows) {
+        try {
+          const response = await fetch('/api/admin-data', { method: 'DELETE', headers: { 'Content-Type': 'application/json', ...(employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': pin }) }, body: JSON.stringify({ id: row.id, project_id: row.project_id }) });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || !data.ok) throw new Error(data.error || 'Delete failed');
+          deleted++;
+        } catch (err) { failures.push(field(row, 'customer_name', 'name') || ('Booking #' + row.id)); }
+      }
+      setBulkDeleteConfirm(false); setSelectedBookingKeys([]);
+      if (deleted) setNotice(deleted + ' booking' + (deleted === 1 ? '' : 's') + ' deleted successfully.');
+      if (failures.length) setError('Could not delete: ' + failures.join(', '));
+      await loadData('bookings', pin);
+    } finally { setSaving(false); }
+  }
+
   if (authChecking) {
     return <main className="dash-login"><div className="login-card" role="status"><p className="login-copy">Checking your session…</p></div></main>;
   }
@@ -430,11 +464,12 @@ export default function Dashboard() {
                     </select>
                   </div>
                 </div>
+                {page === 'bookings' && <div className="booking-bulk-toolbar"><span>{selectedBookingKeys.length} selected</span><button type="button" className="delete-btn" onClick={() => setBulkDeleteConfirm(true)} disabled={!selectedBookingRows.length || saving}>Delete selected</button></div>}
                 {loading ? <div className="table-state">Loading bookings from Supabase…</div> : (
                   <div className="table-scroll"><table className="data-table">
-                    <thead><tr><th>ID</th>{projectTab === 'all' && <th>Project</th>}<th>Customer Name</th><th>Phone Number</th><th>Plot Id</th><th>Unit Number</th><th>Status</th><th>Action</th></tr></thead>
+                    <thead><tr>{page === 'bookings' && <th><input type="checkbox" aria-label="Select all bookings on this page" checked={allCurrentPageSelected} onChange={e => togglePageSelection(e.target.checked)} /></th>}<th>ID</th>{projectTab === 'all' && <th>Project</th>}<th>Customer Name</th><th>Phone Number</th><th>Plot Id</th><th>Unit Number</th><th>Status</th><th>Action</th></tr></thead>
                     <tbody>
-                      {visibleBookings.map(row => {
+                      {(page === 'bookings' ? paginatedBookings : visibleBookings.slice(0, 5)).map(row => {
                         const plot = plotById.get(String(row.project_id) + ':' + String(row.plot_id)) || plotById.get(String(row.plot_id));
                         return <tr key={String(row.project_id) + ':' + row.id}>
                           <td className="id-cell">#{row.id}</td>
@@ -458,11 +493,21 @@ export default function Dashboard() {
                           }); }} disabled={saving}>Edit</button><button className="delete-btn" type="button" onClick={() => setDeleteTarget(row)} disabled={saving}>Delete</button></div></td>
                         </tr>;
                       })}
-                      {!visibleBookings.length && <tr><td colSpan={projectTab === 'all' ? 8 : 7} className="empty-cell">{selectedProjectBookings.length ? 'No bookings match your search.' : 'No bookings found in Supabase.'}</td></tr>}
+                      {!(page === 'bookings' ? paginatedBookings : visibleBookings.slice(0, 5)).length && <tr><td colSpan={(projectTab === 'all' ? 8 : 7) + (page === 'bookings' ? 1 : 0)} className="empty-cell">{selectedProjectBookings.length ? 'No bookings match your search.' : 'No bookings found in Supabase.'}</td></tr>}
                     </tbody>
                   </table></div>
                 )}
-                <div className="table-footer">Showing {visibleBookings.length} of {selectedProjectBookings.length} bookings</div>
+                {page === 'bookings' ? <div className="booking-pagination">
+                  <div className="booking-pagination-summary">Showing {visibleBookings.length ? ((bookingPage - 1) * bookingPageSize + 1) : 0}–{Math.min(bookingPage * bookingPageSize, visibleBookings.length)} of {visibleBookings.length} filtered bookings</div>
+                  <div className="booking-pagination-controls">
+                    <label>Items per page <select value={bookingPageSize} onChange={e => setBookingPageSize(Number(e.target.value))}><option value={5}>5</option><option value={10}>10</option><option value={20}>20</option><option value={50}>50</option><option value={100}>100</option></select></label>
+                    <button type="button" className="page-btn" onClick={() => setBookingPage(1)} disabled={bookingPage <= 1}>First</button>
+                    <button type="button" className="page-btn" onClick={() => setBookingPage(value => Math.max(1, value - 1))} disabled={bookingPage <= 1}>Previous</button>
+                    <span className="page-indicator">Page {bookingPage} of {bookingPageCount}</span>
+                    <button type="button" className="page-btn" onClick={() => setBookingPage(value => Math.min(bookingPageCount, value + 1))} disabled={bookingPage >= bookingPageCount}>Next</button>
+                    <button type="button" className="page-btn" onClick={() => setBookingPage(bookingPageCount)} disabled={bookingPage >= bookingPageCount}>Last</button>
+                  </div>
+                </div> : <div className="table-footer">Showing {visibleBookings.length} of {selectedProjectBookings.length} bookings</div>}
               </section>
                 </div>
                 {page === 'dashboard' && (
@@ -556,6 +601,14 @@ export default function Dashboard() {
           {error && <p className="dash-error">{error}</p>}
           <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setEdit(null)}>Cancel</button><button className="primary-btn" disabled={saving}>{saving ? 'Saving…' : edit.id == null ? 'Add customer' : 'Save changes'}</button></div>
         </form>
+      </div>}
+      {bulkDeleteConfirm && <div className="edit-overlay confirm-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) setBulkDeleteConfirm(false); }}>
+        <section className="confirm-modal" role="alertdialog" aria-modal="true">
+          <div className="confirm-icon" aria-hidden="true">!</div><button type="button" className="modal-close" onClick={() => setBulkDeleteConfirm(false)} aria-label="Close" disabled={saving}>×</button>
+          <p className="eyebrow">CONFIRM BULK ACTION</p><h2>Delete selected bookings?</h2>
+          <p>Are you sure you want to permanently delete <strong>{selectedBookingRows.length}</strong> selected booking{selectedBookingRows.length === 1 ? '' : 's'}? This action cannot be undone.</p>
+          <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setBulkDeleteConfirm(false)} disabled={saving}>Cancel</button><button type="button" className="confirm-delete-btn" onClick={bulkDeleteBookings} disabled={saving}>{saving ? 'Deleting…' : 'Yes, delete selected'}</button></div>
+        </section>
       </div>}
       {deleteTarget && <div className="edit-overlay confirm-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) setDeleteTarget(null); }}>
         <section className="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="delete-confirm-title" aria-describedby="delete-confirm-copy">

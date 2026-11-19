@@ -63,37 +63,50 @@ export default async function handler(request) {
     if (!requestedNumbers.length || requestedNumbers.length > 100)
       return json({ ok: false, error: "Select between 1 and 100 valid plots to reset." }, 422);
 
+    const normalizePlotKey = value => {
+      let key = String(value ?? "").trim().toLowerCase().replace(/^plot[\\s-]*/, "");
+      if (/^\\d+$/.test(key)) key = String(Number(key));
+      return key;
+    };
+    const hasCustomerDetails = row => [
+      row.customer_name, row.customername, row.customer_full_name, row.name, row.customer,
+      row.phone, row.phone_number, row.mobile, row.mobile_number, row.mobile_no, row.mobilenumber,
+    ].some(value => String(value ?? "").trim() !== "");
+
+    // Load the project's plot and booking rows once, then match both plot IDs
+    // and unit labels. This handles legacy rows that store plot numbers in plot_id.
+    const projectFilter = new URLSearchParams({ project_id: "eq." + cfg.projectId, limit: "10000" });
+    const [plotLookup, bookingLookup] = await Promise.all([
+      db(cfg, "GET", cfg.plotsTable, new URLSearchParams({ select: "*", ...Object.fromEntries(projectFilter) }).toString()),
+      db(cfg, "GET", cfg.bookingsTable, new URLSearchParams({ select: "*", ...Object.fromEntries(projectFilter) }).toString()),
+    ]);
+    if (!plotLookup.ok) return json({ ok: false, error: "Could not load project plots for reset (" + plotLookup.status + ")." }, 502);
+    if (!bookingLookup.ok) return json({ ok: false, error: "Could not verify booking customer details (" + bookingLookup.status + ")." }, 502);
+
     const reset = [];
     const skipped = [];
     for (const number of requestedNumbers) {
-      const plotQuery = new URLSearchParams({
-        select: "id,plot_number,status",
-        project_id: "eq." + cfg.projectId,
-        plot_number: "eq." + number,
-        limit: "1",
-      });
-      const plotLookup = await db(cfg, "GET", cfg.plotsTable, plotQuery.toString());
-      if (!plotLookup.ok) return json({ ok: false, error: "Could not verify plot " + number + " in Supabase." }, 502);
-      const plot = Array.isArray(plotLookup.data) ? plotLookup.data[0] : null;
-      if (!plot) { skipped.push({ plot_number: number, reason: "Plot not found." }); continue; }
+      const normalizedNumber = normalizePlotKey(number);
+      const plot = (plotLookup.data || []).find(item =>
+        [item.plot_number, item.unit_number, item.plot_no, item.id].some(value => normalizePlotKey(value) === normalizedNumber)
+      );
+      if (!plot) { skipped.push({ plot_number: number, reason: "Plot not found in this project's inventory." }); continue; }
+
       const current = String(plot.status || "Available").trim();
       if (!["Reserved", "Booked", "Sold"].includes(current)) {
-        skipped.push({ plot_number: number, reason: "Plot is no longer Reserved, Booked or Sold." });
+        skipped.push({ plot_number: number, reason: "Current plot status is " + current + "; only Reserved, Booked or Sold plots can be reset." });
         continue;
       }
 
-      const bookingQuery = new URLSearchParams({
-        select: "id,customer_name,phone",
-        project_id: "eq." + cfg.projectId,
-        plot_id: "eq." + plot.id,
-        limit: "2000",
-      });
-      const bookingLookup = await db(cfg, "GET", cfg.bookingsTable, bookingQuery.toString());
-      if (!bookingLookup.ok) return json({ ok: false, error: "Could not verify customer details for plot " + number + "." }, 502);
-      const hasCustomerDetails = (bookingLookup.data || []).some(row =>
-        String(row.customer_name ?? "").trim() !== "" || String(row.phone ?? "").trim() !== ""
+      const plotIdentifiers = [String(plot.id), String(plot.plot_number ?? ""), String(plot.unit_number ?? ""), String(plot.plot_no ?? "")]
+        .filter(value => value !== "");
+      const bookingsForPlot = (bookingLookup.data || []).filter(row =>
+        [row.plot_id, row.plot_number, row.unit_number, row.plot_no].some(value =>
+          plotIdentifiers.includes(String(value ?? "")) ||
+          normalizePlotKey(value) === normalizedNumber
+        )
       );
-      if (hasCustomerDetails) {
+      if (bookingsForPlot.some(hasCustomerDetails)) {
         skipped.push({ plot_number: number, reason: "Customer name or phone number exists in the Bookings table." });
         continue;
       }
@@ -101,12 +114,12 @@ export default async function handler(request) {
       const safeFilter = new URLSearchParams({
         project_id: "eq." + cfg.projectId,
         id: "eq." + plot.id,
-        status: "in.(Reserved,Booked,Sold)",
+        status: "eq." + current,
       });
       const updated = await db(cfg, "PATCH", cfg.plotsTable, safeFilter.toString(), { status: "Available" });
-      if (!updated.ok) return json({ ok: false, error: "Could not reset plot " + number + " to Available." }, 502);
+      if (!updated.ok) return json({ ok: false, error: "Could not reset plot " + number + " to Available (" + updated.status + ")." }, 502);
       if (!Array.isArray(updated.data) || !updated.data.length) {
-        skipped.push({ plot_number: number, reason: "Plot status changed before reset completed." });
+        skipped.push({ plot_number: number, reason: "Plot status changed before reset completed. Refresh and try again." });
         continue;
       }
       reset.push(number);

@@ -167,17 +167,17 @@ function ResetAvailabilityEditor({ ids, ax, status, setStatus, pin, token }) {
     let cancelled = false;
     async function checkEligibility() {
       setChecking(true); setEligibleIds([]); setBlockedPlots([]); setMessage(null);
+      const candidates = ids.filter(id => ['r', 'b', 's'].includes(status[id] || 'a'));
+      if (!candidates.length) { setChecking(false); return; }
       try {
-        // Read the authoritative inventory status from the database. The map's
-        // internal geometry ID is not guaranteed to equal the database plot number.
         const response = await fetch('/api/admin-data?view=bookings&project_id=' + encodeURIComponent(ax.geometry?.projectId || 1), {
           headers: token ? { 'x-employee-token': token } : { 'x-admin-pin': pin }, cache: 'no-store',
         });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.ok) throw new Error(data.error || 'Could not verify plot and customer details.');
+        if (!response.ok || !data.ok) throw new Error(data.error || 'Could not verify customer details.');
         const eligible = [];
         const blocked = [];
-        ids.forEach(id => {
+        candidates.forEach(id => {
           const plotNumber = String(ax.lbl(id));
           const normalizedNumber = normalizePlotKey(plotNumber);
           const plot = (data.plots || []).find(item =>
@@ -187,8 +187,6 @@ function ResetAvailabilityEditor({ ids, ax, status, setStatus, pin, token }) {
             blocked.push({ number: plotNumber, reason: 'Plot record was not found in the project inventory.' });
             return;
           }
-          const inventoryStatus = String(plot.status || 'Available').trim().toLowerCase();
-          if (!['reserved', 'booked', 'sold'].includes(inventoryStatus)) return;
           const bookings = (data.bookings || []).filter(row =>
             [row.plot_id, row.plot_number, row.unit_number, row.plot_no].some(value =>
               String(value ?? '') === String(plot.id) || normalizePlotKey(value) === normalizedNumber
@@ -209,14 +207,17 @@ function ResetAvailabilityEditor({ ids, ax, status, setStatus, pin, token }) {
     return () => { cancelled = true; };
   }, [statusKey, pin, token, ax]);
 
+  if (checking) return null;
+  if (eligibleIds.length === 0 && blockedPlots.length === 0 && !message) return null;
+
   const reset = async () => {
-    if (!ids.length || busy) return;
+    if (!eligibleIds.length || busy) return;
     setBusy(true); setMessage(null);
     try {
       const response = await fetch('/api/plot-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { 'x-employee-token': token } : { 'x-admin-pin': pin }) },
-        body: JSON.stringify({ action: 'reset-empty-customer-plots', plot_numbers: ids.map(id => ax.lbl(id)), project_id: ax.geometry?.projectId || 1 }),
+        body: JSON.stringify({ action: 'reset-empty-customer-plots', plot_numbers: eligibleIds.map(id => ax.lbl(id)), project_id: ax.geometry?.projectId || 1 }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || 'Could not reset selected plots.');
@@ -242,8 +243,8 @@ function ResetAvailabilityEditor({ ids, ax, status, setStatus, pin, token }) {
   return (
     <>
       <div className="sec">Reset plot availability</div>
-      <p className="hint">Selected plot(s): {ids.length}. The server will verify the actual inventory status and confirm that no customer name or phone exists before resetting. Booking records will not be changed or deleted.</p>
-      <div className="arow"><button type="button" className="dng" disabled={busy || checking} onClick={reset}>{busy ? 'Resetting…' : 'Reset selected to Available'}</button></div>
+      <p className="hint">{eligibleIds.length} selected plot(s) are eligible for reset. Booking records will not be changed or deleted.</p>
+      {eligibleIds.length > 0 && <div className="arow"><button type="button" className="dng" disabled={busy} onClick={reset}>{busy ? 'Resetting…' : 'Reset selected to Available'}</button></div>}
       {message && <p className={'hint' + (message.ok ? ' ok' : ' err')}>{message.text}</p>}
       {!message && blockedPlots.length > 0 && <p className="hint err">{blockedPlots.map(item => 'Plot ' + item.number + ': ' + item.reason).join(' ')}</p>}
     </>

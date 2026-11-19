@@ -167,17 +167,17 @@ function ResetAvailabilityEditor({ ids, ax, status, setStatus, pin, token }) {
     let cancelled = false;
     async function checkEligibility() {
       setChecking(true); setEligibleIds([]); setBlockedPlots([]); setMessage(null);
-      const candidates = ids.filter(id => ['r', 'b', 's'].includes(status[id] || 'a'));
-      if (!candidates.length) { setChecking(false); return; }
       try {
+        // Read the authoritative inventory status from the database. The map's
+        // internal geometry ID is not guaranteed to equal the database plot number.
         const response = await fetch('/api/admin-data?view=bookings&project_id=' + encodeURIComponent(ax.geometry?.projectId || 1), {
           headers: token ? { 'x-employee-token': token } : { 'x-admin-pin': pin }, cache: 'no-store',
         });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.ok) throw new Error(data.error || 'Could not verify customer details.');
+        if (!response.ok || !data.ok) throw new Error(data.error || 'Could not verify plot and customer details.');
         const eligible = [];
         const blocked = [];
-        candidates.forEach(id => {
+        ids.forEach(id => {
           const plotNumber = String(ax.lbl(id));
           const normalizedNumber = normalizePlotKey(plotNumber);
           const plot = (data.plots || []).find(item =>
@@ -187,6 +187,8 @@ function ResetAvailabilityEditor({ ids, ax, status, setStatus, pin, token }) {
             blocked.push({ number: plotNumber, reason: 'Plot record was not found in the project inventory.' });
             return;
           }
+          const inventoryStatus = String(plot.status || 'Available').trim().toLowerCase();
+          if (!['reserved', 'booked', 'sold'].includes(inventoryStatus)) return;
           const bookings = (data.bookings || []).filter(row =>
             [row.plot_id, row.plot_number, row.unit_number, row.plot_no].some(value =>
               String(value ?? '') === String(plot.id) || normalizePlotKey(value) === normalizedNumber

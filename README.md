@@ -37,3 +37,15 @@ The `/api` route is missing where the page is running. On Vercel, open `https://
 Admins create employee accounts from Dashboard → Users. Employees sign in with their username and password and are restricted to Plot lists and map editing. Employee passwords are stored as scrypt hashes; employee sessions expire after 12 hours. Employee map-status changes are limited to Available and Reserved; Booked/Sold and all booking/customer APIs remain Admin-only.
 
 **Map edit persistence note:** existing plot geometry, labels, colours and rate edits are still saved in the browser's local storage, as before. An employee's geometry/label edits therefore remain on that browser unless exported/imported; this change does not introduce shared cross-device map-edit storage.
+
+
+## Sri Meenakshi Garden (Phase 1 and Phase 2)
+
+Two projects share the same workflow and design as Velavan Nagar, Saraswathi Garden and Shanmuga Avenue:
+
+| Project | Route | `project_id` | Geometry | Plots |
+| --- | --- | --- | --- | --- |
+| Sri Meenakshi Garden - Phase 1 | `/meenakshi_garden_phase1` | 4 | `src/meenakshiPhase1Geometry.js` | 42 |
+| Sri Meenakshi Garden - Phase 2 | `/meenakshi_garden_phase2` | 5 | `src/meenakshiPhase2Geometry.js` | 49 |
+
+Run `supabase/seeds/meenakshi_garden_plots.sql` once in the Supabase SQL Editor so the plots exist for status, bookings and enquiries.

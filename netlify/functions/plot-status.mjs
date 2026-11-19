@@ -54,6 +54,66 @@ export default async function handler(request) {
   const requestedProjectId = String(body?.project_id ?? cfg.projectId).trim();
   if (!/^\d+$/.test(requestedProjectId)) return json({ ok: false, error: "A valid project ID is required." }, 422);
   cfg.projectId = requestedProjectId;
+
+  // Safely reopen selected inventory only when the Bookings table has no customer name or phone.
+  if (body?.action === "reset-empty-customer-plots") {
+    const requestedNumbers = Array.isArray(body.plot_numbers)
+      ? [...new Set(body.plot_numbers.map(value => String(value ?? "").trim()).filter(value => /^[A-Za-z0-9-]{1,20}$/.test(value)))]
+      : [];
+    if (!requestedNumbers.length || requestedNumbers.length > 100)
+      return json({ ok: false, error: "Select between 1 and 100 valid plots to reset." }, 422);
+
+    const reset = [];
+    const skipped = [];
+    for (const number of requestedNumbers) {
+      const plotQuery = new URLSearchParams({
+        select: "id,plot_number,status",
+        project_id: "eq." + cfg.projectId,
+        plot_number: "eq." + number,
+        limit: "1",
+      });
+      const plotLookup = await db(cfg, "GET", cfg.plotsTable, plotQuery.toString());
+      if (!plotLookup.ok) return json({ ok: false, error: "Could not verify plot " + number + " in Supabase." }, 502);
+      const plot = Array.isArray(plotLookup.data) ? plotLookup.data[0] : null;
+      if (!plot) { skipped.push({ plot_number: number, reason: "Plot not found." }); continue; }
+      const current = String(plot.status || "Available").trim();
+      if (!["Reserved", "Booked", "Sold"].includes(current)) {
+        skipped.push({ plot_number: number, reason: "Plot is no longer Reserved, Booked or Sold." });
+        continue;
+      }
+
+      const bookingQuery = new URLSearchParams({
+        select: "id,customer_name,phone",
+        project_id: "eq." + cfg.projectId,
+        plot_id: "eq." + plot.id,
+        limit: "2000",
+      });
+      const bookingLookup = await db(cfg, "GET", cfg.bookingsTable, bookingQuery.toString());
+      if (!bookingLookup.ok) return json({ ok: false, error: "Could not verify customer details for plot " + number + "." }, 502);
+      const hasCustomerDetails = (bookingLookup.data || []).some(row =>
+        String(row.customer_name ?? "").trim() !== "" || String(row.phone ?? "").trim() !== ""
+      );
+      if (hasCustomerDetails) {
+        skipped.push({ plot_number: number, reason: "Customer name or phone number exists in the Bookings table." });
+        continue;
+      }
+
+      const safeFilter = new URLSearchParams({
+        project_id: "eq." + cfg.projectId,
+        id: "eq." + plot.id,
+        status: "in.(Reserved,Booked,Sold)",
+      });
+      const updated = await db(cfg, "PATCH", cfg.plotsTable, safeFilter.toString(), { status: "Available" });
+      if (!updated.ok) return json({ ok: false, error: "Could not reset plot " + number + " to Available." }, 502);
+      if (!Array.isArray(updated.data) || !updated.data.length) {
+        skipped.push({ plot_number: number, reason: "Plot status changed before reset completed." });
+        continue;
+      }
+      reset.push(number);
+    }
+    return json({ ok: true, reset, skipped });
+  }
+
   const plotNumber = String(body?.plot_number ?? "").trim();
   const status = String(body?.status ?? "");
   const bookingId = String(body?.booking_id ?? "").trim();

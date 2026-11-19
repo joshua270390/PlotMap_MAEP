@@ -142,6 +142,12 @@ export default async function handler(request) {
   }
 
   if (["Booked", "Sold"].includes(status)) {
+    // A plot can have multiple Reserved customers, but only one can become
+    // Booked/Sold. Reject any further promotion once inventory is closed.
+    if (["Booked", "Sold"].includes(currentInventoryStatus)) {
+      return json({ ok: false, error: "This plot is already " + currentInventoryStatus + " for another customer. Only one customer can be Booked or Sold for a plot. Other reservations will remain Reserved." }, 409);
+    }
+
     const bookingQuery = new URLSearchParams({
       select: "id,plot_id,status", id: "eq." + bookingId,
       project_id: "eq." + cfg.projectId, plot_id: "eq." + plotId, status: "eq.Reserved",
@@ -150,15 +156,34 @@ export default async function handler(request) {
     if (!selected.ok) return json({ ok: false, error: "Could not verify the selected Reserved customer." }, 502);
     if (!Array.isArray(selected.data) || !selected.data.length)
       return json({ ok: false, error: "The selected customer is not Reserved for this unit. Refresh the customer list and try again." }, 422);
+
     const bookingUpdate = await db(cfg, "PATCH", cfg.bookingsTable,
-      new URLSearchParams({ project_id: "eq." + cfg.projectId, plot_id: "eq." + plotId, id: "eq." + bookingId }).toString(), { status });
+      new URLSearchParams({ project_id: "eq." + cfg.projectId, plot_id: "eq." + plotId, id: "eq." + bookingId, status: "eq.Reserved" }).toString(), { status });
     if (!bookingUpdate.ok || !Array.isArray(bookingUpdate.data) || !bookingUpdate.data.length)
       return json({ ok: false, error: "Could not update the selected customer's booking status." }, 502);
-  }
 
-  const plotUpdate = await db(cfg, "PATCH", cfg.plotsTable,
-    new URLSearchParams({ project_id: "eq." + cfg.projectId, id: "eq." + plotId }).toString(), { status });
-  if (!plotUpdate.ok) return json({ ok: false, error: "Could not save unit status to the plot table." }, 502);
+    // Compare-and-set on the plot row prevents two concurrent requests from
+    // promoting two Reserved customers for the same plot.
+    const plotUpdate = await db(cfg, "PATCH", cfg.plotsTable,
+      new URLSearchParams({
+        project_id: "eq." + cfg.projectId,
+        id: "eq." + plotId,
+        status: "eq." + currentInventoryStatus,
+      }).toString(), { status });
+    if (!plotUpdate.ok || !Array.isArray(plotUpdate.data) || !plotUpdate.data.length) {
+      // The plot was claimed by another request; restore this customer's
+      // booking to Reserved so only the successful customer remains Booked/Sold.
+      await db(cfg, "PATCH", cfg.bookingsTable,
+        new URLSearchParams({ project_id: "eq." + cfg.projectId, plot_id: "eq." + plotId, id: "eq." + bookingId, status: "eq." + status }).toString(),
+        { status: "Reserved" });
+      if (!plotUpdate.ok) return json({ ok: false, error: "Could not safely claim this plot. Please refresh and try again." }, 502);
+      return json({ ok: false, error: "Another customer was just Booked or Sold for this plot. Only one customer can hold this plot; the other reservation remains Reserved." }, 409);
+    }
+  } else {
+    const plotUpdate = await db(cfg, "PATCH", cfg.plotsTable,
+      new URLSearchParams({ project_id: "eq." + cfg.projectId, id: "eq." + plotId }).toString(), { status });
+    if (!plotUpdate.ok) return json({ ok: false, error: "Could not save unit status to the plot table." }, 502);
+  }
 
   return json({ ok: true, plot_number: plotNumber, plot_id: plotId, booking_id: bookingId || null, status });
 }

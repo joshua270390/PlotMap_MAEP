@@ -110,13 +110,14 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, setAd, onOpenAddC
       <label><span>Plot status</span>
         <select value={value} onChange={e => {
           const next = e.target.value; setM(null); setSelectedBookingId('');
-          if (next === 'Reserved') { setValue(''); onOpenAddCustomer('Reserved', id); }
-          else setValue(next);
+          if (next === 'Available') setValue(next);
+          else { setValue(''); onOpenAddCustomer('Reserved', id); }
         }}>
           <option value="">Select status</option>
           <option value="Available">Available</option>
-          {currentStatus !== 'Booked' && currentStatus !== 'Sold' && <option value="Reserved">Reserved</option>}
-          {currentStatus === 'Reserved' && reservedCustomers.length > 0 && <><option value="Booked">Booked</option><option value="Sold">Sold</option></>}
+          <option value="Reserved">Reserved</option>
+          <option value="Booked">Booked</option>
+          <option value="Sold">Sold</option>
         </select>
       </label>
       {['Booked', 'Sold'].includes(value) && <>

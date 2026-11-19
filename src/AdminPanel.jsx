@@ -454,7 +454,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, cv, 
           {customerPlots.filter(plot => String(plot.id) === String(customerForm.plot_id) || !['booked', 'sold'].includes(String(plot.status || 'Available').trim().toLowerCase())).map(plot => <option key={plot.id} value={String(plot.id)}>{String(plot.plot_number ?? plot.unit_number ?? plot.id)}{String(plot.status || '').toLowerCase() === 'reserved' ? ' · Reserved' : ''} (Plot ID: {plot.id})</option>)}
         </select></label>
         <label>Status<select value={customerForm.status} onChange={event => setCustomerForm(old => ({ ...old, status: event.target.value }))}>
-          <option value="Available">Availability</option><option value="Reserved">Reserved</option>
+          <option value="Available">Available</option><option value="Reserved">Reserved</option><option value="Booked">Booked</option><option value="Sold">Sold</option>
         </select></label>
         {customerError && <p className="admin-customer-error" role="alert">{customerError}</p>}
         <div className="admin-customer-actions"><button type="button" className="admin-customer-cancel" onClick={() => setCustomerOpen(false)}>Cancel</button><button type="submit" className="admin-customer-submit" disabled={customerBusy || customerLoading || !customerPlots.length}>{customerBusy ? 'Saving…' : customerLoading ? 'Loading units…' : 'Add Customer'}</button></div>

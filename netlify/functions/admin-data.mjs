@@ -77,7 +77,7 @@ export default async function handler(request) {
     employeeAuthorized = Boolean(employeeCheck.ok && employeeCheck.data?.length && employeeCheck.data[0].active !== false);
   }
   if (!adminAuthorized && !employeeAuthorized) return json({ ok: false, error: "Sign in with an authorized Admin or Employee account." }, 401);
-  if (employeeAuthorized && !["GET", "POST"].includes(method)) return json({ ok: false, error: "Employees can view bookings and add customers. Admin access is required for this action." }, 403);
+  if (employeeAuthorized && !["GET", "POST", "PATCH", "DELETE"].includes(method)) return json({ ok: false, error: "This action is not available to Employees." }, 403);
   if (!cfg.url || !cfg.key) {
     console.error("[admin-data] Missing Supabase URL/key environment variables.");
     return json({ ok: false, error: "Dashboard database access is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (recommended), or SUPABASE_KEY with suitable RLS permissions." }, 500);

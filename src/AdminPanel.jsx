@@ -53,10 +53,13 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, setAd, onOpenAddC
   const currentColor = ax.ad.colors?.[id] || '#c7dfc7';
 
   useEffect(() => {
-    setValue(''); setM(null); setSelectedBookingId('');
+    setValue(currentStatus); setM(null); setSelectedBookingId('');
+  }, [id, currentStatus]);
+
+  useEffect(() => {
     let cancelled = false;
     async function loadReservedCustomers() {
-      if (currentStatus !== 'Reserved' || (!pin && !token)) { setReservedCustomers([]); return; }
+      if ((currentStatus !== 'Reserved' && !['Booked', 'Sold'].includes(value)) || (!pin && !token)) { setReservedCustomers([]); return; }
       setCustomersLoading(true);
       try {
         const response = await fetch('/api/admin-data?view=bookings&project_id=' + encodeURIComponent(ax.geometry?.projectId || 1), {
@@ -78,7 +81,7 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, setAd, onOpenAddC
     }
     loadReservedCustomers();
     return () => { cancelled = true; };
-  }, [id, currentStatus, pin, token, ax]);
+  }, [id, currentStatus, value, pin, token, ax]);
 
   const presets = ['#c7dfc7', '#9fd7c2', '#a9c9f2', '#f6d58b', '#f4b6b6', '#d6c2f0', '#f2c6a0', '#d5dde6'];
   const save = async () => {
@@ -106,13 +109,14 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, setAd, onOpenAddC
   return (
     <>
       <div className="sec">Availability status</div>
-      <p className="hint">Current status: <strong>{currentStatus}</strong></p>
       <label><span>Plot status</span>
-        <select value={value} onChange={e => {
+        <select value={value || currentStatus} onChange={e => {
           const next = e.target.value; setM(null); setSelectedBookingId('');
-          if (['Available', 'Reserved'].includes(next) && ['Booked', 'Sold'].includes(currentStatus)) setValue(next);
-          else if (next === 'Available') setValue(next);
-          else { setValue(''); onOpenAddCustomer('Reserved', id); }
+          if (['Booked', 'Sold', 'Available'].includes(next)) setValue(next);
+          else if (next === 'Reserved') {
+            setValue(currentStatus);
+            onOpenAddCustomer('Reserved', id);
+          }
         }}>
           <option value="">Select status</option>
           <option value="Available">Available</option>
@@ -122,7 +126,7 @@ function StatusEditor({ id, ax, status, setStatus, pin, token, setAd, onOpenAddC
         </select>
       </label>
       {['Booked', 'Sold'].includes(value) && <>
-        <label><span>Reserved customer</span>
+        <label><span>Customer name · Phone number</span>
           <select value={selectedBookingId} onChange={e => setSelectedBookingId(e.target.value)} disabled={customersLoading || !reservedCustomers.length} required>
             <option value="">{customersLoading ? 'Loading customers…' : 'Select customer'}</option>
             {reservedCustomers.map(row => <option key={row.id} value={String(row.id)}>{row.customer_name || row.name} · {row.phone || row.phone_number}</option>)}

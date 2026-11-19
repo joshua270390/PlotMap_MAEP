@@ -166,7 +166,7 @@ function DmEditor({ k, ax, setAd, onGone }) {
   );
 }
 
-export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addMode, setAddMode, clearSel, status, setStatus, onAdminAuth, onAdminExit, initialAdminPin = '', employeeSession = false, employeeToken = '' }) {
+export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, cv, addMode, setAddMode, clearSel, status, setStatus, onAdminAuth, onAdminExit, initialAdminPin = '', employeeSession = false, employeeToken = '' }) {
   const [pin, setPin] = useState(''), [authPin, setAuthPin] = useState(''), [pm, setPm] = useState(''), [note, setNote] = useState(null), [rst, setRst] = useState(false), [authBusy, setAuthBusy] = useState(false);
   const [rate, setRate] = useState(ax.ad.rate || '');
   const [isClosing, setIsClosing] = useState(false);
@@ -229,9 +229,9 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
     clearTimeout(rt.current); setRst(false); setAd(AD0()); setRate(''); clearSel(); setNote({ t: 'All edits cleared.', ok: true });
   };
 
-  const openAddCustomer = async () => {
+  const openAddCustomer = async (defaultStatus = 'Available', targetPlotId = sel) => {
     setCustomerOpen(true); setCustomerError(''); setCustomerNotice('');
-    setCustomerForm({ customer_name: '', phone: '', plot_id: '', status: 'Available' });
+    setCustomerForm({ customer_name: '', phone: '', plot_id: '', status: defaultStatus });
     setCustomerLoading(true);
     try {
       const response = await fetch('/api/admin-data?view=bookings&project_id=' + encodeURIComponent(ax.geometry?.projectId || 1), { headers: employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': authPin }, cache: 'no-store', signal: AbortSignal.timeout(15000) });
@@ -239,8 +239,8 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load plot units.');
       setCustomerPlots(data.plots || []);
       // Preselect the plot currently highlighted on the map, for every project geometry.
-      if (sel != null) {
-        const selectedPlotNumber = String(ax.lbl(sel));
+      if (targetPlotId != null) {
+        const selectedPlotNumber = String(ax.lbl(targetPlotId));
         const selectedPlot = (data.plots || []).find(plot =>
           String(plot.plot_number ?? plot.unit_number ?? plot.id) === selectedPlotNumber
         );
@@ -248,7 +248,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
           setCustomerForm(old => ({
             ...old,
             plot_id: String(selectedPlot.id),
-            status: String(selectedPlot.status || '').trim().toLowerCase() === 'reserved' ? 'Reserved' : old.status,
+            status: defaultStatus === 'Reserved' || String(selectedPlot.status || '').trim().toLowerCase() === 'reserved' ? 'Reserved' : defaultStatus,
           }));
         }
       }
@@ -287,6 +287,11 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
     if (event.target === event.currentTarget) setCustomerOpen(false);
   };
 
+  const selectedPlotIds = [];
+  const selectedItems = cv && Array.isArray(cv.items) ? cv.items : (cv ? [cv] : (sel != null ? [{ kind: 'plot', id: sel }] : []));
+  selectedItems.forEach(item => { if (item && item.kind === 'plot' && item.id != null && !selectedPlotIds.includes(item.id)) selectedPlotIds.push(item.id); });
+  const selectedHasClosedStatus = selectedPlotIds.some(id => ['b', 's'].includes(status[id] || 'a'));
+
   return (
     <>
     <div id="adm" className={"apn fl" + (isClosing ? " is-closing" : "") + (panel === "tools" ? (mobileCompact ? " mobile-compact" : " mobile-expanded") : "")}>
@@ -313,19 +318,21 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, addM
           <div>
             <div className="sec">Selected</div>
             <div className="card">
+              {selectedPlotIds.length > 0 && <ResetAvailabilityEditor ids={selectedPlotIds} ax={ax} status={status} setStatus={setStatus} pin={authPin} token={employeeToken} />}
               {addMode ? <p className="hint">Click on the map where the new dimension label should go.</p>
-                : sel != null ? <><PlotEditor key={sel} id={sel} ax={ax} setAd={setAd} /><StatusEditor key={'status-' + sel} id={sel} ax={ax} status={status} setStatus={setStatus} pin={authPin} token={employeeToken} employeeSession={employeeSession} setAd={setAd} /></>
+                : sel != null ? <><PlotEditor key={sel} id={sel} ax={ax} setAd={setAd} /><StatusEditor key={'status-' + sel} id={sel} ax={ax} status={status} setStatus={setStatus} pin={authPin} token={employeeToken} setAd={setAd} onOpenAddCustomer={openAddCustomer} /></>
                 : selD && ax.dmList().some(d => d.k === selD) ? <DmEditor key={selD} k={selD} ax={ax} setAd={setAd} onGone={clearSel} />
+                : selectedPlotIds.length > 1 ? <p className="hint">{selectedPlotIds.length} plots selected. Use the reset action above to safely clear eligible statuses.</p>
                 : <p className="hint">Click a plot or a dimension label on the map to edit it.</p>}
             </div>
-            <div className="sec">Customers & bookings</div>
+            {!selectedHasClosedStatus && <><div className="sec">Customers & bookings</div>
             <div className="card">
-              <button className="tool admin-add-customer" type="button" onClick={openAddCustomer}>
+              <button className="tool admin-add-customer" type="button" onClick={() => openAddCustomer('Available', sel)}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /><circle cx="12" cy="12" r="10" /></svg>
                 Add Customer
               </button>
               <p className="hint">Add a customer here; the saved booking is shared with the Bookings page.</p>
-            </div>
+            </div></>}
             <div className="sec">Map tools</div>
             <div className="card">
               <button className="tool" type="button" aria-pressed={addMode} onClick={() => { clearSel(); setAddMode(!addMode); }}>

@@ -1,10 +1,14 @@
 import { P as SP, G as SG, bounds as SB } from './saraswathiGeometry.js';
 import { P as HP, G as HG, bounds as HB } from './shanmugaGeometry.js';
+import { P as M1P, G as M1G, bounds as M1B } from './meenakshiPhase1Geometry.js';
+import { P as M2P, G as M2G, bounds as M2B } from './meenakshiPhase2Geometry.js';
 import './ProjectMapThumbnail.css';
 
 const layouts = {
   saraswathi_garden: { P: SP, G: SG, bounds: SB, labelSize: 26, lineWidth: 4 },
   shanmuga_avenue: { P: HP, G: HG, bounds: HB, labelSize: 24, lineWidth: 3 },
+  meenakshi_garden_phase1: { P: M1P, G: M1G, bounds: M1B, labelSize: 30, lineWidth: 3 },
+  meenakshi_garden_phase2: { P: M2P, G: M2G, bounds: M2B, labelSize: 30, lineWidth: 3 },
 };
 
 export default function ProjectMapThumbnail({ project }) {

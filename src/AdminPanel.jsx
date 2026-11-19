@@ -150,13 +150,23 @@ function ResetAvailabilityEditor({ ids, ax, status, setStatus, pin, token }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(null);
   const [eligibleIds, setEligibleIds] = useState([]);
+  const [blockedPlots, setBlockedPlots] = useState([]);
   const [checking, setChecking] = useState(true);
   const statusKey = ids.map(id => String(id) + ':' + (status[id] || 'a')).join('|');
+  const normalizePlotKey = value => {
+    let key = String(value ?? '').trim().toLowerCase().replace(/^plot[\\s-]*/, '');
+    if (/^\\d+$/.test(key)) key = String(Number(key));
+    return key;
+  };
+  const hasCustomerDetails = row => [
+    row.customer_name, row.customername, row.customer_full_name, row.name, row.customer,
+    row.phone, row.phone_number, row.mobile, row.mobile_number, row.mobile_no, row.mobilenumber,
+  ].some(value => String(value ?? '').trim() !== '');
 
   useEffect(() => {
     let cancelled = false;
     async function checkEligibility() {
-      setChecking(true); setEligibleIds([]); setMessage(null);
+      setChecking(true); setEligibleIds([]); setBlockedPlots([]); setMessage(null);
       const candidates = ids.filter(id => ['r', 'b', 's'].includes(status[id] || 'a'));
       if (!candidates.length) { setChecking(false); return; }
       try {
@@ -165,17 +175,30 @@ function ResetAvailabilityEditor({ ids, ax, status, setStatus, pin, token }) {
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.ok) throw new Error(data.error || 'Could not verify customer details.');
-        const eligible = candidates.filter(id => {
+        const eligible = [];
+        const blocked = [];
+        candidates.forEach(id => {
           const plotNumber = String(ax.lbl(id));
-          const plot = (data.plots || []).find(item => String(item.plot_number ?? item.unit_number ?? item.id) === plotNumber);
-          if (!plot) return false;
-          const bookings = (data.bookings || []).filter(row => String(row.plot_id) === String(plot.id));
-          return !bookings.some(row =>
-            String(row.customer_name || row.name || '').trim() !== '' ||
-            String(row.phone || row.phone_number || '').trim() !== ''
+          const normalizedNumber = normalizePlotKey(plotNumber);
+          const plot = (data.plots || []).find(item =>
+            [item.plot_number, item.unit_number, item.plot_no, item.id].some(value => normalizePlotKey(value) === normalizedNumber)
           );
+          if (!plot) {
+            blocked.push({ number: plotNumber, reason: 'Plot record was not found in the project inventory.' });
+            return;
+          }
+          const bookings = (data.bookings || []).filter(row =>
+            [row.plot_id, row.plot_number, row.unit_number, row.plot_no].some(value =>
+              String(value ?? '') === String(plot.id) || normalizePlotKey(value) === normalizedNumber
+            )
+          );
+          if (bookings.some(hasCustomerDetails)) {
+            blocked.push({ number: plotNumber, reason: 'Customer name or phone number exists in the Bookings table.' });
+            return;
+          }
+          eligible.push(id);
         });
-        if (!cancelled) setEligibleIds(eligible);
+        if (!cancelled) { setEligibleIds(eligible); setBlockedPlots(blocked); }
       } catch (error) {
         if (!cancelled) setMessage({ ok: false, text: error.message || 'Could not verify customer details.' });
       } finally { if (!cancelled) setChecking(false); }
@@ -184,8 +207,8 @@ function ResetAvailabilityEditor({ ids, ax, status, setStatus, pin, token }) {
     return () => { cancelled = true; };
   }, [statusKey, pin, token, ax]);
 
-  if (!checking && eligibleIds.length === 0 && !message) return null;
   if (checking) return null;
+  if (eligibleIds.length === 0 && blockedPlots.length === 0 && !message) return null;
 
   const reset = async () => {
     if (!eligibleIds.length || busy) return;
@@ -198,26 +221,32 @@ function ResetAvailabilityEditor({ ids, ax, status, setStatus, pin, token }) {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || 'Could not reset selected plots.');
-      const resetSet = new Set(result.reset || []);
+      const resetSet = new Set((result.reset || []).map(normalizePlotKey));
       setStatus(old => {
         const next = { ...old };
-        ids.forEach(id => { if (resetSet.has(String(ax.lbl(id)))) next[id] = 'a'; });
+        ids.forEach(id => { if (resetSet.has(normalizePlotKey(ax.lbl(id)))) next[id] = 'a'; });
         return next;
       });
       window.dispatchEvent(new Event('maep-plots-changed'));
-      const skipped = result.skipped || [];
-      setMessage({ ok: skipped.length === 0, text: result.reset?.length
-        ? result.reset.length + ' plot(s) reset to Available.' + (skipped.length ? ' ' + skipped.length + ' skipped because customer details exist or status changed.' : '')
-        : 'No plots were reset. Customer details exist or the plot status is no longer eligible.' });
+      const skipped = [...blockedPlots, ...(result.skipped || [])];
+      const details = skipped.map(item => 'Plot ' + item.plot_number + ': ' + item.reason).join(' ');
+      const resetCount = (result.reset || []).length;
+      setMessage({
+        ok: skipped.length === 0,
+        text: (resetCount ? resetCount + ' plot(s) reset to Available.' : 'No plots were reset.') +
+          (details ? ' Not reset — ' + details : ''),
+      });
+      setBlockedPlots(skipped);
     } catch (error) { setMessage({ ok: false, text: error.message || 'Could not reset selected plots.' }); }
     finally { setBusy(false); }
   };
   return (
     <>
       <div className="sec">Reset plot availability</div>
-      <p className="hint">{eligibleIds.length} selected plot(s) have no customer name or phone number in the Bookings table.</p>
-      <div className="arow"><button type="button" className="dng" disabled={busy} onClick={reset}>{busy ? 'Resetting…' : 'Reset selected to Available'}</button></div>
+      <p className="hint">{eligibleIds.length} selected plot(s) are eligible for reset. Booking records will not be changed or deleted.</p>
+      {eligibleIds.length > 0 && <div className="arow"><button type="button" className="dng" disabled={busy} onClick={reset}>{busy ? 'Resetting…' : 'Reset selected to Available'}</button></div>}
       {message && <p className={'hint' + (message.ok ? ' ok' : ' err')}>{message.text}</p>}
+      {!message && blockedPlots.length > 0 && <p className="hint err">{blockedPlots.map(item => 'Plot ' + item.number + ': ' + item.reason).join(' ')}</p>}
     </>
   );
 }

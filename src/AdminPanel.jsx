@@ -209,7 +209,6 @@ function ResetAvailabilityEditor({ ids, ax, status, setStatus, pin, token }) {
     return () => { cancelled = true; };
   }, [statusKey, pin, token, ax]);
 
-  if (checking) return null;
   const reset = async () => {
     if (!ids.length || busy) return;
     setBusy(true); setMessage(null);

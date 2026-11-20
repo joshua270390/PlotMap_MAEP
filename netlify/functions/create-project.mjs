@@ -100,7 +100,7 @@ async function analyse(c, file) {
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST", headers: { "Authorization": "Bearer " + key, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: process.env.OPENAI_PLOT_MODEL || "gpt-4.1",
+      model: process.env.OPENAI_PLOT_MODEL || "gpt-4.1-mini",
       input: [{ role: "user", content: [{ type: "input_text", text: prompt }, ...fileContent] }],
       text: { format: { type: "json_schema", name: "plot_layout_extraction", strict: true, schema } },
       max_output_tokens: 12000,

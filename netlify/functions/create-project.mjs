@@ -143,9 +143,12 @@ export default async function handler(request) {
     const exists = await db(c, c.projects, "GET", new URLSearchParams({ select: "id", or: "(slug.eq." + slug + ",route.eq." + route + ")", limit: "1" }).toString());
     if (!exists.ok) return json({ ok: false, error: "Could not check existing project routes. Run the Create Plots SQL setup." }, 502);
     if (exists.data?.length) return json({ ok: false, error: "That project route already exists. Choose another route." }, 409);
-    const latest = await db(c, c.plots, "GET", new URLSearchParams({ select: "project_id", order: "project_id.desc", limit: "1" }).toString());
-    if (!latest.ok) return json({ ok: false, error: "Could not allocate a project ID from the plots table." }, 502);
-    const projectId = Math.max(5, Number(latest.data?.[0]?.project_id || 5)) + 1;
+    const [latestPlots, latestProjects] = await Promise.all([
+      db(c, c.plots, "GET", new URLSearchParams({ select: "project_id", order: "project_id.desc", limit: "1" }).toString()),
+      db(c, c.projects, "GET", new URLSearchParams({ select: "project_id", order: "project_id.desc", limit: "1" }).toString()),
+    ]);
+    if (!latestPlots.ok || !latestProjects.ok) return json({ ok: false, error: "Could not allocate a unique project ID." }, 502);
+    const projectId = Math.max(5, Number(latestPlots.data?.[0]?.project_id || 5), Number(latestProjects.data?.[0]?.project_id || 5)) + 1;
     geometry.key = "custom_project_" + randomUUID().replace(/-/g, "");
     let sourcePath = null, insertedProject = null;
     try {

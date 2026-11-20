@@ -30,4 +30,4 @@ AI extraction creates a draft from the first PDF page or the uploaded image. Che
 
 ## 4. Project management
 
-Only the signed-in Admin can create, edit or delete custom projects. Editing updates the project name, description, location, route and optional source file only. It does not regenerate or overwrite the saved plot geometry. Deleting a custom project requires confirmation and removes its bookings, plot inventory, shared map edits, metadata and stored source file. The five built-in projects are not deletable from this screen.
+Signed-in Admins and active Employees can create, edit or delete custom projects. Employee sessions are validated against the `employees` table and require `EMPLOYEE_SESSION_SECRET` to be configured in Netlify. Public User sessions cannot manage projects. Editing updates the project name, description, location, route and optional source file only. It does not regenerate or overwrite the saved plot geometry. Deleting a custom project requires confirmation and removes its bookings, plot inventory, shared map edits, metadata and stored source file. The five built-in projects are not deletable from this screen.

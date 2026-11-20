@@ -12,7 +12,7 @@ function GeometryPreview({ geometry }) {
       <rect width="2000" height="2000" fill="#f0f2ed" />
       {(G.base || []).map((d,i)=><path key={"r"+i} d={d} fill="#c9ced0" stroke="#fff" strokeWidth="12" />)}
       {(G.park || []).map((d,i)=><path key={"p"+i} d={d} fill="#c9dec6" stroke="#fff" strokeWidth="8" />)}
-      {P.map(([id,x,y,points])=><g key={id}><polygon points={points} fill="#fff" stroke="#668276" strokeWidth="8" /><text x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize="34" fontWeight="700" fill="#263b4d">{id}</text></g>)}
+      {P.map(([id,x,y,points])=><g key={id}><polygon points={points} fill="#fff" stroke="#668276" strokeWidth="8" /><text x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize="34" fontWeight="700" fill="#263b4d">{geometry.plotLabels?.[id] ?? id}</text></g>)}
     </svg>
   </div>;
 }

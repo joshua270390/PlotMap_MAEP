@@ -133,10 +133,10 @@ export default function Dashboard() {
         if (path !== '/plot_lists') window.history.replaceState({}, '', '/plot_lists');
         setShowCreatePage(false); setEditingProject(null); setPage('plots'); return;
       }
-      if (role === 'employee' && !['/bookings', '/plot_lists'].includes(path)) {
+      if (role === 'employee' && !['/bookings', '/plot_lists', '/create_plots'].includes(path)) {
         window.history.replaceState({}, '', '/plot_lists'); setShowCreatePage(false); setEditingProject(null); setPage('plots'); return;
       }
-      const routes = role === 'employee' ? ['/bookings', '/plot_lists'] : ['/', '/dashboard', '/bookings', '/plot_lists', '/users', '/create_plots'];
+      const routes = role === 'employee' ? ['/bookings', '/plot_lists', '/create_plots'] : ['/', '/dashboard', '/bookings', '/plot_lists', '/users', '/create_plots'];
       if (!routes.includes(path)) {
         window.location.reload();
         return;
@@ -158,7 +158,7 @@ export default function Dashboard() {
       return;
     }
     const savedEmployeeToken = window.sessionStorage.getItem('maep_employee_token');
-    if (savedEmployeeToken) { const savedPath = window.location.pathname; const employeePage = savedPath === '/bookings' ? 'bookings' : 'plots'; setRole('employee'); setEmployeeToken(savedEmployeeToken); setUserName(window.sessionStorage.getItem('maep_employee_username') || 'Employee'); setLoggedIn(true); setPage(employeePage); if (!['/bookings', '/plot_lists'].includes(savedPath)) window.history.replaceState({}, '', '/plot_lists'); setAuthChecking(false); return; }
+    if (savedEmployeeToken) { const savedPath = window.location.pathname; const employeePage = savedPath === '/bookings' ? 'bookings' : 'plots'; setRole('employee'); setEmployeeToken(savedEmployeeToken); setUserName(window.sessionStorage.getItem('maep_employee_username') || 'Employee'); setLoggedIn(true); setPage(employeePage); setShowCreatePage(savedPath === '/create_plots'); if (!['/bookings', '/plot_lists', '/create_plots'].includes(savedPath)) window.history.replaceState({}, '', '/plot_lists'); setAuthChecking(false); return; }
     const savedPin = window.sessionStorage.getItem('maep_admin_pin');
     if (!savedPin) { setAuthChecking(false); return; }
     let cancelled = false;
@@ -419,7 +419,7 @@ export default function Dashboard() {
         <button className={'nav-item' + (page === 'plots' && !showCreatePage ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/plot_lists'); setPage('plots'); setShowCreatePage(false); setEditingProject(null); setSidebarOpen(false); }}>
           <span className="nav-icon">▦</span> Plot lists
         </button>
-        {role === 'admin' && <button className={'nav-item' + (showCreatePage ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/create_plots'); setPage('plots'); setEditingProject(null); setShowCreatePage(true); setSidebarOpen(false); }}><span className="nav-icon">＋</span> Create Plots</button>}
+        {role !== 'user' && <button className={'nav-item' + (showCreatePage ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/create_plots'); setPage('plots'); setEditingProject(null); setShowCreatePage(true); setSidebarOpen(false); }}><span className="nav-icon">＋</span> Create Plots</button>}
               </aside>
 
       <main className="dashboard-main">
@@ -542,7 +542,7 @@ export default function Dashboard() {
               </div>}
             </>
           ) : showCreatePage ? (
-            <CreatePlotsPage editingProject={editingProject} onCancel={() => { setShowCreatePage(false); setEditingProject(null); window.history.pushState({}, '', '/plot_lists'); }} onSaved={async () => {
+            <CreatePlotsPage editingProject={editingProject} authHeaders={employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': pin }} onCancel={() => { setShowCreatePage(false); setEditingProject(null); window.history.pushState({}, '', '/plot_lists'); }} onSaved={async () => {
               const response = await fetch('/api/projects', { cache: 'no-store' });
               const data = await response.json().catch(() => ({}));
               if (!response.ok || !data.ok) throw new Error(data.error || 'Project saved, but the list could not refresh.');
@@ -588,7 +588,7 @@ export default function Dashboard() {
                         <p className="project-card-description">{project.description}</p>
                         <div className="project-card-footer"><span className="project-type"><span aria-hidden="true">▦</span> Interactive Plot Layout</span><span className="project-view-link">{project.mapReady ? 'View project' : 'Map coming soon'} <span aria-hidden="true">{project.mapReady ? '→' : '…'}</span></span></div>
                       </div>
-                      {role === 'admin' && project.customProjectId != null && <div className="project-card-actions" onClick={e => e.stopPropagation()}>
+                      {role !== 'user' && project.customProjectId != null && <div className="project-card-actions" onClick={e => e.stopPropagation()}>
                         <button type="button" className="edit-btn" onClick={() => { setEditingProject(project); setShowCreatePage(true); window.history.pushState({}, '', '/create_plots'); }}>Edit details</button>
                         <button type="button" className="delete-btn" onClick={() => setProjectDelete(project)}>Delete project</button>
                       </div>}
@@ -642,7 +642,7 @@ export default function Dashboard() {
           <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setProjectDelete(null)} disabled={saving}>Cancel</button><button type="button" className="confirm-delete-btn" disabled={saving} onClick={async () => {
             setSaving(true); setError('');
             try {
-              const response = await fetch('/api/create-project?action=delete', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: projectDelete.customProjectId }) });
+              const response = await fetch('/api/create-project?action=delete', { method: 'DELETE', headers: { 'Content-Type': 'application/json', ...(employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': pin }) }, body: JSON.stringify({ id: projectDelete.customProjectId }) });
               const data = await response.json().catch(() => ({}));
               if (!response.ok || !data.ok) throw new Error(data.error || 'Could not delete project.');
               setProjectDelete(null);

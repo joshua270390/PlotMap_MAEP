@@ -25,6 +25,6 @@ export default function ProjectMapThumbnail({ project }) {
     <g className="preview-land">{G.misc.map((d, i) => <path key={i} d={d} />)}</g>
     <g className="preview-road-mark" strokeWidth="6" strokeDasharray="34 26">{G.dash.map((d, i) => <path key={i} d={d} />)}</g>
     <g className="preview-plots" strokeWidth={lineWidth}>{P.map(([id, , , points]) => <polygon key={id} points={points} />)}</g>
-    <g className="preview-labels">{P.map(([id, x, y]) => <text key={id} x={x} y={y} fontSize={labelSize} strokeWidth="2">{id}</text>)}</g>
+    <g className="preview-labels">{P.map(([id, x, y]) => <text key={id} x={x} y={y} fontSize={labelSize} strokeWidth="2">{project.geometry?.plotLabels?.[id] ?? id}</text>)}</g>
   </svg>;
 }

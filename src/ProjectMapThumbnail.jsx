@@ -12,7 +12,11 @@ const layouts = {
 };
 
 export default function ProjectMapThumbnail({ project }) {
-  const layout = layouts[project.mapKey] || layouts[project.slug];
+  const layout = project.geometry?.P?.length ? {
+    P: project.geometry.P, G: project.geometry.G || { base: [], park: [], misc: [], dash: [] },
+    bounds: project.geometry.bounds || { x: 0, y: 0, width: 2000, height: 2000 },
+    labelSize: 34, lineWidth: 8,
+  } : layouts[project.mapKey] || layouts[project.slug];
   if (!layout) return <div className="project-map-pending" role="img" aria-label={project.name + ' map preview unavailable'}><span className="project-visual-mark">MA</span><span className="project-visual-tag">LAYOUT MAP</span></div>;
   const { P, G, bounds: b, labelSize, lineWidth } = layout;
   return <svg className="project-map-static project-map-thumbnail" viewBox={`${b.x} ${b.y} ${b.width} ${b.height}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label={'Static thumbnail of the ' + project.name + ' plot layout'}>

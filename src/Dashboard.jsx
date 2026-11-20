@@ -131,10 +131,10 @@ export default function Dashboard() {
       const path = window.location.pathname.replace(/\/+$/, '') || '/';
       if (role === 'user') {
         if (path !== '/plot_lists') window.history.replaceState({}, '', '/plot_lists');
-        setPage('plots'); return;
+        setShowCreatePage(false); setEditingProject(null); setPage('plots'); return;
       }
       if (role === 'employee' && !['/bookings', '/plot_lists'].includes(path)) {
-        window.history.replaceState({}, '', '/plot_lists'); setPage('plots'); return;
+        window.history.replaceState({}, '', '/plot_lists'); setShowCreatePage(false); setEditingProject(null); setPage('plots'); return;
       }
       const routes = role === 'employee' ? ['/bookings', '/plot_lists'] : ['/', '/dashboard', '/bookings', '/plot_lists', '/users', '/create_plots'];
       if (!routes.includes(path)) {

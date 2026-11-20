@@ -8,8 +8,8 @@ function GeometryPreview({ geometry }) {
   if (!geometry?.P?.length) return null;
   const { P, G = {} } = geometry;
   return <div className="create-map-preview">
-    <svg viewBox="0 0 2000 2000" role="img" aria-label="AI extracted draft plot map">
-      <rect width="2000" height="2000" fill="#f0f2ed" />
+    <svg viewBox={`0 0 ${geometry.canvasWidth || 2000} ${geometry.canvasHeight || 2000}`} role="img" aria-label="AI extracted draft plot map">
+      <rect width={geometry.canvasWidth || 2000} height={geometry.canvasHeight || 2000} fill="#f0f2ed" />
       {(G.base || []).map((d,i)=><path key={"r"+i} d={d} fill="#c9ced0" stroke="#fff" strokeWidth="12" />)}
       {(G.park || []).map((d,i)=><path key={"p"+i} d={d} fill="#c9dec6" stroke="#fff" strokeWidth="8" />)}
       {P.map(([id,x,y,points])=><g key={id}><polygon points={points} fill="#fff" stroke="#668276" strokeWidth="8" /><text x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize="34" fontWeight="700" fill="#263b4d">{geometry.plotLabels?.[id] ?? id}</text></g>)}

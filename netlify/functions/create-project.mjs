@@ -146,7 +146,7 @@ export default async function handler(request) {
     const latest = await db(c, c.plots, "GET", new URLSearchParams({ select: "project_id", order: "project_id.desc", limit: "1" }).toString());
     if (!latest.ok) return json({ ok: false, error: "Could not allocate a project ID from the plots table." }, 502);
     const projectId = Math.max(5, Number(latest.data?.[0]?.project_id || 5)) + 1;
-    geometry.key = "custom_project_" + projectId;
+    geometry.key = "custom_project_" + randomUUID().replace(/-/g, "");
     let sourcePath = null, insertedProject = null;
     try {
       const file = form.get("file");

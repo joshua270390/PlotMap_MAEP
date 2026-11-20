@@ -177,7 +177,11 @@ export default async function handler(request) {
     const existing = await db(c, c.projects, "GET", new URLSearchParams({ select: "id,slug,source_file_path", id: "eq." + id, limit: "1" }).toString());
     if (!existing.ok || !existing.data?.[0]) return json({ ok: false, error: "Project not found." }, 404);
     const slug = cleanSlug(route.replace(/^\/+/, "").split("/")[0]);
-    if (!slug) return json({ ok: false, error: "Enter a valid project route." }, 422);
+    if (!slug || ['velavan_nagar','saraswathi_garden','shanmuga_avenue','meenakshi_garden_phase1','meenakshi_garden_phase2','dashboard','bookings','plot_lists','create_plots','users'].includes(slug))
+      return json({ ok: false, error: "That route is reserved. Choose a different project route." }, 422);
+    const duplicate = await db(c, c.projects, "GET", new URLSearchParams({ select: "id", or: "(slug.eq." + slug + ",route.eq." + route + ")", id: "neq." + id, limit: "1" }).toString());
+    if (!duplicate.ok) return json({ ok: false, error: "Could not validate the project route." }, 502);
+    if (duplicate.data?.length) return json({ ok: false, error: "That project route is already in use." }, 409);
     const patch = { name, description, location, route, slug, updated_at: new Date().toISOString() };
     let newPath = null;
     if (file && file.size) {

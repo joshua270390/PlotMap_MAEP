@@ -17,7 +17,7 @@ export const saveAd = (ad, geometry) => { try { localStorage.setItem(projectKey(
 
 export function makeApi(ad, geometry) {
   const { P, DM, AREAS, POS } = modelFor(geometry);
-  const lbl = id => { const v = ad.lbl[id]; return v != null && v !== '' ? String(v) : String(id); };
+  const lbl = id => { const v = ad.lbl[id]; return v != null && v !== '' ? String(v) : String(geometry?.plotLabels?.[id] ?? id); };
   const areaOf = id => { const v = ad.area[id]; return v != null ? +v : AREAS[id]; };
   const posOf = id => ad.pos[id] || POS[id];
   const findId = v => { v = String(v).trim(); if (!v) return null; const p = P.find(a => lbl(a[0]) === v); return p ? p[0] : null; };

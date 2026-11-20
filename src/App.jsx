@@ -354,7 +354,7 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
         const project = (data.projects || []).find(item => item.slug === projectSlug || item.route === "/" + projectSlug);
         if (!project?.geometry?.P?.length) throw new Error("Project map was not found.");
         if (!cancelled) setDynamicGeometry({
-          ...project.geometry, key: project.slug, projectId: project.project_id,
+          ...project.geometry, key: project.geometry.key || project.slug, projectId: project.project_id,
           projectName: project.name, layoutName: project.layout || (project.name + " layout"),
           compact: true,
         });

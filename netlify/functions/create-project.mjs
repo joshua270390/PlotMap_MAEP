@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { verifyAdmin } from "../lib/admin-session.mjs";
+import { verifyEmployeeToken } from "./employee-auth.mjs";
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
@@ -77,6 +78,14 @@ function normalizeGeometry(result) {
     LB: [], DM: [], plotAreaLabels: [], roadLabels: [], dimensionLabels: [],
   };
 }
+async function canManageProjects(request, c) {
+  if (process.env.ADMIN_PIN && request.headers.get("x-admin-pin") === process.env.ADMIN_PIN && await verifyAdmin(request)) return true;
+  const claims = verifyEmployeeToken(request.headers.get("x-employee-token"), process.env.EMPLOYEE_SESSION_SECRET || "");
+  if (!claims || !c.url || !c.key) return false;
+  const employee = await db(c, process.env.EMPLOYEES_TABLE || "employees", "GET",
+    new URLSearchParams({ select: "id,active", id: "eq." + claims.sub, limit: "1" }).toString());
+  return Boolean(employee.ok && employee.data?.[0] && employee.data[0].active !== false);
+}
 async function analyse(c, file) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error("OPENAI_API_KEY is missing from Netlify Function environment variables.");
@@ -122,7 +131,7 @@ async function analyse(c, file) {
 export default async function handler(request) {
   const c = cfg();
   if (!c.url || !c.key) return json({ ok: false, error: "Supabase is not configured." }, 500);
-  if (!process.env.ADMIN_PIN || !(await verifyAdmin(request))) return json({ ok: false, error: "Only the signed-in Admin can manage projects." }, 401);
+  if (!(await canManageProjects(request, c))) return json({ ok: false, error: "Sign in with an authorized Admin or Employee account to manage projects." }, 401);
   const action = new URL(request.url).searchParams.get("action") || "";
   if (request.method === "POST" && action === "analyze") {
     let form; try { form = await request.formData(); } catch { return json({ ok: false, error: "Upload a PDF or image file." }, 400); }

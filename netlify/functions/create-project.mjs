@@ -43,7 +43,9 @@ async function removeObject(c, path) {
   }); } catch {}
 }
 function normalizeGeometry(result) {
-  const width = 2000, height = 2000;
+  const aspect = Math.max(0.5, Math.min(2.5, Number(result.aspect_ratio) || 1));
+  const width = aspect >= 1 ? 2000 : Math.round(2000 * aspect);
+  const height = aspect >= 1 ? Math.round(2000 / aspect) : 2000;
   const pointString = points => points.map(([x,y]) => {
     const px = Math.max(0, Math.min(width, Math.round(Number(x) / 1000 * width)));
     const py = Math.max(0, Math.min(height, Math.round(Number(y) / 1000 * height)));
@@ -93,10 +95,11 @@ async function analyse(c, file) {
       }, required: ["plot_number","area_sqft","confidence","label_position","polygon"] } },
       roads: { type: "array", items: { type: "object", additionalProperties: false, properties: { polygon: { type: "array", items: { type: "array", items: { type: "number" }, minItems: 2, maxItems: 2 }, minItems: 3, maxItems: 100 } }, required: ["polygon"] } },
       parks: { type: "array", items: { type: "object", additionalProperties: false, properties: { polygon: { type: "array", items: { type: "array", items: { type: "number" }, minItems: 2, maxItems: 2 }, minItems: 3, maxItems: 100 } }, required: ["polygon"] } },
+      aspect_ratio: { type: "number" },
       notes: { type: "string" },
-    }, required: ["plots","roads","parks","notes"],
+    }, required: ["plots","roads","parks","aspect_ratio","notes"],
   };
-  const prompt = "You are extracting a plotted land layout drawing for a real-estate map. Return ONLY clearly visible plots. Never invent a plot, number, area, or boundary. Each polygon is the visible plot outline in clockwise order. Use the first PDF page only. Coordinates are normalized to that page/canvas: x and y from 0 to 1000. If the plan spans multiple pages, explain that limitation in notes. label_position is the plot-number label center in the same coordinates. Read area_sqft only when legible; otherwise use 0. confidence is 0 to 1. Include road and park outlines only when their boundaries are clearly visible. If a plot boundary or number is ambiguous, omit that plot and explain in notes. Keep the geometry faithful to the source; this is a draft requiring human verification.";
+  const prompt = "You are extracting a plotted land layout drawing for a real-estate map. Return ONLY clearly visible plots. Never invent a plot, number, area, or boundary. Each polygon is the visible plot outline in clockwise order. Use the first PDF page only. Return aspect_ratio as page width divided by page height. Coordinates are normalized independently to that page/canvas: x and y from 0 to 1000. If the plan spans multiple pages, explain that limitation in notes. label_position is the plot-number label center in the same coordinates. Read area_sqft only when legible; otherwise use 0. confidence is 0 to 1. Include road and park outlines only when their boundaries are clearly visible. If a plot boundary or number is ambiguous, omit that plot and explain in notes. Keep the geometry faithful to the source; this is a draft requiring human verification.";
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST", headers: { "Authorization": "Bearer " + key, "Content-Type": "application/json" },
     body: JSON.stringify({

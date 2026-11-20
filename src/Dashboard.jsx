@@ -411,8 +411,8 @@ export default function Dashboard() {
           </a>
           <button type="button" className="dashboard-sidebar-close" aria-label="Close navigation menu" onClick={() => setSidebarOpen(false)}>×</button>
         </div>
-        {role === 'admin' && <button className={'nav-item' + (page === 'dashboard' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/dashboard'); setPage('dashboard'); setSidebarOpen(false); }}><span className="nav-icon">▦</span> Dashboard</button>}
-        {role !== 'user' && <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); setSidebarOpen(false); }}>
+        {role === 'admin' && <button className={'nav-item' + (page === 'dashboard' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/dashboard'); setPage('dashboard'); setShowCreatePage(false); setEditingProject(null); setSidebarOpen(false); }}><span className="nav-icon">▦</span> Dashboard</button>}
+        {role !== 'user' && <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); setShowCreatePage(false); setEditingProject(null); setSidebarOpen(false); }}>
           <span className="nav-icon">▤</span> Bookings
         </button>}
         {role === 'admin' && <button className={'nav-item' + (page === 'users' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/users'); setPage('users'); setShowCreatePage(false); setSidebarOpen(false); }}><span className="nav-icon">♙</span> Users</button>}
@@ -432,7 +432,7 @@ export default function Dashboard() {
               <strong className="profile-role">{role === 'admin' ? 'Administrator' : role === 'employee' ? userName || 'Employee' : userName || 'User'}</strong>
               {role === 'admin' && <span className="profile-company">Mary Ann Elite Properties</span>}
               <span className="profile-session"><i />{role === 'admin' ? 'Connected to admin session' : role === 'employee' ? 'Employee session' : 'Approved user session'}</span>
-              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); if (window.sessionStorage.getItem('maep_admin_session')) fetch('/api/admin-auth?action=logout', { method: 'POST', keepalive: true }).catch(() => {}).finally(() => window.sessionStorage.removeItem('maep_admin_session')); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_mode'); window.sessionStorage.removeItem('maep_employee_token'); window.sessionStorage.removeItem('maep_employee_username'); setEmployeeToken(''); setLoggedIn(false); setPin(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); }}>Sign out</button>
+              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); if (window.sessionStorage.getItem('maep_admin_session')) fetch('/api/admin-auth?action=logout', { method: 'POST', keepalive: true }).catch(() => {}).finally(() => window.sessionStorage.removeItem('maep_admin_session')); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_mode'); window.sessionStorage.removeItem('maep_employee_token'); window.sessionStorage.removeItem('maep_employee_username'); setEmployeeToken(''); setLoggedIn(false); setPin(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); setShowCreatePage(false); setEditingProject(null); }}>Sign out</button>
             </div>}
           </div>
         </header>

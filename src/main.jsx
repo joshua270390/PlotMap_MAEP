@@ -41,7 +41,7 @@ window.setInterval(async () => {
   } catch { /* offline: try again next beat */ }
 }, 30000);
 
-const dashboardPaths = ['/', '/dashboard', '/bookings', '/plot_lists', '/create_plots'];
+const dashboardPaths = ['/', '/dashboard', '/bookings', '/plot_lists', '/users', '/create_plots'];
 const mapRoutes = new Set(['velavan_nagar', 'saraswathi_garden', 'shanmuga_avenue', 'meenakshi_garden_phase1', 'meenakshi_garden_phase2']);
 const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
 const isDashboard = dashboardPaths.includes(currentPath);

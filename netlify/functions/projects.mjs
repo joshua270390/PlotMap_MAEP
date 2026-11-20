@@ -76,7 +76,7 @@ export default async function handler(request) {
     }
     const custom = (Array.isArray(rows) ? rows : []).map(row => ({
       ...row, id: "custom-" + row.id, customProjectId: row.id,
-      slug: row.slug, mapKey: row.slug, mapReady: true,
+      slug: row.slug, mapKey: row.geometry?.key || row.slug, mapReady: true,
       layout: row.name + " layout", geometry: row.geometry, route: row.route,
     }));
     return json({ ok: true, projects: [...custom, ...PROJECTS] });

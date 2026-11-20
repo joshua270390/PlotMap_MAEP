@@ -551,6 +551,8 @@ export default function Dashboard() {
             }} />
           ) : (
             <section className="project-list-view" aria-label="Project list">
+              {error && <div className="alert alert-error" role="alert">{error}</div>}
+              {notice && <div className="alert alert-success" role="status">{notice}</div>}
               <label className="project-filter-box">
                 <span aria-hidden="true">⌕</span>
                 <input type="search" value={plotSearch} onChange={e => setPlotSearch(e.target.value)} placeholder="Search projects..." aria-label="Filter projects" />
@@ -636,6 +638,7 @@ export default function Dashboard() {
           <div className="confirm-icon" aria-hidden="true">!</div><button type="button" className="modal-close" onClick={() => setProjectDelete(null)} aria-label="Close" disabled={saving}>×</button>
           <p className="eyebrow">PERMANENT PROJECT ACTION</p><h2 id="project-delete-title">Delete this project?</h2>
           <p><strong>{projectDelete.name}</strong> and its plot inventory, bookings, map edits, and uploaded source file will be deleted. Existing five built-in projects cannot be deleted here.</p>
+          {error && <p className="dash-error" role="alert">{error}</p>}
           <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setProjectDelete(null)} disabled={saving}>Cancel</button><button type="button" className="confirm-delete-btn" disabled={saving} onClick={async () => {
             setSaving(true); setError('');
             try {

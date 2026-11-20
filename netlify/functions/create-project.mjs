@@ -26,7 +26,7 @@ async function db(c, table, method, query = "", body) {
   } catch (e) { return { ok: false, status: 0, error: e?.message || "Network error" }; }
 }
 const cleanSlug = value => String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 55);
-const validFile = file => file && file.size > 0 && file.size <= 15 * 1024 * 1024 &&
+const validFile = file => file && file.size > 0 && file.size <= 4 * 1024 * 1024 &&
   (file.type === "application/pdf" || ["image/png", "image/jpeg", "image/webp"].includes(file.type));
 async function upload(c, path, file) {
   const r = await fetch(c.url + "/storage/v1/object/" + c.bucket + "/" + path.split("/").map(encodeURIComponent).join("/"), {
@@ -124,7 +124,7 @@ export default async function handler(request) {
   if (request.method === "POST" && action === "analyze") {
     let form; try { form = await request.formData(); } catch { return json({ ok: false, error: "Upload a PDF or image file." }, 400); }
     const file = form.get("file");
-    if (!validFile(file)) return json({ ok: false, error: "Upload a PDF, PNG, JPG or WEBP file up to 15 MB." }, 422);
+    if (!validFile(file)) return json({ ok: false, error: "Upload a PDF, PNG, JPG or WEBP file up to 4 MB." }, 422);
     try {
       const result = await analyse(c, file);
       return json({ ok: true, ...result });
@@ -135,7 +135,7 @@ export default async function handler(request) {
     const name = String(form.get("name") || "").trim(), description = String(form.get("description") || "").trim(), location = String(form.get("location") || "").trim();
     const route = String(form.get("route") || "").trim(), slug = cleanSlug(route.replace(/^\/+/, "").split("/")[0]);
     let geometry; try { geometry = JSON.parse(String(form.get("geometry") || "{}")); } catch { geometry = null; }
-    if (!name || name.length > 120 || !route || !/^\/[a-z0-9_-]{2,55}$/.test(route) || !slug || !geometry?.P?.length)
+    if (!name || name.length > 120 || !route || !/^\/[a-z0-9_-]{2,55}$/.test(route) || !slug || ['velavan_nagar','saraswathi_garden','shanmuga_avenue','meenakshi_garden_phase1','meenakshi_garden_phase2','dashboard','bookings','plot_lists','create_plots','users'].includes(slug) || !geometry?.P?.length)
       return json({ ok: false, error: "Enter a project name, a valid route such as /new_project, and analyse a source file first." }, 422);
     const exists = await db(c, c.projects, "GET", new URLSearchParams({ select: "id", or: "(slug.eq." + slug + ",route.eq." + route + ")", limit: "1" }).toString());
     if (!exists.ok) return json({ ok: false, error: "Could not check existing project routes. Run the Create Plots SQL setup." }, 502);

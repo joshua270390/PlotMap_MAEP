@@ -17,7 +17,7 @@ function GeometryPreview({ geometry }) {
   </div>;
 }
 
-export default function CreatePlotsPage({ editingProject = null, onSaved, onCancel }) {
+export default function CreatePlotsPage({ editingProject = null, authHeaders = {}, onSaved, onCancel }) {
   const initial = useMemo(() => editingProject ? ({
     ...blank, name: editingProject.name || "", description: editingProject.description || "",
     location: editingProject.location || "", route: editingProject.route || ("/" + editingProject.slug),
@@ -38,7 +38,7 @@ export default function CreatePlotsPage({ editingProject = null, onSaved, onCanc
     setBusy(true); setError(""); setNotice("");
     try {
       const data = new FormData(); data.append("file", form.file);
-      const response = await fetch("/api/create-project?action=analyze", { method: "POST", body: data });
+      const response = await fetch("/api/create-project?action=analyze", { method: "POST", headers: authHeaders, body: data });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || "Could not analyse the layout.");
       setForm(value => ({ ...value, geometry: result.geometry, notes: result.notes || "", plots: result.plots || [] }));
@@ -61,7 +61,7 @@ export default function CreatePlotsPage({ editingProject = null, onSaved, onCanc
       else data.append("geometry", JSON.stringify(form.geometry));
       if (form.file) data.append("file", form.file);
       const url = editingProject ? "/api/create-project?action=update" : "/api/create-project?action=create";
-      const response = await fetch(url, { method: editingProject ? "PATCH" : "POST", body: data });
+      const response = await fetch(url, { method: editingProject ? "PATCH" : "POST", headers: authHeaders, body: data });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || "Could not save project.");
       setNotice(editingProject ? "Project details updated. Existing plot geometry was preserved." : "Project created successfully.");

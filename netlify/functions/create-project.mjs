@@ -128,10 +128,10 @@ export default async function handler(request) {
     } catch (e) { return json({ ok: false, error: e.message || "Could not analyse the uploaded plan." }, 422); }
   }
   if (request.method === "POST" && action === "create") {
-    let body; try { body = await request.json(); } catch { return json({ ok: false, error: "Invalid project data." }, 400); }
-    const name = String(body?.name || "").trim(), description = String(body?.description || "").trim(), location = String(body?.location || "").trim();
-    const route = String(body?.route || "").trim(), slug = cleanSlug(route.replace(/^\/+/, "").split("/")[0]);
-    const geometry = body?.geometry;
+    let form; try { form = await request.formData(); } catch { return json({ ok: false, error: "Invalid project data." }, 400); }
+    const name = String(form.get("name") || "").trim(), description = String(form.get("description") || "").trim(), location = String(form.get("location") || "").trim();
+    const route = String(form.get("route") || "").trim(), slug = cleanSlug(route.replace(/^\/+/, "").split("/")[0]);
+    let geometry; try { geometry = JSON.parse(String(form.get("geometry") || "{}")); } catch { geometry = null; }
     if (!name || name.length > 120 || !route || !/^\/[a-z0-9_-]{2,55}$/.test(route) || !slug || !geometry?.P?.length)
       return json({ ok: false, error: "Enter a project name, a valid route such as /new_project, and analyse a source file first." }, 422);
     const exists = await db(c, c.projects, "GET", new URLSearchParams({ select: "id", or: "(slug.eq." + slug + ",route.eq." + route + ")", limit: "1" }).toString());
@@ -173,7 +173,7 @@ export default async function handler(request) {
       return json({ ok: false, error: "Enter valid project details and route." }, 422);
     const existing = await db(c, c.projects, "GET", new URLSearchParams({ select: "id,slug,source_file_path", id: "eq." + id, limit: "1" }).toString());
     if (!existing.ok || !existing.data?.[0]) return json({ ok: false, error: "Project not found." }, 404);
-    const slug = cleanSlug(route.replace(/^\\/+/, "").split("/")[0]);
+    const slug = cleanSlug(route.replace(/^\/+/, "").split("/")[0]);
     if (!slug) return json({ ok: false, error: "Enter a valid project route." }, 422);
     const patch = { name, description, location, route, slug, updated_at: new Date().toISOString() };
     let newPath = null;

@@ -41,22 +41,29 @@ window.setInterval(async () => {
   } catch { /* offline: try again next beat */ }
 }, 30000);
 
-const dashboardPaths = ['/', '/dashboard', '/bookings', '/plot_lists'];
+const dashboardPaths = ['/', '/dashboard', '/bookings', '/plot_lists', '/create_plots'];
 const mapRoutes = new Set(['velavan_nagar', 'saraswathi_garden', 'shanmuga_avenue', 'meenakshi_garden_phase1', 'meenakshi_garden_phase2']);
 const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
 const isDashboard = dashboardPaths.includes(currentPath);
 const routeId = currentPath.slice(1);
 const isMapRoute = mapRoutes.has(routeId);
+const root = createRoot(document.getElementById('root'));
 
-// Keep dashboard routes separate; project slugs use the shared PlotMap page.
-// Unknown one-segment paths return to Plot Lists instead of silently showing
-// the Velavan Nagar map for an invalid project ID.
-if (!isDashboard && currentPath !== '/' && !isMapRoute) {
-  window.location.replace('/plot_lists');
-}
+function renderDashboard() { root.render(<StrictMode><Dashboard /></StrictMode>); }
+function renderMap(slug) { root.render(<StrictMode><App projectSlug={slug} /></StrictMode>); }
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    {isDashboard ? <Dashboard /> : isMapRoute ? <App projectSlug={routeId || 'velavan_nagar'} /> : <Dashboard />}
-  </StrictMode>
-);
+if (isDashboard) renderDashboard();
+else if (isMapRoute) renderMap(routeId);
+else if (currentPath !== '/') {
+  // Resolve custom project routes from the same saved project registry used by Plot Lists.
+  root.render(<div className="project-load-state">Loading project…</div>);
+  fetch('/api/projects', { cache: 'no-store' })
+    .then(async response => {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error('Project registry unavailable');
+      const project = (data.projects || []).find(item => item.slug === routeId || item.route === currentPath);
+      if (!project) throw new Error('Project not found');
+      renderMap(project.slug);
+    })
+    .catch(() => window.location.replace('/plot_lists'));
+} else renderDashboard();

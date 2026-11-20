@@ -79,7 +79,7 @@ export default function CreatePlotsPage({ editingProject = null, onSaved, onCanc
         <label>Route<input value={form.route} onChange={set("route")} required pattern="/[a-z0-9_-]{2,55}" placeholder="/green_valley_phase1" /><small>Must start with / and use lowercase letters, numbers, _ or -.</small></label>
       </div>
       <div className="create-upload-panel">
-        <div className="create-upload-icon">⇧</div><div><strong>{editingProject ? "Replace source PDF / Image (optional)" : "Upload source PDF / Image"}</strong><p>{editingProject ? "Replacing this file updates the source only; it will not regenerate plot boundaries." : "Supported: PDF, PNG, JPG, WEBP · Maximum 15 MB"}</p><input type="file" accept={fileTypes} onChange={chooseFile} /></div>
+        <div className="create-upload-icon">⇧</div><div><strong>{editingProject ? "Replace source PDF / Image (optional)" : "Upload source PDF / Image"}</strong><p>{editingProject ? "Replacing this file updates the source only; it will not regenerate plot boundaries." : "Supported: PDF, PNG, JPG, WEBP · Maximum 4 MB"}</p><input type="file" accept={fileTypes} onChange={chooseFile} /></div>
         {form.file && <span className="create-file-name">{form.file.name}</span>}
         {!form.file && editingProject?.source_file_name && <span className="create-file-name">Current: {editingProject.source_file_name}</span>}
       </div>

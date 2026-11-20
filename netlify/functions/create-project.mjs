@@ -143,6 +143,7 @@ export default async function handler(request) {
     const latest = await db(c, c.plots, "GET", new URLSearchParams({ select: "project_id", order: "project_id.desc", limit: "1" }).toString());
     if (!latest.ok) return json({ ok: false, error: "Could not allocate a project ID from the plots table." }, 502);
     const projectId = Math.max(5, Number(latest.data?.[0]?.project_id || 5)) + 1;
+    geometry.key = "custom_project_" + projectId;
     let sourcePath = null, insertedProject = null;
     try {
       const file = form.get("file");
@@ -199,14 +200,14 @@ export default async function handler(request) {
     let body; try { body = await request.json(); } catch { return json({ ok: false, error: "Invalid request." }, 400); }
     const id = String(body?.id || "");
     if (!/^\d+$/.test(id)) return json({ ok: false, error: "Invalid project." }, 422);
-    const found = await db(c, c.projects, "GET", new URLSearchParams({ select: "id,project_id,slug,source_file_path", id: "eq." + id, limit: "1" }).toString());
+    const found = await db(c, c.projects, "GET", new URLSearchParams({ select: "id,project_id,slug,source_file_path,geometry", id: "eq." + id, limit: "1" }).toString());
     const project = found.data?.[0];
     if (!found.ok || !project) return json({ ok: false, error: "Project not found." }, 404);
     const bookingDelete = await db(c, c.bookings, "DELETE", new URLSearchParams({ project_id: "eq." + project.project_id }).toString());
     if (!bookingDelete.ok) return json({ ok: false, error: "Could not remove project bookings. Nothing else was deleted." }, 502);
     const plotDelete = await db(c, c.plots, "DELETE", new URLSearchParams({ project_id: "eq." + project.project_id }).toString());
     if (!plotDelete.ok) return json({ ok: false, error: "Could not remove project plots." }, 502);
-    await db(c, c.edits, "DELETE", new URLSearchParams({ project_key: "eq." + project.slug }).toString());
+    await db(c, c.edits, "DELETE", new URLSearchParams({ project_key: "eq." + String(project.geometry?.key || project.slug) }).toString());
     const removed = await db(c, c.projects, "DELETE", new URLSearchParams({ id: "eq." + id }).toString());
     if (!removed.ok) return json({ ok: false, error: "Could not delete project metadata." }, 502);
     await removeObject(c, project.source_file_path);

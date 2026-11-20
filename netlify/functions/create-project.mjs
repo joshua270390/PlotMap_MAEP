@@ -142,8 +142,7 @@ export default async function handler(request) {
     const projectId = Math.max(5, Number(latest.data?.[0]?.project_id || 5)) + 1;
     let sourcePath = null, insertedProject = null;
     try {
-      const form = await request.formData().catch(() => null);
-      const file = form?.get("file");
+      const file = form.get("file");
       if (!validFile(file)) return json({ ok: false, error: "Please upload the source PDF or image again." }, 422);
       sourcePath = "projects/" + slug + "/" + randomUUID() + "-" + String(file.name || "layout").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 90);
       await upload(c, sourcePath, file);
@@ -174,7 +173,9 @@ export default async function handler(request) {
       return json({ ok: false, error: "Enter valid project details and route." }, 422);
     const existing = await db(c, c.projects, "GET", new URLSearchParams({ select: "id,slug,source_file_path", id: "eq." + id, limit: "1" }).toString());
     if (!existing.ok || !existing.data?.[0]) return json({ ok: false, error: "Project not found." }, 404);
-    const patch = { name, description, location, route, updated_at: new Date().toISOString() };
+    const slug = cleanSlug(route.replace(/^\\/+/, "").split("/")[0]);
+    if (!slug) return json({ ok: false, error: "Enter a valid project route." }, 422);
+    const patch = { name, description, location, route, slug, updated_at: new Date().toISOString() };
     let newPath = null;
     if (file && file.size) {
       if (!validFile(file)) return json({ ok: false, error: "Upload a PDF, PNG, JPG or WEBP file up to 15 MB." }, 422);

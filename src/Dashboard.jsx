@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import './Dashboard.css';
 import { P, G } from './data.js';
 import ProjectMapThumbnail from './ProjectMapThumbnail.jsx';
+import CreatePlotsPage from './CreatePlotsPage.jsx';
 
 const PROJECT_IDS = { velavan_nagar: 1, saraswathi_garden: 3, shanmuga_avenue: 2, meenakshi_garden_phase1: 4, meenakshi_garden_phase2: 5 };
 const PROJECT_NAMES = { 1: 'Velavan Nagar', 3: 'Saraswathi Garden', 2: 'Shanmuga Avenue', 4: 'Meenakshi Garden Phase 1', 5: 'Meenakshi Garden Phase 2' };
@@ -90,7 +91,10 @@ export default function Dashboard() {
   const [userName, setUserName] = useState('');
   const [loggedIn, setLoggedIn] = useState(false);
   const [authChecking, setAuthChecking] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_mode') || window.sessionStorage.getItem('maep_admin_pin') || window.sessionStorage.getItem('maep_employee_token')));
-  const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard'; });
+  const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' || path === '/create_plots' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard'; });
+  const [showCreatePage, setShowCreatePage] = useState(() => window.location.pathname.replace(/\/+$/, '') === '/create_plots');
+  const [editingProject, setEditingProject] = useState(null);
+  const [projectDelete, setProjectDelete] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [plots, setPlots] = useState([]);
   const [mapPlotStatuses, setMapPlotStatuses] = useState({});
@@ -116,9 +120,9 @@ export default function Dashboard() {
   const [nativeApp] = useState(() => /MAEPApp/i.test(navigator.userAgent) || window.Capacitor?.isNativePlatform?.() === true);
 
   useEffect(() => {
-    const title = page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : page === 'users' ? 'Users' : 'Plot lists';
+    const title = showCreatePage ? (editingProject ? 'Edit project' : 'Create Plots') : page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : page === 'users' ? 'Users' : 'Plot lists';
     document.title = (loggedIn ? title : 'Sign in') + ' | Mary Ann Elite Properties';
-  }, [page, loggedIn]);
+  }, [page, loggedIn, showCreatePage, editingProject]);
 
   // Keep the rendered dashboard page aligned with browser Back/Forward navigation.
   // Returning from a dashboard route to '/' must remount the PlotMap app, not leave stale dashboard UI.
@@ -127,17 +131,18 @@ export default function Dashboard() {
       const path = window.location.pathname.replace(/\/+$/, '') || '/';
       if (role === 'user') {
         if (path !== '/plot_lists') window.history.replaceState({}, '', '/plot_lists');
-        setPage('plots'); return;
+        setShowCreatePage(false); setEditingProject(null); setPage('plots'); return;
       }
-      if (role === 'employee' && !['/bookings', '/plot_lists'].includes(path)) {
-        window.history.replaceState({}, '', '/plot_lists'); setPage('plots'); return;
+      if (role === 'employee' && !['/bookings', '/plot_lists', '/create_plots'].includes(path)) {
+        window.history.replaceState({}, '', '/plot_lists'); setShowCreatePage(false); setEditingProject(null); setPage('plots'); return;
       }
-      const routes = role === 'employee' ? ['/bookings', '/plot_lists'] : ['/', '/dashboard', '/bookings', '/plot_lists', '/users'];
+      const routes = role === 'employee' ? ['/bookings', '/plot_lists', '/create_plots'] : ['/', '/dashboard', '/bookings', '/plot_lists', '/users', '/create_plots'];
       if (!routes.includes(path)) {
         window.location.reload();
         return;
       }
-      setPage(path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard');
+      setShowCreatePage(path === '/create_plots');
+      setPage(path === '/plot_lists' || path === '/create_plots' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard');
     };
     window.addEventListener('popstate', syncRoute);
     return () => window.removeEventListener('popstate', syncRoute);
@@ -153,7 +158,7 @@ export default function Dashboard() {
       return;
     }
     const savedEmployeeToken = window.sessionStorage.getItem('maep_employee_token');
-    if (savedEmployeeToken) { const savedPath = window.location.pathname; const employeePage = savedPath === '/bookings' ? 'bookings' : 'plots'; setRole('employee'); setEmployeeToken(savedEmployeeToken); setUserName(window.sessionStorage.getItem('maep_employee_username') || 'Employee'); setLoggedIn(true); setPage(employeePage); if (!['/bookings', '/plot_lists'].includes(savedPath)) window.history.replaceState({}, '', '/plot_lists'); setAuthChecking(false); return; }
+    if (savedEmployeeToken) { const savedPath = window.location.pathname; const employeePage = savedPath === '/bookings' ? 'bookings' : 'plots'; setRole('employee'); setEmployeeToken(savedEmployeeToken); setUserName(window.sessionStorage.getItem('maep_employee_username') || 'Employee'); setLoggedIn(true); setPage(employeePage); setShowCreatePage(savedPath === '/create_plots'); if (!['/bookings', '/plot_lists', '/create_plots'].includes(savedPath)) window.history.replaceState({}, '', '/plot_lists'); setAuthChecking(false); return; }
     const savedPin = window.sessionStorage.getItem('maep_admin_pin');
     if (!savedPin) { setAuthChecking(false); return; }
     let cancelled = false;
@@ -258,6 +263,7 @@ export default function Dashboard() {
       window.sessionStorage.setItem('maep_admin_pin', pin);
       // Keep successful Admin sign-in on the dedicated dashboard route.
       window.history.replaceState({}, '', '/dashboard');
+      setShowCreatePage(false); setEditingProject(null);
       setPage('dashboard');
       setLoggedIn(true); setAuthChecking(false); setNotice('Welcome to the admin dashboard.');
       await loadData('bookings', pin);
@@ -405,27 +411,28 @@ export default function Dashboard() {
           </a>
           <button type="button" className="dashboard-sidebar-close" aria-label="Close navigation menu" onClick={() => setSidebarOpen(false)}>×</button>
         </div>
-        {role === 'admin' && <button className={'nav-item' + (page === 'dashboard' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/dashboard'); setPage('dashboard'); setSidebarOpen(false); }}><span className="nav-icon">▦</span> Dashboard</button>}
-        {role !== 'user' && <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); setSidebarOpen(false); }}>
+        {role === 'admin' && <button className={'nav-item' + (page === 'dashboard' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/dashboard'); setPage('dashboard'); setShowCreatePage(false); setEditingProject(null); setSidebarOpen(false); }}><span className="nav-icon">▦</span> Dashboard</button>}
+        {role !== 'user' && <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); setShowCreatePage(false); setEditingProject(null); setSidebarOpen(false); }}>
           <span className="nav-icon">▤</span> Bookings
         </button>}
-        {role === 'admin' && <button className={'nav-item' + (page === 'users' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/users'); setPage('users'); setSidebarOpen(false); }}><span className="nav-icon">♙</span> Users</button>}
-        <button className={'nav-item' + (page === 'plots' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/plot_lists'); setPage('plots'); setSidebarOpen(false); }}>
+        {role === 'admin' && <button className={'nav-item' + (page === 'users' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/users'); setPage('users'); setShowCreatePage(false); setSidebarOpen(false); }}><span className="nav-icon">♙</span> Users</button>}
+        <button className={'nav-item' + (page === 'plots' && !showCreatePage ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/plot_lists'); setPage('plots'); setShowCreatePage(false); setEditingProject(null); setSidebarOpen(false); }}>
           <span className="nav-icon">▦</span> Plot lists
         </button>
+        {role !== 'user' && <button className={'nav-item' + (showCreatePage ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/create_plots'); setPage('plots'); setEditingProject(null); setShowCreatePage(true); setSidebarOpen(false); }}><span className="nav-icon">＋</span> Create Plots</button>}
               </aside>
 
       <main className="dashboard-main">
         <header className="dashboard-topbar">
           <div className="dashboard-mobile-brand-row"><a className="dashboard-mobile-brand" href="/dashboard" aria-label="Mary Ann dashboard home"><img src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" /></a><button type="button" className="dashboard-menu-toggle" aria-label="Open navigation menu" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(true)}><span></span><span></span><span></span></button></div>
-          <div className="dashboard-heading-group"><h1>{page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : page === 'users' ? 'Users' : 'Plot lists'}</h1></div>
+          <div className="dashboard-heading-group"><h1>{showCreatePage ? (editingProject ? 'Edit project' : 'Create Plots') : page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : page === 'users' ? 'Users' : 'Plot lists'}</h1></div>
           <div className="topbar-actions profile-wrap">
             <button type="button" className="topbar-avatar profile-trigger" aria-label={role === 'admin' ? 'Open administrator menu' : 'Open user menu'} aria-expanded={profileOpen} onClick={() => setProfileOpen(open => !open)}><img className="topbar-avatar-image" src="/user-avatar.svg" alt="" /></button>
             {profileOpen && <div className="profile-menu" role="menu">
               <strong className="profile-role">{role === 'admin' ? 'Administrator' : role === 'employee' ? userName || 'Employee' : userName || 'User'}</strong>
               {role === 'admin' && <span className="profile-company">Mary Ann Elite Properties</span>}
               <span className="profile-session"><i />{role === 'admin' ? 'Connected to admin session' : role === 'employee' ? 'Employee session' : 'Approved user session'}</span>
-              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); if (window.sessionStorage.getItem('maep_admin_session')) fetch('/api/admin-auth?action=logout', { method: 'POST', keepalive: true }).catch(() => {}).finally(() => window.sessionStorage.removeItem('maep_admin_session')); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_mode'); window.sessionStorage.removeItem('maep_employee_token'); window.sessionStorage.removeItem('maep_employee_username'); setEmployeeToken(''); setLoggedIn(false); setPin(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); }}>Sign out</button>
+              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); if (window.sessionStorage.getItem('maep_admin_session')) fetch('/api/admin-auth?action=logout', { method: 'POST', keepalive: true }).catch(() => {}).finally(() => window.sessionStorage.removeItem('maep_admin_session')); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_mode'); window.sessionStorage.removeItem('maep_employee_token'); window.sessionStorage.removeItem('maep_employee_username'); setEmployeeToken(''); setLoggedIn(false); setPin(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); setShowCreatePage(false); setEditingProject(null); }}>Sign out</button>
             </div>}
           </div>
         </header>
@@ -534,8 +541,18 @@ export default function Dashboard() {
                 )}
               </div>}
             </>
+          ) : showCreatePage ? (
+            <CreatePlotsPage editingProject={editingProject} authHeaders={employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': pin }} onCancel={() => { setShowCreatePage(false); setEditingProject(null); window.history.pushState({}, '', '/plot_lists'); }} onSaved={async () => {
+              const response = await fetch('/api/projects', { cache: 'no-store' });
+              const data = await response.json().catch(() => ({}));
+              if (!response.ok || !data.ok) throw new Error(data.error || 'Project saved, but the list could not refresh.');
+              setProjects(data.projects || []); setShowCreatePage(false); setEditingProject(null);
+              window.history.pushState({}, '', '/plot_lists'); setNotice('Project saved successfully.');
+            }} />
           ) : (
             <section className="project-list-view" aria-label="Project list">
+              {error && <div className="alert alert-error" role="alert">{error}</div>}
+              {notice && <div className="alert alert-success" role="status">{notice}</div>}
               <label className="project-filter-box">
                 <span aria-hidden="true">⌕</span>
                 <input type="search" value={plotSearch} onChange={e => setPlotSearch(e.target.value)} placeholder="Search projects..." aria-label="Filter projects" />
@@ -548,7 +565,7 @@ export default function Dashboard() {
               ) : projects.filter(project => [project.name, project.layout, project.location, project.description].join(' ').toLowerCase().includes(plotSearch.trim().toLowerCase())).length ? (
                 <div className="project-cards">
                   {projects.filter(project => [project.name, project.layout, project.location, project.description].join(' ').toLowerCase().includes(plotSearch.trim().toLowerCase())).map(project => (
-                    <a className="project-list-card" href={'/' + project.slug} key={project.id} aria-label={'Open ' + project.name + ' interactive plot map'}>
+                    <article className="project-list-card" key={project.id} role="link" tabIndex={0} onClick={() => { window.location.href = project.route || ('/' + project.slug); }} onKeyDown={e => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.href = project.route || ('/' + project.slug); } }} aria-label={'Open ' + project.name + ' interactive plot map'}>
                       <div className="project-card-visual" aria-label={'Preview for ' + project.name}>
                         {project.mapKey === 'velavan_nagar' ? (
                           <svg className="project-map-static" viewBox="0 0 4400 3400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Static thumbnail of the Velavan Nagar plot layout">
@@ -571,7 +588,11 @@ export default function Dashboard() {
                         <p className="project-card-description">{project.description}</p>
                         <div className="project-card-footer"><span className="project-type"><span aria-hidden="true">▦</span> Interactive Plot Layout</span><span className="project-view-link">{project.mapReady ? 'View project' : 'Map coming soon'} <span aria-hidden="true">{project.mapReady ? '→' : '…'}</span></span></div>
                       </div>
-                    </a>
+                      {role !== 'user' && project.customProjectId != null && <div className="project-card-actions" onClick={e => e.stopPropagation()}>
+                        <button type="button" className="edit-btn" onClick={() => { setEditingProject(project); setShowCreatePage(true); window.history.pushState({}, '', '/create_plots'); }}>Edit details</button>
+                        <button type="button" className="delete-btn" onClick={() => setProjectDelete(project)}>Delete project</button>
+                      </div>}
+                    </article>
                   ))}
                 </div>
               ) : (
@@ -610,6 +631,27 @@ export default function Dashboard() {
           <p className="eyebrow">CONFIRM BULK ACTION</p><h2>Delete selected bookings?</h2>
           <p>Are you sure you want to permanently delete <strong>{selectedBookingRows.length}</strong> selected booking{selectedBookingRows.length === 1 ? '' : 's'}? This action cannot be undone.</p>
           <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setBulkDeleteConfirm(false)} disabled={saving}>Cancel</button><button type="button" className="confirm-delete-btn" onClick={bulkDeleteBookings} disabled={saving}>{saving ? 'Deleting…' : 'Yes, delete selected'}</button></div>
+        </section>
+      </div>}
+      {projectDelete && <div className="edit-overlay confirm-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) setProjectDelete(null); }}>
+        <section className="confirm-modal project-delete-modal" role="alertdialog" aria-modal="true" aria-labelledby="project-delete-title">
+          <div className="confirm-icon" aria-hidden="true">!</div><button type="button" className="modal-close" onClick={() => setProjectDelete(null)} aria-label="Close" disabled={saving}>×</button>
+          <p className="eyebrow">PERMANENT PROJECT ACTION</p><h2 id="project-delete-title">Delete this project?</h2>
+          <p><strong>{projectDelete.name}</strong> and its plot inventory, bookings, map edits, and uploaded source file will be deleted. Existing five built-in projects cannot be deleted here.</p>
+          {error && <p className="dash-error" role="alert">{error}</p>}
+          <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setProjectDelete(null)} disabled={saving}>Cancel</button><button type="button" className="confirm-delete-btn" disabled={saving} onClick={async () => {
+            setSaving(true); setError('');
+            try {
+              const response = await fetch('/api/create-project?action=delete', { method: 'DELETE', headers: { 'Content-Type': 'application/json', ...(employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': pin }) }, body: JSON.stringify({ id: projectDelete.customProjectId }) });
+              const data = await response.json().catch(() => ({}));
+              if (!response.ok || !data.ok) throw new Error(data.error || 'Could not delete project.');
+              setProjectDelete(null);
+              const refreshed = await fetch('/api/projects', { cache: 'no-store' }); const result = await refreshed.json().catch(() => ({}));
+              if (!refreshed.ok || !result.ok) throw new Error(result.error || 'Project deleted, but list refresh failed.');
+              setProjects(result.projects || []); setNotice('Project deleted successfully.');
+            } catch (e) { setError(e.message || 'Could not delete project.'); }
+            finally { setSaving(false); }
+          }}>{saving ? 'Deleting…' : 'Yes, delete project'}</button></div>
         </section>
       </div>}
       {deleteTarget && <div className="edit-overlay confirm-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) setDeleteTarget(null); }}>

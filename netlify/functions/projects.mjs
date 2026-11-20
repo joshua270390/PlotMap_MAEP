@@ -51,15 +51,37 @@ const PROJECTS = [
   },
 ];
 
+const json = (body, status = 200) => new Response(JSON.stringify(body), {
+  status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
+});
+const config = () => ({
+  url: (process.env.SUPABASE_URL || "").replace(/\/+$/, ""),
+  key: (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || "").trim(),
+  table: process.env.CUSTOM_PROJECTS_TABLE || "custom_projects",
+});
 export default async function handler(request) {
-  if (request.method !== "GET") {
-    return new Response(JSON.stringify({ ok: false, error: "Method not allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json; charset=utf-8", Allow: "GET" },
+  if (request.method !== "GET") return json({ ok: false, error: "Method not allowed" }, 405);
+  const c = config();
+  if (!c.url || !c.key) return json({ ok: true, projects: PROJECTS });
+  try {
+    const query = new URLSearchParams({ select: "id,project_id,slug,name,description,location,route,source_file_name,geometry,created_at,updated_at", order: "created_at.desc" });
+    const response = await fetch(c.url + "/rest/v1/" + encodeURIComponent(c.table) + "?" + query, {
+      headers: { apikey: c.key, Authorization: "Bearer " + c.key, Accept: "application/json" },
+      signal: AbortSignal.timeout(12000),
     });
+    const rows = await response.json().catch(() => []);
+    if (!response.ok) {
+      console.error("[projects] Custom project lookup failed:", response.status);
+      return json({ ok: false, error: "Could not load custom projects. Run the Create Plots SQL setup." }, 502);
+    }
+    const custom = (Array.isArray(rows) ? rows : []).map(row => ({
+      ...row, id: "custom-" + row.id, customProjectId: row.id,
+      slug: row.slug, mapKey: row.geometry?.key || row.slug, mapReady: true,
+      layout: row.name + " layout", geometry: row.geometry, route: row.route,
+    }));
+    return json({ ok: true, projects: [...custom, ...PROJECTS] });
+  } catch (error) {
+    console.error("[projects] Lookup failed:", error?.message || error);
+    return json({ ok: false, error: "Could not load projects." }, 502);
   }
-  return new Response(JSON.stringify({ ok: true, projects: PROJECTS }), {
-    status: 200,
-    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
-  });
 }

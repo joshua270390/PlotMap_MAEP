@@ -23,7 +23,7 @@ values (
   'plot-project-files',
   'plot-project-files',
   false,
-  15728640,
+  5242880,
   array['application/pdf','image/png','image/jpeg','image/webp']
 )
 on conflict (id) do update set

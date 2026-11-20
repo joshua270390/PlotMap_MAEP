@@ -56,17 +56,20 @@ function normalizeGeometry(result) {
   const plots = (result.plots || []).filter(p => Array.isArray(p.polygon) && p.polygon.length >= 3 && p.polygon.length <= 40 && String(p.plot_number || "").trim());
   if (!plots.length) throw new Error("AI could not identify clear plot boundaries. Try a sharper PDF or image.");
   const ids = new Set();
-  const P = plots.map(p => {
-    const id = String(p.plot_number).trim().slice(0, 20);
-    if (!/^[A-Za-z0-9-]+$/.test(id) || ids.has(id)) throw new Error("AI returned duplicate or invalid plot numbers. Please upload a clearer plan.");
-    ids.add(id);
+  const plotLabels = {};
+  const P = plots.map((p, index) => {
+    const label = String(p.plot_number).trim().slice(0, 20);
+    if (!/^[A-Za-z0-9-]+$/.test(label) || ids.has(label)) throw new Error("AI returned duplicate or invalid plot numbers. Please upload a clearer plan.");
+    ids.add(label);
+    const id = index + 1;
+    plotLabels[id] = label;
     const [x,y] = Array.isArray(p.label_position) && p.label_position.length === 2 ? center([p.label_position]) : center(p.polygon);
     return [id, x, y, pointString(p.polygon), Math.max(0, Number(p.area_sqft) || 0), false];
   });
   const paths = values => (values || []).filter(v => Array.isArray(v.polygon) && v.polygon.length >= 3 && v.polygon.length <= 100)
     .map(v => "M" + pointString(v.polygon).replace(/ /g, "L") + "Z");
   return {
-    compact: true, canvasWidth: width, canvasHeight: height,
+    compact: true, canvasWidth: width, canvasHeight: height, plotLabels,
     bounds: { x: 0, y: 0, width, height },
     P, G: { base: paths(result.roads), park: paths(result.parks), misc: [], dash: [], trees: [] },
     LB: [], DM: [], plotAreaLabels: [], roadLabels: [], dimensionLabels: [],
@@ -89,7 +92,7 @@ async function analyse(c, file) {
         polygon: { type: "array", items: { type: "array", items: { type: "number" }, minItems: 2, maxItems: 2 }, minItems: 3, maxItems: 40 },
       }, required: ["plot_number","area_sqft","confidence","label_position","polygon"] } },
       roads: { type: "array", items: { type: "object", additionalProperties: false, properties: { polygon: { type: "array", items: { type: "array", items: { type: "number" }, minItems: 2, maxItems: 2 }, minItems: 3, maxItems: 100 } }, required: ["polygon"] } },
-      parks: { type: "array", items: { type: "object", additionalProperties: false, properties: { polygon: { type: "array", items: { type: "number" }, minItems: 2, maxItems: 2 } }, required: ["polygon"] } },
+      parks: { type: "array", items: { type: "object", additionalProperties: false, properties: { polygon: { type: "array", items: { type: "array", items: { type: "number" }, minItems: 2, maxItems: 2 }, minItems: 3, maxItems: 100 } }, required: ["polygon"] } },
       notes: { type: "string" },
     }, required: ["plots","roads","parks","notes"],
   };
@@ -152,7 +155,7 @@ export default async function handler(request) {
       });
       if (!inserted.ok || !inserted.data?.[0]) throw new Error("Could not save project metadata. Run the Create Plots SQL setup.");
       insertedProject = inserted.data[0];
-      const plotRows = geometry.P.map(row => ({ project_id: projectId, plot_number: String(row[0]), status: "Available" }));
+      const plotRows = geometry.P.map(row => ({ project_id: projectId, plot_number: String(geometry.plotLabels?.[row[0]] || row[0]), status: "Available" }));
       const plotInsert = await db(c, c.plots, "POST", "", plotRows);
       if (!plotInsert.ok) {
         await db(c, c.projects, "DELETE", new URLSearchParams({ id: "eq." + insertedProject.id }).toString());

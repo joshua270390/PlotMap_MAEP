@@ -18,6 +18,7 @@ create table if not exists public.custom_projects (
 create index if not exists custom_projects_project_id_idx on public.custom_projects(project_id);
 alter table public.custom_projects enable row level security;
 grant all on table public.custom_projects to service_role;
+grant usage, select on sequence public.custom_projects_id_seq to service_role;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (

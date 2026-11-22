@@ -124,3 +124,8 @@
 
 /* Allow normal document scrolling only on the public landing page. */
 body.lp-scroll-enabled{display:block!important;height:auto!important;min-height:100vh;overflow-x:hidden!important;overflow-y:auto!important}
+
+
+/* Keep the anti-spam honeypot out of the visible form layout. */
+.lp-honeypot{position:absolute!important;left:-10000px!important;top:auto!important;width:1px!important;height:1px!important;overflow:hidden!important}
+.lp-enquiry-form button:disabled{opacity:.65;cursor:wait}

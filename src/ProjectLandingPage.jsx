@@ -1,39 +1,175 @@
-import React,{useEffect,useState} from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './ProjectLandingPage.css';
 
-const text=value=>value==null?'':String(value);
-const safeUrl=value=>/^https?:\/\//i.test(text(value).trim())?text(value).trim():'#';
-const visible=value=>text(value).trim().length>0;
-function ListCards({items=[]}){return <div className="cards">{items.map((item,i)=><article key={i}><b>{String(i+1).padStart(2,'0')}</b><h3>{item.title}</h3><p>{item.description}</p></article>)}</div>;}
-export default function ProjectLandingPage({projectSlug}) {
-  const [content,setContent]=useState(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[lang,setLang]=useState('English');
-  const map='/'+projectSlug+'/layout';
-  useEffect(()=>{let active=true;setLoading(true);fetch('/api/layout-landing?slug='+encodeURIComponent(projectSlug),{cache:'no-store'}).then(async r=>{const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||'Could not load this project page.');if(active)setContent(d.page?.content||null);}).catch(e=>{if(active)setError(e.message);}).finally(()=>{if(active)setLoading(false);});return()=>{active=false;};},[projectSlug]);
-  const tamil=lang==='Tamil',both=lang==='Both';
-  const title=tamil&&visible(content?.hero?.titleTa)?content.hero.titleTa:content?.hero?.title;
-  const subtitle=tamil&&visible(content?.hero?.subtitleTa)?content.hero.subtitleTa:content?.hero?.subtitle;
-  const call=text(content?.contact?.callNumber).replace(/[^+\d]/g,'');
-  const whatsapp=text(content?.contact?.whatsappNumber||content?.contact?.callNumber).replace(/\D/g,'');
-  const whatsappHref=whatsapp?'https://wa.me/'+whatsapp:'#';
-  const enquiry=content?.enquiry||{};
-  const submitEnquiry=e=>{e.preventDefault();const data=new FormData(e.currentTarget);const message=['Project: '+projectSlug,'Name: '+data.get('name'),'Phone: '+data.get('phone'),'Plot size: '+data.get('size')].join('\n');if(whatsapp)window.open(whatsappHref+'?text='+encodeURIComponent(message),'_blank','noopener,noreferrer');};
-  if(loading)return <main className="project-page"><div className="project-state">Loading project information…</div></main>;
-  if(error)return <main className="project-page"><div className="project-state"><h1>Unable to load this project</h1><p>{error}</p><a href="/">Back to projects</a></div></main>;
-  if(!content)return <main className="project-page"><header><a href="/"><img src="/mary-ann-plotmap-logo.png" alt="Mary Ann Elite Properties"/></a><a href="/">All projects</a></header><section className="project-state"><h1>Project page coming soon</h1><p>Landing page content has not been published for this project yet.</p><a className="view-layout" href={map}>Open Plot Layout ↗</a></section></main>;
-  return <main className="project-page">
-    <header><a href="/"><img src="/mary-ann-plotmap-logo.png" alt="Mary Ann Elite Properties"/></a><nav><a href="#why">Why this project</a><a href="#prices">Prices</a><a href="#site">See the Site</a><a href="#faq">FAQ</a></nav><div className="lang">{['English','Tamil','Both'].map(x=><button type="button" className={lang===x?'active':''} onClick={()=>setLang(x)} key={x}>{x}</button>)}</div></header>
-    <section className="project-hero"><div className="copy">{visible(content.hero?.badge)&&<small>{content.hero.badge}</small>}<h1>{title}</h1>{visible(subtitle)&&<p>{subtitle}</p>}{(both||tamil)&&visible(content.hero?.titleTa)&&lang==='Both'&&<h2 className="ta-title">{content.hero.titleTa}</h2>}{(both||tamil)&&visible(content.hero?.subtitleTa)&&lang==='Both'&&<p>{content.hero.subtitleTa}</p>}
-      <div className="landing-actions">{visible(call)&&<a className="view-layout" href={'tel:'+call}>{content.contact?.callLabel||'Call'}</a>}{whatsapp&&<a className="view-layout secondary-action" href={whatsappHref} target="_blank" rel="noreferrer">{content.contact?.whatsappLabel||'WhatsApp'}</a>}<a className="view-layout" href="#enquiry">{content.contact?.visitLabel||'Book Site Visit'}</a></div>
-      </div><div className="landing-hero-media">{content.site?.photos?.[0]?.url?<img src={safeUrl(content.site.photos[0].url)} alt={content.site.photos[0].alt||title||'Project image'}/>:<div className="landing-hero-placeholder">MARY ANN ELITE PROPERTIES</div>}</div></section>
-    {content.offer?.enabled!==false&&(visible(content.offer?.heading)||visible(content.offer?.description))&&<section className="landing-offer"><strong>{content.offer.heading}</strong><span>{content.offer.description}</span></section>}
-    {(visible(content.why?.heading)||visible(content.why?.description)||(content.why?.highlights||[]).length>0)&&<section className="highlights" id="why"><small>WHY THIS PROJECT</small><h2>{content.why?.heading}</h2><p>{content.why?.description}</p><ListCards items={content.why?.highlights}/></section>}
-    {(content.prices||[]).length>0&&<section className="landing-prices" id="prices"><small>PRICE EXAMPLES</small><h2>Price examples</h2><div className="table-scroll"><table><thead><tr><th>Plot / Category</th><th>Size</th><th>Price</th><th>Note</th></tr></thead><tbody>{content.prices.map((r,i)=><tr key={i}><td>{r.label}</td><td>{r.size}</td><td>{r.price}</td><td>{r.note}</td></tr>)}</tbody></table></div></section>}
-    {(content.audience?.items||[]).length>0&&<section className="highlights"><small>WHO IS IT FOR</small><h2>{content.audience?.heading}</h2><ListCards items={content.audience.items}/></section>}
-    {(content.booking?.steps||[]).length>0&&<section className="steps"><small>HOW TO BOOK</small><h2>{content.booking?.heading}</h2><div>{content.booking.steps.map((r,i)=><article key={i}><b>{String(i+1).padStart(2,'0')}</b><h3>{r.title}</h3><p>{r.description}</p></article>)}</div></section>}
-    {(content.faq||[]).length>0&&<section className="landing-faq" id="faq"><small>FREQUENTLY ASKED QUESTIONS</small><h2>FAQ</h2>{content.faq.map((r,i)=><details key={i}><summary>{r.question}</summary><p>{r.answer}</p></details>)}</section>}
-    {(visible(content.site?.location)||(content.site?.photos||[]).length>0||(content.site?.videos||[]).length>0)&&<section className="landing-site" id="site"><small>SEE THE SITE</small><h2>{content.site?.heading||'See the Site'}</h2>{visible(content.site?.location)&&<p>{content.site.location}</p>}{(content.site?.photos||[]).length>0&&<div className="landing-gallery">{content.site.photos.map((p,i)=><img key={i} src={safeUrl(p.url)} alt={p.alt||'Project photo '+(i+1)}/>)}</div>}{(content.site?.videos||[]).map((v,i)=><p key={i}><a href={safeUrl(v.url)} target="_blank" rel="noreferrer">{v.title||'Watch project video'} ↗</a></p>)}</section>}
-    <section className="landing-enquiry" id="enquiry"><div><small>GET IN TOUCH</small><h2>{enquiry.heading||'Enquire about this project'}</h2><p>{content.footer?.ctaDescription}</p></div><form onSubmit={submitEnquiry}><label>{enquiry.nameLabel||'Name'}<input name="name" required/></label><label>{enquiry.phoneLabel||'Phone'}<input name="phone" type="tel" required/></label><label>{enquiry.plotSizeLabel||'Plot Size'}<input name="size"/></label><button type="submit">{enquiry.submitLabel||'Submit Enquiry'}</button>{!whatsapp&&<small>Add a WhatsApp number in Layout Landing to enable enquiry submission.</small>}</form></section>
-    <section className="landing-cta"><h2>{content.footer?.ctaHeading}</h2><p>{content.footer?.ctaDescription}</p><a className="view-layout" href={map}>View Interactive Layout ↗</a></section>
-    <footer><a href="/"><img src="/mary-ann-plotmap-logo.png" alt="Mary Ann Elite Properties"/></a><span>{content.footer?.footerText||'© '+new Date().getFullYear()+' Mary Ann Elite Properties'}</span><a href={map}>View Layout ↗</a></footer>
-  </main>;
+const text = value => value == null ? '' : String(value);
+const visible = value => text(value).trim().length > 0;
+const safeUrl = value => /^https?:\/\//i.test(text(value).trim()) ? text(value).trim() : '';
+const cleanPhone = value => text(value).replace(/[^+\d]/g, '');
+const cleanWhatsApp = value => text(value).replace(/\D/g, '');
+
+function LanguageText({ english, tamil, language, as: Tag = 'span', className = '' }) {
+  const en = text(english), ta = text(tamil);
+  if (language === 'Tamil') return <Tag className={className}>{visible(ta) ? ta : en}</Tag>;
+  if (language === 'Both') return <Tag className={className}>{en}{visible(ta) && <span className="ta-line">{ta}</span>}</Tag>;
+  return <Tag className={className}>{en}</Tag>;
+}
+
+function SectionHeading({ eyebrow, title, tamil, language }) {
+  return <div className="lp-section-heading"><span className="lp-eyebrow">{eyebrow}</span><h2><LanguageText english={title} tamil={tamil} language={language}/></h2></div>;
+}
+
+export default function ProjectLandingPage({ projectSlug }) {
+  const [content, setContent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [language, setLanguage] = useState('Both');
+  const [siteTab, setSiteTab] = useState('location');
+  const [formMessage, setFormMessage] = useState('');
+  const map = '/' + projectSlug + '/layout';
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError('');
+    fetch('/api/layout-landing?slug=' + encodeURIComponent(projectSlug), { cache: 'no-store' })
+      .then(async response => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load this project page.');
+        if (active) setContent(data.page?.content || null);
+      })
+      .catch(error => { if (active) setError(error.message); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [projectSlug]);
+
+  const contact = content?.contact || {};
+  const site = content?.site || {};
+  const enquiry = content?.enquiry || {};
+  const phone = cleanPhone(contact.callNumber);
+  const whatsapp = cleanWhatsApp(contact.whatsappNumber || contact.callNumber);
+  const whatsappHref = whatsapp ? 'https://wa.me/' + whatsapp : '';
+  const photos = Array.isArray(site.photos) ? site.photos.filter(item => safeUrl(item?.url)) : [];
+  const videos = Array.isArray(site.videos) ? site.videos.filter(item => safeUrl(item?.url)) : [];
+  const locationUrl = safeUrl(site.mapUrl) || safeUrl(site.location);
+  const locationText = locationUrl && site.location === locationUrl ? '' : text(site.location);
+  const heroImage = photos[0];
+  const title = language === 'Tamil' && visible(content?.hero?.titleTa) ? content.hero.titleTa : content?.hero?.title;
+  const subtitle = language === 'Tamil' && visible(content?.hero?.subtitleTa) ? content.hero.subtitleTa : content?.hero?.subtitle;
+  const priceRows = Array.isArray(content?.prices) ? content.prices : [];
+  const highlights = Array.isArray(content?.why?.highlights) ? content.why.highlights : [];
+  const audience = Array.isArray(content?.audience?.items) ? content.audience.items : [];
+  const steps = Array.isArray(content?.booking?.steps) ? content.booking.steps : [];
+  const faqs = Array.isArray(content?.faq) ? content.faq : [];
+  const hasSiteMedia = photos.length > 0 || videos.length > 0;
+
+  useEffect(() => {
+    document.title = (text(content?.hero?.title) || projectSlug.replaceAll('_', ' ')) + ' | Mary Ann Elite Properties';
+  }, [content, projectSlug]);
+
+  const submitEnquiry = event => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const name = text(data.get('name')).trim();
+    const phoneNumber = text(data.get('phone')).trim();
+    const size = text(data.get('size')).trim();
+    if (!name || !/^[0-9+\s-]{10,15}$/.test(phoneNumber)) {
+      setFormMessage('Please enter your name and a valid phone number. / பெயர் மற்றும் சரியான தொலைபேசி எண்ணை உள்ளிடவும்.');
+      return;
+    }
+    if (!whatsappHref) {
+      setFormMessage('WhatsApp number is not configured yet. Please call us.');
+      return;
+    }
+    setFormMessage('');
+    const message = 'Hi, I am ' + name + '. Phone: ' + phoneNumber + (size ? '. Plot size: ' + size : '') + '. I am interested in ' + (text(content?.hero?.title) || projectSlug) + '. Please call me.';
+    window.open(whatsappHref + '?text=' + encodeURIComponent(message), '_blank', 'noopener,noreferrer');
+  };
+
+  if (loading) return <main className="lp-page"><div className="lp-state">Loading project information…</div></main>;
+  if (error) return <main className="lp-page"><div className="lp-state"><h1>Unable to load this project</h1><p>{error}</p></div></main>;
+  if (!content) return <main className="lp-page"><header className="lp-topbar"><img src="/mary-ann-plotmap-logo.png" alt="Mary Ann Elite Properties"/></header><div className="lp-state"><h1>Project page coming soon</h1><p>Landing page content has not been published for this project yet.</p></div></main>;
+
+  return (
+    <main className="lp-page">
+      <div className="lp-topbar-wrap">
+        <header className="lp-topbar">
+          <a className="lp-brand" href="/" aria-label="Mary Ann Elite Properties"><img src="/mary-ann-plotmap-logo.png" alt="Mary Ann Elite Properties"/></a>
+          <div className="lp-language" aria-label="Choose language">
+            {['English', 'Tamil', 'Both'].map(item => <button key={item} type="button" className={language === item ? 'active' : ''} onClick={() => setLanguage(item)}>{item === 'Tamil' ? 'தமிழ்' : item}</button>)}
+          </div>
+        </header>
+      </div>
+
+      <section className="lp-hero">
+        <div className="lp-container lp-hero-inner">
+          <div className="lp-hero-copy">
+            {visible(content.hero?.badge) && <span className="lp-badge">{content.hero.badge}</span>}
+            <h1><LanguageText english={title} tamil={content.hero?.titleTa} language={language}/></h1>
+            {visible(subtitle) && <p className="lp-hero-sub"><LanguageText english={subtitle} tamil={content.hero?.subtitleTa} language={language}/></p>}
+            <div className="lp-actions">
+              {phone && <a className="lp-button" href={'tel:' + phone}>☎ {contact.callLabel || 'Call Now'}</a>}
+              {whatsappHref && <a className="lp-button lp-button-green" href={whatsappHref} target="_blank" rel="noreferrer">▣ {contact.whatsappLabel || 'WhatsApp Us'}</a>}
+              <a className="lp-button lp-button-orange" href="#enquiry">⌖ {contact.visitLabel || 'Book Site Visit'}</a>
+            </div>
+          </div>
+          <div className="lp-hero-image">
+            {heroImage ? <img src={safeUrl(heroImage.url)} alt={heroImage.alt || title || 'Project site'}/> : <div className="lp-image-placeholder"><span>MARY ANN ELITE PROPERTIES</span><strong>{text(content.hero?.title)}</strong></div>}
+          </div>
+        </div>
+      </section>
+
+      {content.offer?.enabled !== false && (visible(content.offer?.heading) || visible(content.offer?.description)) && (
+        <div className="lp-offer-strip"><div className="lp-container"><strong>{content.offer.heading}</strong><span>{content.offer.description}</span></div></div>
+      )}
+
+      {(visible(content.why?.heading) || visible(content.why?.description) || highlights.length > 0) && (
+        <section className="lp-section lp-container" id="why">
+          <SectionHeading eyebrow="WHY THIS PROJECT" title={content.why?.heading || 'Why choose this project?'} tamil={content.why?.headingTa} language={language}/>
+          {visible(content.why?.description) && <p className="lp-section-intro"><LanguageText english={content.why.description} tamil={content.why.descriptionTa} language={language}/></p>}
+          <ul className="lp-tick-list">{highlights.map((item, index) => <li key={index}><span className="lp-check">✓</span><div><strong><LanguageText english={item.title} tamil={item.titleTa} language={language}/></strong>{visible(item.description) && <p><LanguageText english={item.description} tamil={item.descriptionTa} language={language}/></p>}</div></li>)}</ul>
+        </section>
+      )}
+
+      {priceRows.length > 0 && (
+        <section className="lp-section lp-soft-section" id="prices"><div className="lp-container">
+          <SectionHeading eyebrow="PRICE DETAILS" title="Price Examples" tamil="விலை உதாரணம்" language={language}/>
+          <div className="lp-table-wrap"><table><thead><tr><th>Plot size / மனை அளவு</th><th>Price / விலை</th><th>Note / குறிப்பு</th></tr></thead><tbody>
+            {priceRows.map((row, index) => <tr key={index}><td>{row.label || row.size}</td><td className="lp-price">{row.price}</td><td>{row.note}</td></tr>)}
+          </tbody></table></div>
+          <p className="lp-note">Registration and other charges may be extra. / பத்திரப் பதிவு மற்றும் பிற கட்டணங்கள் தனியாக இருக்கலாம்.</p>
+        </div></section>
+      )}
+
+      {audience.length > 0 && <section className="lp-section lp-container"><SectionHeading eyebrow="WHO IS IT FOR?" title={content.audience?.heading || 'Who is it for?'} tamil={content.audience?.headingTa} language={language}/><div className="lp-card-grid">{audience.map((item, index) => <article className="lp-info-card" key={index}><span>0{index + 1}</span><h3><LanguageText english={item.title} tamil={item.titleTa} language={language}/></h3><p><LanguageText english={item.description} tamil={item.descriptionTa} language={language}/></p></article>)}</div></section>}
+
+      {steps.length > 0 && <section className="lp-section lp-dark-section"><div className="lp-container"><SectionHeading eyebrow="SIMPLE BOOKING PROCESS" title={content.booking?.heading || 'How to Book'} tamil={content.booking?.headingTa || 'முன்பதிவு செய்வது எப்படி?'} language={language}/><div className="lp-step-grid">{steps.map((step, index) => <article key={index}><b>{String(index + 1).padStart(2, '0')}</b><h3><LanguageText english={step.title} tamil={step.titleTa} language={language}/></h3><p><LanguageText english={step.description} tamil={step.descriptionTa} language={language}/></p></article>)}</div></div></section>}
+
+      {faqs.length > 0 && <section className="lp-section lp-container" id="faq"><SectionHeading eyebrow="FREQUENTLY ASKED QUESTIONS" title="Frequently Asked Questions" tamil="அடிக்கடி கேட்கப்படும் கேள்விகள்" language={language}/><div className="lp-faq-list">{faqs.map((item, index) => <details key={index}><summary><LanguageText english={item.question} tamil={item.questionTa} language={language}/></summary><p><LanguageText english={item.answer} tamil={item.answerTa} language={language}/></p></details>)}</div></section>}
+
+      {(visible(site.location) || locationUrl || hasSiteMedia) && <section className="lp-section lp-soft-section" id="site"><div className="lp-container">
+        <SectionHeading eyebrow="VISIT THE PROJECT" title={site.heading || 'See the Site'} tamil={site.headingTa || 'இடத்தைப் பாருங்கள்'} language={language}/>
+        <div className="lp-tabs" role="tablist" aria-label="Project information">
+          <button type="button" role="tab" aria-selected={siteTab === 'location'} className={siteTab === 'location' ? 'active' : ''} onClick={() => setSiteTab('location')}>⌖ Site Location</button>
+          <button type="button" role="tab" aria-selected={siteTab === 'photos'} className={siteTab === 'photos' ? 'active' : ''} onClick={() => setSiteTab('photos')}>▧ Site Photos</button>
+          <button type="button" role="tab" aria-selected={siteTab === 'videos'} className={siteTab === 'videos' ? 'active' : ''} onClick={() => setSiteTab('videos')}>▷ Videos</button>
+        </div>
+        {siteTab === 'location' && <div className="lp-tab-panel"><h3>{content.hero?.title || projectSlug.replaceAll('_', ' ')}</h3>{locationText && <p>{locationText}</p>}{locationUrl && <a className="lp-button lp-button-orange" href={locationUrl} target="_blank" rel="noreferrer">Open in Google Maps ↗</a>}{!locationText && !locationUrl && <p>Contact us for the exact site location and directions.</p>}</div>}
+        {siteTab === 'photos' && <div className="lp-tab-panel">{photos.length ? <div className="lp-gallery">{photos.map((photo, index) => <img key={index} src={safeUrl(photo.url)} alt={photo.alt || 'Project photo ' + (index + 1)}/>)}</div> : <p className="lp-empty">Site photos will be added soon. Contact us to arrange a site visit.</p>}</div>}
+        {siteTab === 'videos' && <div className="lp-tab-panel">{videos.length ? <div className="lp-video-list">{videos.map((video, index) => <a key={index} href={safeUrl(video.url)} target="_blank" rel="noreferrer">▶ {video.title || 'Watch project video'} ↗</a>)}</div> : <p className="lp-empty">Site videos will be added soon.</p>}</div>}
+      </div></section>}
+
+      <section className="lp-section lp-container" id="enquiry"><SectionHeading eyebrow="GET IN TOUCH" title={enquiry.heading || 'Book Your Plot / Site Visit'} tamil={enquiry.headingTa || 'உங்கள் மனை / இடப் பார்வையைப் பதிவு செய்யுங்கள்'} language={language}/>
+        <form className="lp-enquiry-form" onSubmit={submitEnquiry} noValidate>
+          <label><LanguageText english={enquiry.nameLabel || 'Your Name'} tamil={enquiry.nameLabelTa || 'உங்கள் பெயர்'} language={language}/><input name="name" type="text" autoComplete="name" required/></label>
+          <label><LanguageText english={enquiry.phoneLabel || 'Phone / WhatsApp Number'} tamil={enquiry.phoneLabelTa || 'தொலைபேசி / WhatsApp எண்'} language={language}/><input name="phone" type="tel" inputMode="tel" autoComplete="tel" required/></label>
+          <label><LanguageText english={enquiry.plotSizeLabel || 'Plot size needed'} tamil={enquiry.plotSizeLabelTa || 'தேவையான மனை அளவு'} language={language}/><select name="size" defaultValue=""><option value="">Select / தேர்வு செய்யவும்</option><option>600 sq.ft</option><option>800 sq.ft</option><option>1000 sq.ft</option><option>1200 sq.ft</option><option>1200+ sq.ft</option></select></label>
+          <button type="submit">{enquiry.submitLabel || 'Submit on WhatsApp'} 💬</button>
+          {formMessage && <p className="lp-form-message" role="status">{formMessage}</p>}
+        </form>
+      </section>
+
+      <section className="lp-final-cta"><div className="lp-container"><h2>{content.footer?.ctaHeading || 'Take the next step towards your own land.'}</h2>{visible(content.footer?.ctaDescription) && <p>{content.footer.ctaDescription}</p>}<div className="lp-actions lp-actions-center">{phone && <a className="lp-button" href={'tel:' + phone}>☎ {contact.callLabel || 'Call Now'}</a>}{whatsappHref && <a className="lp-button lp-button-green" href={whatsappHref} target="_blank" rel="noreferrer">▣ {contact.whatsappLabel || 'WhatsApp Us'}</a>}</div></div></section>
+      <footer className="lp-footer"><img src="/mary-ann-plotmap-logo.png" alt="Mary Ann Elite Properties"/><span>{content.footer?.footerText || '© ' + new Date().getFullYear() + ' Mary Ann Elite Properties · Madurai'}</span></footer>
+    </main>
+  );
 }

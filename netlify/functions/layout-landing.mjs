@@ -1,5 +1,5 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { verifyAdmin } from "../lib/admin-session.mjs";
+import { verifyEmployeeToken } from "./employee-auth.mjs";
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -7,34 +7,14 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
 });
 const slugPattern = /^[a-z0-9_]{2,80}$/;
 const config = () => ({
-  url: (process.env.SUPABASE_URL || "").replace(/\\/+$/, ""),
+  url: (process.env.SUPABASE_URL || "").replace(/\/+$/, ""),
   key: (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || "").trim(),
   table: process.env.LAYOUT_LANDING_TABLE || "layout_landing_pages",
+  employeesTable: process.env.EMPLOYEES_TABLE || "employees",
   employeeSecret: process.env.EMPLOYEE_SESSION_SECRET || "",
 });
 
-function isEmployee(request, secret) {
-  const token = request.headers.get("x-employee-token") || "";
-  if (!secret || !token) return false;
-  const [payload, signature] = token.split(".");
-  if (!payload || !signature) return false;
-  try {
-    const expected = createHmac("sha256", secret).update(payload).digest();
-    const actual = Buffer.from(signature, "base64url");
-    if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) return false;
-    const claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
-    return claims.role === "employee" && Number(claims.exp) > Math.floor(Date.now() / 1000);
-  } catch {
-    return false;
-  }
-}
-
-async function canManage(request, cfg) {
-  if (await verifyAdmin(request)) return true;
-  return isEmployee(request, cfg.employeeSecret);
-}
-
-async function databaseRequest(cfg, method, query = "", body, prefer) {
+async function databaseRequest(cfg, method, table, query = "", body, prefer) {
   const headers = {
     apikey: cfg.key,
     Authorization: "Bearer " + cfg.key,
@@ -46,7 +26,7 @@ async function databaseRequest(cfg, method, query = "", body, prefer) {
   }
   try {
     const response = await fetch(
-      cfg.url + "/rest/v1/" + encodeURIComponent(cfg.table) + (query ? "?" + query : ""),
+      cfg.url + "/rest/v1/" + encodeURIComponent(table) + (query ? "?" + query : ""),
       {
         method,
         headers,
@@ -67,6 +47,31 @@ async function databaseRequest(cfg, method, query = "", body, prefer) {
   }
 }
 
+async function canManage(request, cfg) {
+  const adminAuthorized = Boolean(process.env.ADMIN_PIN)
+    && request.headers.get("x-admin-pin") === process.env.ADMIN_PIN
+    && await verifyAdmin(request);
+  if (adminAuthorized) return true;
+
+  const claims = verifyEmployeeToken(
+    request.headers.get("x-employee-token"),
+    cfg.employeeSecret,
+  );
+  if (!claims) return false;
+
+  const employee = await databaseRequest(
+    cfg,
+    "GET",
+    cfg.employeesTable,
+    new URLSearchParams({
+      select: "id,active",
+      id: "eq." + String(claims.sub),
+      limit: "1",
+    }).toString(),
+  );
+  return Boolean(employee.ok && employee.data?.length && employee.data[0].active !== false);
+}
+
 export default async function handler(request) {
   const cfg = config();
   if (!["GET", "POST", "PATCH", "DELETE"].includes(request.method))
@@ -81,7 +86,7 @@ export default async function handler(request) {
   if (request.method === "GET") {
     const adminList = url.searchParams.get("all") === "1";
     if (adminList && !(await canManage(request, cfg)))
-      return json({ ok: false, error: "Admin or employee authentication failed. Please sign in again." }, 401);
+      return json({ ok: false, error: "Sign in with an authorized Admin or Employee account." }, 401);
     if (!adminList && !slugPattern.test(slug))
       return json({ ok: false, error: "A valid project slug is required." }, 400);
 
@@ -90,13 +95,13 @@ export default async function handler(request) {
       query.set("slug", "eq." + slug);
       query.set("limit", "1");
     }
-    const result = await databaseRequest(cfg, "GET", query.toString());
+    const result = await databaseRequest(cfg, "GET", cfg.table, query.toString());
     if (!result.ok) {
       const missingTable = result.status === 404 || /relation .* does not exist|table .* not found/i.test(result.error);
       return json({
         ok: false,
         error: missingTable
-          ? 'The layout_landing_pages table is missing. Run supabase/migrations/20261122_layout_landing_pages.sql in the Supabase SQL Editor.'
+          ? "The layout_landing_pages table is missing. Run supabase/migrations/20261122_layout_landing_pages.sql in the Supabase SQL Editor."
           : "Could not load landing page content from Supabase. Check the table and Netlify environment variables.",
       }, 502);
     }
@@ -122,8 +127,8 @@ export default async function handler(request) {
     const removed = await databaseRequest(
       cfg,
       "DELETE",
+      cfg.table,
       new URLSearchParams({ slug: "eq." + targetSlug }).toString(),
-      undefined,
     );
     if (!removed.ok) return json({ ok: false, error: "Could not delete landing page content from Supabase." }, 502);
     return json({ ok: true, slug: targetSlug });
@@ -135,6 +140,7 @@ export default async function handler(request) {
   const saved = await databaseRequest(
     cfg,
     "POST",
+    cfg.table,
     "on_conflict=slug",
     { slug: targetSlug, content: body.content, updated_at: new Date().toISOString() },
     "resolution=merge-duplicates,return=representation",

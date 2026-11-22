@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import Dashboard from './Dashboard.jsx';
+import LandingPage from './LandingPage.jsx';
 import './style.css';
 import { reclaimAdmin } from './adminData.js';
 
@@ -41,7 +42,7 @@ window.setInterval(async () => {
   } catch { /* offline: try again next beat */ }
 }, 30000);
 
-const dashboardPaths = ['/', '/dashboard', '/bookings', '/plot_lists'];
+const dashboardPaths = ['/dashboard', '/bookings', '/plot_lists'];
 const mapRoutes = new Set(['velavan_nagar', 'saraswathi_garden', 'shanmuga_avenue', 'meenakshi_garden_phase1', 'meenakshi_garden_phase2']);
 const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
 const isDashboard = dashboardPaths.includes(currentPath);
@@ -57,6 +58,6 @@ if (!isDashboard && currentPath !== '/' && !isMapRoute) {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    {isDashboard ? <Dashboard /> : isMapRoute ? <App projectSlug={routeId || 'velavan_nagar'} /> : <Dashboard />}
+    {currentPath === '/' ? <LandingPage /> : isDashboard ? <Dashboard /> : isMapRoute ? <App projectSlug={routeId} /> : <Dashboard />}
   </StrictMode>
 );

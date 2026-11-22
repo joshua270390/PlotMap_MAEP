@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import './Dashboard.css';
 import { P, G } from './data.js';
 import ProjectMapThumbnail from './ProjectMapThumbnail.jsx';
+import LayoutLandingEditor from './LayoutLandingEditor.jsx';
 
 const PROJECT_IDS = { velavan_nagar: 1, saraswathi_garden: 3, shanmuga_avenue: 2, meenakshi_garden_phase1: 4, meenakshi_garden_phase2: 5 };
 const PROJECT_NAMES = { 1: 'Velavan Nagar', 3: 'Saraswathi Garden', 2: 'Shanmuga Avenue', 4: 'Meenakshi Garden Phase 1', 5: 'Meenakshi Garden Phase 2' };
@@ -90,7 +91,7 @@ export default function Dashboard() {
   const [userName, setUserName] = useState('');
   const [loggedIn, setLoggedIn] = useState(false);
   const [authChecking, setAuthChecking] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_mode') || window.sessionStorage.getItem('maep_admin_pin') || window.sessionStorage.getItem('maep_employee_token')));
-  const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard'; });
+  const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : path === '/layout_landing' ? 'layout-landing' : 'dashboard'; });
   const [bookings, setBookings] = useState([]);
   const [plots, setPlots] = useState([]);
   const [mapPlotStatuses, setMapPlotStatuses] = useState({});
@@ -116,7 +117,7 @@ export default function Dashboard() {
   const [nativeApp] = useState(() => /MAEPApp/i.test(navigator.userAgent) || window.Capacitor?.isNativePlatform?.() === true);
 
   useEffect(() => {
-    const title = page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : page === 'users' ? 'Users' : 'Plot lists';
+    const title = page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : page === 'users' ? 'Users' : page === 'layout-landing' ? 'Layout Landing' : 'Plot lists';
     document.title = (loggedIn ? title : 'Sign in') + ' | Mary Ann Elite Properties';
   }, [page, loggedIn]);
 
@@ -132,12 +133,12 @@ export default function Dashboard() {
       if (role === 'employee' && !['/bookings', '/plot_lists'].includes(path)) {
         window.history.replaceState({}, '', '/plot_lists'); setPage('plots'); return;
       }
-      const routes = role === 'employee' ? ['/bookings', '/plot_lists'] : ['/', '/dashboard', '/bookings', '/plot_lists', '/users'];
+      const routes = role === 'employee' ? ['/bookings', '/plot_lists'] : ['/', '/dashboard', '/bookings', '/plot_lists', '/users', '/layout_landing'];
       if (!routes.includes(path)) {
         window.location.reload();
         return;
       }
-      setPage(path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard');
+      setPage(path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : path === '/layout_landing' ? 'layout-landing' : 'dashboard');
     };
     window.addEventListener('popstate', syncRoute);
     return () => window.removeEventListener('popstate', syncRoute);
@@ -264,7 +265,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (loggedIn && role === 'user') { window.location.replace('/'); return; }
     if (loggedIn && role === 'employee' && !['plots', 'bookings'].includes(page)) { setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return; }
-    if (loggedIn && role !== 'user' && page !== 'plots' && page !== 'users') loadData('bookings', pin);
+    if (loggedIn && role !== 'user' && page !== 'plots' && page !== 'users' && page !== 'layout-landing') loadData('bookings', pin);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, loggedIn, role]);
 
@@ -405,6 +406,7 @@ export default function Dashboard() {
         {role !== 'user' && <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); setSidebarOpen(false); }}>
           <span className="nav-icon">▤</span> Bookings
         </button>}
+        {role === 'admin' && <button className={'nav-item' + (page === 'layout-landing' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/layout_landing'); setPage('layout-landing'); setSidebarOpen(false); }}><span className="nav-icon">✎</span> Layout Landing</button>}
         {role === 'admin' && <button className={'nav-item' + (page === 'users' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/users'); setPage('users'); setSidebarOpen(false); }}><span className="nav-icon">♙</span> Users</button>}
         <button className={'nav-item' + (page === 'plots' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/plot_lists'); setPage('plots'); setSidebarOpen(false); }}>
           <span className="nav-icon">▦</span> Plot lists
@@ -414,7 +416,7 @@ export default function Dashboard() {
       <main className="dashboard-main">
         <header className="dashboard-topbar">
           <div className="dashboard-mobile-brand-row"><a className="dashboard-mobile-brand" href="/dashboard" aria-label="Mary Ann dashboard home"><img src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" /></a><button type="button" className="dashboard-menu-toggle" aria-label="Open navigation menu" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(true)}><span></span><span></span><span></span></button></div>
-          <div className="dashboard-heading-group"><h1>{page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : page === 'users' ? 'Users' : 'Plot lists'}</h1></div>
+          <div className="dashboard-heading-group"><h1>{page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : page === 'users' ? 'Users' : page === 'layout-landing' ? 'Layout Landing' : 'Plot lists'}</h1></div>
           <div className="topbar-actions profile-wrap">
             <button type="button" className="topbar-avatar profile-trigger" aria-label={role === 'admin' ? 'Open administrator menu' : 'Open user menu'} aria-expanded={profileOpen} onClick={() => setProfileOpen(open => !open)}><img className="topbar-avatar-image" src="/user-avatar.svg" alt="" /></button>
             {profileOpen && <div className="profile-menu" role="menu">
@@ -430,7 +432,7 @@ export default function Dashboard() {
           {page !== 'plots' && error && <div className="alert alert-error" role="alert">{error}</div>}
           {page !== 'plots' && notice && <div className="alert alert-success" role="status">{notice}</div>}
 
-          {page !== 'plots' ? (
+          {page === 'layout-landing' ? <LayoutLandingEditor pin={pin} setError={setError} setNotice={setNotice} /> : page !== 'plots' ? (
             <>
               {page === 'users' ? <EmployeeUsersPage pin={pin} employees={employees} setEmployees={setEmployees} employeeForm={employeeForm} setEmployeeForm={setEmployeeForm} employeeDelete={employeeDelete} setEmployeeDelete={setEmployeeDelete} setError={setError} setNotice={setNotice} /> : page === 'dashboard' ? (
                 <>

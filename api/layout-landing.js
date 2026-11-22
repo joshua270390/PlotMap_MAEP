@@ -2,7 +2,7 @@
 const out = (res, code, body) => { res.setHeader('Cache-Control', 'no-store'); return res.status(code).json(body); };
 const parseBody = req => { if (typeof req.body === 'string') { try { return JSON.parse(req.body); } catch { return null; } } return req.body && typeof req.body === 'object' ? req.body : null; };
 const slugPattern = /^[a-z0-9_]{2,80}$/;
-function config() { return { pin: process.env.ADMIN_PIN || '', url: (process.env.SUPABASE_URL || '').replace(/\/+$/, ''), key: (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim(), table: process.env.LAYOUT_LANDING_TABLE || 'layout_landing_pages' }; }
+function getConfig() { return { pin: process.env.ADMIN_PIN || '', url: (process.env.SUPABASE_URL || '').replace(/\/+$/, ''), key: (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim(), table: process.env.LAYOUT_LANDING_TABLE || 'layout_landing_pages' }; }
 async function db(cfg, method, query, body) {
   const headers = { apikey: cfg.key, Accept: 'application/json' };
   if (cfg.key.startsWith('eyJ')) headers.Authorization = 'Bearer ' + cfg.key;
@@ -15,7 +15,7 @@ async function db(cfg, method, query, body) {
 }
 const isAdmin = (req, cfg) => !!cfg.pin && String(req.headers['x-admin-pin'] || '') === cfg.pin;
 export default async function handler(req, res) {
-  const cfg = config();
+  const cfg = getConfig();
   if (!['GET','POST','PATCH','DELETE'].includes(req.method)) { res.setHeader('Allow','GET, POST, PATCH, DELETE'); return out(res,405,{ok:false,error:'Method not allowed'}); }
   if (!cfg.url || !cfg.key) return out(res,500,{ok:false,error:'Landing page database is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.'});
   const slug = String(req.query?.slug || '').trim();

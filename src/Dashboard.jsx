@@ -480,7 +480,7 @@ export default function Dashboard() {
                           <td><span className="unit-pill">{row.source || 'Manual Entry'}</span></td>
                           <td>{row.plot_id ?? '—'}</td>
                           <td><span className="unit-pill">{field(plot, 'plot_number', 'unit_number') || '—'}</span></td>
-                          <td>{String(row.source || '').trim().toLowerCase() === 'landing page enquiry' ? <span className="status-select status-available">New Enquiry</span> : role === 'employee' ? <span className={'status-select status-' + normalizedStatus(row.status).toLowerCase()}>{statusLabel(row.status)}</span> : <select className={'status-select status-' + normalizedStatus(row.status).toLowerCase()} value={normalizedStatus(row.status)} onChange={e => saveBooking({
+                          <td>{String(row.source || '').trim().toLowerCase() === 'landing page enquiry' ? (STATUSES.some(item => item.value.toLowerCase() === String(row.status || '').trim().toLowerCase()) ? <span className={'status-select status-' + normalizedStatus(row.status).toLowerCase()}>{statusLabel(row.status)}</span> : <span className="status-select status-available">New Enquiry</span>) : role === 'employee' ? <span className={'status-select status-' + normalizedStatus(row.status).toLowerCase()}>{statusLabel(row.status)}</span> : <select className={'status-select status-' + normalizedStatus(row.status).toLowerCase()} value={normalizedStatus(row.status)} onChange={e => saveBooking({
                             customer_name: field(row, 'customer_name', 'name'),
                             phone: field(row, 'phone', 'phone_number'),
                             plot_id: row.plot_id,
@@ -498,7 +498,7 @@ export default function Dashboard() {
                             setEdit({
                               id: row.id, customer_name: field(row, 'customer_name', 'name'), phone: field(row, 'phone', 'phone_number'),
                               email: field(row, 'email'), plot_id: String(row.plot_id ?? ''), project_id: Number(row.project_id || 1),
-                              status: normalizedStatus(row.status), isLandingEnquiry, plot_size: sizeMatch?.[1]?.trim() || '', notes: cleanNotes,
+                              status: STATUSES.some(item => item.value.toLowerCase() === String(row.status || '').trim().toLowerCase()) ? normalizedStatus(row.status) : 'Available', isLandingEnquiry, notes: cleanNotes,
                             });
                           }} disabled={saving}>Edit</button><button className="delete-btn" type="button" onClick={() => setDeleteTarget(row)} disabled={saving}>Delete</button></div></td>
                         </tr>;
@@ -598,7 +598,18 @@ export default function Dashboard() {
           <label>Phone Number<input value={edit.phone} onChange={e => setEdit(s => ({ ...s, phone: e.target.value }))} required maxLength={25} /></label>
           {edit.isLandingEnquiry ? <>
             <label>Email Address<input type="email" value={edit.email} onChange={e => setEdit(s => ({ ...s, email: e.target.value }))} maxLength={120} /></label>
-            <label>Plot Size<input value={edit.plot_size} onChange={e => setEdit(s => ({ ...s, plot_size: e.target.value }))} maxLength={80} placeholder="e.g. 1200 sq.ft" /></label>
+            <label>Unit Number<select value={edit.plot_id} onChange={e => {
+              const selected = plots.find(plot => String(plot.id) === e.target.value);
+              setEdit(s => ({ ...s, plot_id: e.target.value, status: e.target.value ? (normalizedStatus(selected?.status) === 'Reserved' ? 'Reserved' : s.status) : s.status }));
+            }}>
+              <option value="">Not assigned</option>
+              {plots.filter(plot => {
+                const plotStatus = normalizedStatus(plot.status);
+                const sameProject = String(plot.project_id) === String(edit.project_id);
+                return sameProject && ((edit.plot_id && String(plot.id) === String(edit.plot_id)) || !['Booked', 'Sold'].includes(plotStatus));
+              }).map(plot => <option key={plot.id} value={String(plot.id)}>{field(plot, 'plot_number', 'unit_number')} (Plot ID: {plot.id})</option>)}
+            </select></label>
+            <label>Status<select value={edit.status} onChange={e => setEdit(s => ({ ...s, status: e.target.value }))}>{STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></label>
             <label>Enquiry Message<textarea value={edit.notes} onChange={e => setEdit(s => ({ ...s, notes: e.target.value }))} maxLength={500} rows={4} /></label>
             <p className="modal-copy">Source: Landing Page Enquiry · Project: {PROJECT_NAMES[edit.project_id] || ('Project ' + edit.project_id)}</p>
           </> : <>

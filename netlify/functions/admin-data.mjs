@@ -184,6 +184,38 @@ export default async function handler(request) {
     return json({ ok: true });
   }
 
+  // Landing-page enquiries have no inventory plot. Allow customer/contact/enquiry
+  // details to be edited without forcing an unrelated plot assignment.
+  if (method === "PATCH") {
+    const existing = await db(cfg, "GET", cfg.bookingsTable,
+      new URLSearchParams({ select: "id,source,plot_id", id: "eq." + id, project_id: "eq." + cfg.projectId, limit: "1" }).toString());
+    if (!existing.ok) return json({ ok: false, error: "Could not verify this booking before editing." }, 502);
+    if (!Array.isArray(existing.data) || !existing.data.length) return json({ ok: false, error: "Booking was not found." }, 404);
+    const current = existing.data[0];
+    if (String(current.source || "").trim().toLowerCase() === "landing page enquiry" && current.plot_id == null) {
+      const customerName = String(body.customer_name ?? "").trim();
+      const phone = String(body.phone ?? "").trim();
+      const email = String(body.email ?? "").trim();
+      const notes = String(body.notes ?? "").trim();
+      const plotSize = String(body.plot_size ?? "").trim();
+      if (!customerName || customerName.length > 120) return json({ ok: false, error: "Enter a valid customer name." }, 422);
+      if (!phone || phone.length > 25) return json({ ok: false, error: "Enter a valid phone number." }, 422);
+      if (email && (email.length > 120 || !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)))
+        return json({ ok: false, error: "Enter a valid email address." }, 422);
+      if (notes.length > 500 || plotSize.length > 80) return json({ ok: false, error: "Enquiry details are too long." }, 422);
+      const updatedNotes = [notes, plotSize ? "Plot size: " + plotSize : ""].filter(Boolean).join(" | ");
+      const updated = await db(cfg, "PATCH", cfg.bookingsTable, filter.toString(), {
+        customer_name: customerName, phone, email: email || null, notes: updatedNotes || null,
+      });
+      if (!updated.ok) {
+        console.error("[admin-data] Landing enquiry update failed:", updated.status, updated.error);
+        return json({ ok: false, error: "Could not update landing page enquiry." }, 502);
+      }
+      if (!Array.isArray(updated.data) || !updated.data.length) return json({ ok: false, error: "Enquiry was not found." }, 404);
+      return json({ ok: true, booking: updated.data[0] });
+    }
+  }
+
   const customerName = String(body.customer_name ?? "").trim();
   const phone = String(body.phone ?? "").trim();
   const plotId = String(body.plot_id ?? "").trim();

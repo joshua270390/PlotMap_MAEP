@@ -331,9 +331,10 @@ export default function Dashboard() {
   const visibleBookings = useMemo(() => bookings.filter(row => {
     const plot = plotById.get(String(row.project_id) + ':' + String(row.plot_id)) || plotById.get(String(row.plot_id));
     const unit = field(plot, 'plot_number', 'unit_number');
-    const text = [row.id, row.customer_name, row.phone, row.plot_id, unit].map(v => String(v ?? '')).join(' ').toLowerCase();
+    const isLandingEnquiry = String(row.source || '').trim().toLowerCase() === 'landing page enquiry';
+    const text = [row.id, row.customer_name, row.phone, row.plot_id, unit, row.source, row.notes, row.plot_size].map(v => String(v ?? '')).join(' ').toLowerCase();
     const matchesSearch = text.includes(search.toLowerCase().trim());
-    const matchesStatus = statusFilter === 'All' || normalizedStatus(row.status) === statusFilter;
+    const matchesStatus = statusFilter === 'All' || (statusFilter === 'New Enquiry' ? isLandingEnquiry : !isLandingEnquiry && normalizedStatus(row.status) === statusFilter);
     const matchesProject = page !== 'bookings' || projectTab === 'all' || String(row.project_id) === String(PROJECT_IDS[projectTab]);
     return matchesSearch && matchesStatus && matchesProject;
   }), [bookings, plotById, search, statusFilter, projectTab, page]);
@@ -459,14 +460,14 @@ export default function Dashboard() {
                   <div className="booking-toolbar-actions">
                     {page === 'bookings' && <button type="button" className="add-customer-btn" onClick={() => { setError(''); setEdit({ id: null, customer_name: '', phone: '', plot_id: '', status: 'Available', project_id: PROJECT_IDS[projectTab === 'all' ? 'velavan_nagar' : projectTab] }); }}>Add Customers +</button>}
                     <select className="filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} aria-label="Filter by status">
-                      <option value="All">All statuses</option>{STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                      <option value="All">All statuses</option><option value="New Enquiry">New Enquiry</option>{STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                     </select>
                   </div>
                 </div>
                 {page === 'bookings' && <div className="booking-bulk-toolbar"><span>{selectedBookingKeys.length} selected</span><button type="button" className="delete-btn" onClick={() => setBulkDeleteConfirm(true)} disabled={!selectedBookingRows.length || saving}>Delete selected</button></div>}
                 {loading ? <div className="table-state">Loading bookings from Supabase…</div> : (
                   <div className="table-scroll"><table className="data-table">
-                    <thead><tr>{page === 'bookings' && <th><input type="checkbox" aria-label="Select all bookings on this page" checked={allCurrentPageSelected} onChange={e => togglePageSelection(e.target.checked)} /></th>}<th>ID</th>{projectTab === 'all' && <th>Project</th>}<th>Customer Name</th><th>Phone Number</th><th>Plot Id</th><th>Unit Number</th><th>Status</th><th>Action</th></tr></thead>
+                    <thead><tr>{page === 'bookings' && <th><input type="checkbox" aria-label="Select all bookings on this page" checked={allCurrentPageSelected} onChange={e => togglePageSelection(e.target.checked)} /></th>}<th>ID</th>{projectTab === 'all' && <th>Project</th>}<th>Customer Name</th><th>Phone Number</th><th>Source</th><th>Plot Id</th><th>Unit Number</th><th>Status</th><th>Action</th></tr></thead>
                     <tbody>
                       {(page === 'bookings' ? paginatedBookings : visibleBookings.slice(0, 5)).map(row => {
                         const plot = plotById.get(String(row.project_id) + ':' + String(row.plot_id)) || plotById.get(String(row.plot_id));
@@ -476,9 +477,10 @@ export default function Dashboard() {
                           {projectTab === 'all' && <td><span className="unit-pill">{PROJECT_NAMES[row.project_id] || ('Project ' + row.project_id)}</span></td>}
                           <td><strong>{field(row, 'customer_name', 'name') || '—'}</strong></td>
                           <td>{field(row, 'phone', 'phone_number') || '—'}</td>
+                          <td><span className="unit-pill">{row.source || 'Manual Entry'}</span></td>
                           <td>{row.plot_id ?? '—'}</td>
                           <td><span className="unit-pill">{field(plot, 'plot_number', 'unit_number') || '—'}</span></td>
-                          <td>{role === 'employee' ? <span className={'status-select status-' + normalizedStatus(row.status).toLowerCase()}>{statusLabel(row.status)}</span> : <select className={'status-select status-' + normalizedStatus(row.status).toLowerCase()} value={normalizedStatus(row.status)} onChange={e => saveBooking({
+                          <td>{String(row.source || '').trim().toLowerCase() === 'landing page enquiry' ? <span className="status-select status-available">New Enquiry</span> : role === 'employee' ? <span className={'status-select status-' + normalizedStatus(row.status).toLowerCase()}>{statusLabel(row.status)}</span> : <select className={'status-select status-' + normalizedStatus(row.status).toLowerCase()} value={normalizedStatus(row.status)} onChange={e => saveBooking({
                             customer_name: field(row, 'customer_name', 'name'),
                             phone: field(row, 'phone', 'phone_number'),
                             plot_id: row.plot_id,
@@ -487,13 +489,13 @@ export default function Dashboard() {
                           }, row.id, true)} disabled={saving} aria-label={'Status for booking ' + row.id}>
                             {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                           </select>}</td>
-                          <td><div className="row-actions"><button className="edit-btn" type="button" onClick={() => { setError(''); setEdit({
+                          <td><div className="row-actions">{String(row.source || '').trim().toLowerCase() !== 'landing page enquiry' && <button className="edit-btn" type="button" onClick={() => { setError(''); setEdit({
                             id: row.id, customer_name: field(row, 'customer_name', 'name'), phone: field(row, 'phone', 'phone_number'),
                             plot_id: String(row.plot_id ?? ''), project_id: Number(row.project_id || 1), status: normalizedStatus(row.status),
-                          }); }} disabled={saving}>Edit</button><button className="delete-btn" type="button" onClick={() => setDeleteTarget(row)} disabled={saving}>Delete</button></div></td>
+                          }); }} disabled={saving}>Edit</button>}<button className="delete-btn" type="button" onClick={() => setDeleteTarget(row)} disabled={saving}>Delete</button></div></td>
                         </tr>;
                       })}
-                      {!(page === 'bookings' ? paginatedBookings : visibleBookings.slice(0, 5)).length && <tr><td colSpan={(projectTab === 'all' ? 8 : 7) + (page === 'bookings' ? 1 : 0)} className="empty-cell">{selectedProjectBookings.length ? 'No bookings match your search.' : 'No bookings found in Supabase.'}</td></tr>}
+                      {!(page === 'bookings' ? paginatedBookings : visibleBookings.slice(0, 5)).length && <tr><td colSpan={(projectTab === 'all' ? 9 : 8) + (page === 'bookings' ? 1 : 0)} className="empty-cell">{selectedProjectBookings.length ? 'No bookings match your search.' : 'No bookings found in Supabase.'}</td></tr>}
                     </tbody>
                   </table></div>
                 )}

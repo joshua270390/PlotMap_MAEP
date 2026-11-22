@@ -200,14 +200,14 @@ export default async function handler(request) {
       const status = String(body.status ?? "");
       if (!customerName || customerName.length > 120) return json({ ok: false, error: "Enter a valid customer name." }, 422);
       if (!phone || phone.length > 25) return json({ ok: false, error: "Enter a valid phone number." }, 422);
-      if (email && (email.length > 120 || !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)))
+      if (email && (email.length > 120 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)))
         return json({ ok: false, error: "Enter a valid email address." }, 422);
       if (notes.length > 500) return json({ ok: false, error: "Enquiry message is too long." }, 422);
       if (!allowedStatuses.has(status)) return json({ ok: false, error: "Select a valid status." }, 422);
 
       let selectedPlot = null;
       if (plotId) {
-        if (!/^\\d+$/.test(plotId)) return json({ ok: false, error: "Select a valid unit." }, 422);
+        if (!/^\d+$/.test(plotId)) return json({ ok: false, error: "Select a valid unit." }, 422);
         const lookup = await db(cfg, "GET", cfg.plotsTable,
           new URLSearchParams({ select: "id,project_id,status", id: "eq." + plotId, project_id: "eq." + cfg.projectId, limit: "1" }).toString());
         if (!lookup.ok || !Array.isArray(lookup.data) || !lookup.data.length)

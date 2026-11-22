@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import Dashboard from './Dashboard.jsx';
 import LandingPage from './LandingPage.jsx';
+import ProjectLandingPage from './ProjectLandingPage.jsx';
 import './style.css';
 import { reclaimAdmin } from './adminData.js';
 
@@ -46,18 +47,14 @@ const dashboardPaths = ['/dashboard', '/bookings', '/plot_lists'];
 const mapRoutes = new Set(['velavan_nagar', 'saraswathi_garden', 'shanmuga_avenue', 'meenakshi_garden_phase1', 'meenakshi_garden_phase2']);
 const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
 const isDashboard = dashboardPaths.includes(currentPath);
-const routeId = currentPath.slice(1);
-const isMapRoute = mapRoutes.has(routeId);
-
-// Keep dashboard routes separate; project slugs use the shared PlotMap page.
-// Unknown one-segment paths return to Plot Lists instead of silently showing
-// the Velavan Nagar map for an invalid project ID.
-if (!isDashboard && currentPath !== '/' && !isMapRoute) {
-  window.location.replace('/plot_lists');
-}
+const routeParts = currentPath.split('/').filter(Boolean);
+const routeId = routeParts[0] || '';
+const isProjectRoute = routeParts.length === 1 && mapRoutes.has(routeId);
+const isMapRoute = routeParts.length === 2 && mapRoutes.has(routeId) && routeParts[1] === 'layout';
+if (!isDashboard && currentPath !== '/' && !isProjectRoute && !isMapRoute) window.location.replace('/plot_lists');
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    {currentPath === '/' ? <LandingPage /> : isDashboard ? <Dashboard /> : isMapRoute ? <App projectSlug={routeId} /> : <Dashboard />}
+    {currentPath === '/' ? <LandingPage /> : isDashboard ? <Dashboard /> : isProjectRoute ? <ProjectLandingPage projectSlug={routeId} /> : isMapRoute ? <App projectSlug={routeId} /> : <Dashboard />}
   </StrictMode>
 );

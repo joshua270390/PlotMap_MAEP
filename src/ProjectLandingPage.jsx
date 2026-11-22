@@ -96,6 +96,7 @@ export default function ProjectLandingPage({ projectSlug }) {
           project_id: PROJECT_IDS[projectSlug],
           name,
           phone: phoneNumber,
+          website: text(data.get('website')),
           plot_size: size,
           message: size ? 'Plot size required: ' + size : 'Landing page enquiry',
           source: 'Landing Page Enquiry',

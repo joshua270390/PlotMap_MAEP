@@ -126,8 +126,8 @@ export default function Dashboard() {
     const syncRoute = () => {
       const path = window.location.pathname.replace(/\/+$/, '') || '/';
       if (role === 'user') {
-        if (path !== '/plot_lists') window.history.replaceState({}, '', '/plot_lists');
-        setPage('plots'); return;
+        if (path !== '/') window.location.replace('/');
+        return;
       }
       if (role === 'employee' && !['/bookings', '/plot_lists'].includes(path)) {
         window.history.replaceState({}, '', '/plot_lists'); setPage('plots'); return;
@@ -147,9 +147,7 @@ export default function Dashboard() {
   useEffect(() => {
     const savedUserMode = window.sessionStorage.getItem('maep_user_mode');
     if (savedUserMode === 'true') {
-      setRole('user'); setUserName('User'); setLoggedIn(true); setPage('plots');
-      if (window.location.pathname !== '/plot_lists') window.history.replaceState({}, '', '/plot_lists');
-      setAuthChecking(false);
+      window.location.replace('/');
       return;
     }
     const savedEmployeeToken = window.sessionStorage.getItem('maep_employee_token');
@@ -236,9 +234,7 @@ export default function Dashboard() {
         window.sessionStorage.setItem('maep_user_mode', 'true');
         
         window.sessionStorage.removeItem('maep_admin_pin');
-        setUserName('User'); setLoggedIn(true); setAuthChecking(false); setPage('plots');
-        window.history.replaceState({}, '', '/plot_lists');
-        setNotice('Welcome. You can view plot lists and submit enquiries.');
+        window.location.assign('/');
         return;
       }
       if (role === 'employee') {
@@ -266,7 +262,7 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    if (loggedIn && role === 'user' && page !== 'plots') { setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return; }
+    if (loggedIn && role === 'user') { window.location.replace('/'); return; }
     if (loggedIn && role === 'employee' && !['plots', 'bookings'].includes(page)) { setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return; }
     if (loggedIn && role !== 'user' && page !== 'plots' && page !== 'users') loadData('bookings', pin);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -382,7 +378,7 @@ export default function Dashboard() {
         <form className="login-card" onSubmit={e => { e.preventDefault(); login(); }}>
           <img className="login-logo" src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" />
           <h1>Sign in</h1>
-          <p className="login-copy">{role === 'admin' ? 'Sign in with your Admin PIN.' : role === 'employee' ? 'Sign in with your employee username and password.' : 'Select User and sign in to view plot lists and submit enquiries.'}</p>
+          <p className="login-copy">{role === 'admin' ? 'Sign in with your Admin PIN.' : role === 'employee' ? 'Sign in with your employee username and password.' : 'Continue to explore our projects and interactive plot layouts.'}</p>
           <label htmlFor="login-role">Role</label>
           <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setError(''); setNotice(''); setPin(''); setEmployeeUsername(''); setEmployeePassword(''); }}><option value="admin">Admin</option><option value="employee">Employee</option><option value="user">User</option></select>
           {role === 'admin' && <><label htmlFor="admin-pin">Admin PIN</label><input id="admin-pin" type="password" inputMode="text" autoComplete="current-password" value={pin} onChange={e => setPin(e.target.value)} placeholder="Enter your Admin PIN" required maxLength={32} /></>}

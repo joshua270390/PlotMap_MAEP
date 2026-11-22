@@ -493,12 +493,10 @@ export default function Dashboard() {
                             setError('');
                             const isLandingEnquiry = String(row.source || '').trim().toLowerCase() === 'landing page enquiry';
                             const existingNotes = String(row.notes || '');
-                            const sizeMatch = existingNotes.match(/(?:^|\\s*\\|\\s*)Plot size:\\s*([^|]+)/i);
-                            const cleanNotes = existingNotes.replace(/(?:^|\\s*\\|\\s*)Plot size:\\s*[^|]+/i, '').replace(/^\\s*\\|\\s*|\\s*\\|\\s*$/g, '').trim();
                             setEdit({
                               id: row.id, customer_name: field(row, 'customer_name', 'name'), phone: field(row, 'phone', 'phone_number'),
                               email: field(row, 'email'), plot_id: String(row.plot_id ?? ''), project_id: Number(row.project_id || 1),
-                              status: STATUSES.some(item => item.value.toLowerCase() === String(row.status || '').trim().toLowerCase()) ? normalizedStatus(row.status) : 'Available', isLandingEnquiry, notes: cleanNotes,
+                              status: STATUSES.some(item => item.value.toLowerCase() === String(row.status || '').trim().toLowerCase()) ? normalizedStatus(row.status) : 'Available', isLandingEnquiry, notes: existingNotes,
                             });
                           }} disabled={saving}>Edit</button><button className="delete-btn" type="button" onClick={() => setDeleteTarget(row)} disabled={saving}>Delete</button></div></td>
                         </tr>;

@@ -23,22 +23,22 @@ function Repeater({title,items,fields,onChange}) {
     {!items.length&&<p className="ll-muted">No items added.</p>}
   </section>;
 }
-export default function LayoutLandingEditor({pin,setError,setNotice}) {
+export default function LayoutLandingEditor({pin,employeeToken,setError,setNotice}) {
   const [slug,setSlug]=useState(PROJECTS[0][0]),[content,setContent]=useState(blank(PROJECTS[0][1]));
   const [saved,setSaved]=useState([]),[busy,setBusy]=useState(false),[dirty,setDirty]=useState(false),[loaded,setLoaded]=useState(false);
   const name=PROJECTS.find(p=>p[0]===slug)?.[1]||slug;
-  const headers={'Content-Type':'application/json','x-admin-pin':pin};
+  const headers={'Content-Type':'application/json',...(employeeToken?{'x-employee-token':employeeToken}:{'x-admin-pin':pin})};
   async function load(next=slug) {
     setBusy(true);setError('');
     try {
-      const [a,b]=await Promise.all([fetch('/api/layout-landing?all=1',{headers:{'x-admin-pin':pin},cache:'no-store'}),fetch('/api/layout-landing?slug='+encodeURIComponent(next),{cache:'no-store'})]);
+      const [a,b]=await Promise.all([fetch('/api/layout-landing?all=1',{headers:employeeToken?{'x-employee-token':employeeToken}:{'x-admin-pin':pin},cache:'no-store'}),fetch('/api/layout-landing?slug='+encodeURIComponent(next),{cache:'no-store'})]);
       const list=await a.json().catch(()=>({})),one=await b.json().catch(()=>({}));
       if(!a.ok||!list.ok)throw new Error(list.error||'Could not load landing page list.');
       if(!b.ok||!one.ok)throw new Error(one.error||'Could not load landing page.');
       setSaved(list.pages||[]);setContent(one.page?.content?copy(one.page.content):blank(PROJECTS.find(p=>p[0]===next)?.[1]||next));setDirty(false);setLoaded(true);
     }catch(e){setError(e.message);}finally{setBusy(false);}
   }
-  useEffect(()=>{load(slug);},[pin]);
+  useEffect(()=>{load(slug);},[pin,employeeToken]);
   const set=(path,value)=>{setContent(current=>{const next=copy(current);const keys=path.split('.');let node=next;keys.slice(0,-1).forEach(k=>node=node[k]);node[keys[keys.length-1]]=value;return next;});setDirty(true);};
   const changeProject=next=>{setSlug(next);load(next);};
   async function save(){

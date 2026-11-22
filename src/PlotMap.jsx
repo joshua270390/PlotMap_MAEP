@@ -128,7 +128,7 @@ const Tooltip = forwardRef(({ status, vpRef, ax, details = {} }, ref) => {
   );
 });
 
-const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName, status, details = {}, filt, setFilt, sel, selD, setSel, onTap, ax, admin, addMode, adminEnquiries = [], cv = null, setCv, setAd, history, children }, ref) {
+const PlotMap = forwardRef(function PlotMap({ backToProject, geometry, projectName, layoutName, status, details = {}, filt, setFilt, sel, selD, setSel, onTap, ax, admin, addMode, adminEnquiries = [], cv = null, setCv, setAd, history, children }, ref) {
   const { P, G, LB, bounds, plotAreaLabels = [], roadLabels = [], dimensionLabels = [] } = geometry || { P: V_P, G: V_G, LB: V_LB, bounds: { x: 369, y: 160, width: 2501, height: 3012 } };
   const vpRef = useRef(null), stageRef = useRef(null), ovRef = useRef(null), topRef = useRef(null), tipRef = useRef(null), qRef = useRef(null);
   const view = useRef({}), cb = useRef({});
@@ -277,7 +277,7 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
   return (
     <main id="vp" ref={vpRef}>
       <div className="top" ref={topRef}>
-        <button type="button" className="map-back-button" onClick={() => { if (window.sessionStorage.getItem("maep_user_token")) { window.location.assign("/plot_lists"); return; } if (window.history.length > 1 && document.referrer && new URL(document.referrer).origin === window.location.origin) window.history.back(); else window.location.assign("/dashboard"); }} aria-label="Go back to previous page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18 9 12l6-6" /></svg><span className="back-label">Back</span></button>
+        <button type="button" className="map-back-button" onClick={() => { if (backToProject) { window.location.assign(backToProject); return; } if (window.sessionStorage.getItem("maep_user_token")) { window.location.assign("/plot_lists"); return; } if (window.history.length > 1 && document.referrer && new URL(document.referrer).origin === window.location.origin) window.history.back(); else window.location.assign("/dashboard"); }} aria-label="Go back to previous page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18 9 12l6-6" /></svg><span className="back-label">Back</span></button>
         <div className="brand fl" aria-label={COMPANY}>
           <div className="brand-copy">
             <b>{projectName || PROJECT}</b>

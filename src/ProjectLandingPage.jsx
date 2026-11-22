@@ -26,7 +26,12 @@ export default function ProjectLandingPage({ projectSlug }) {
   const [siteTab, setSiteTab] = useState('location');
   const [formMessage, setFormMessage] = useState('');
 
-  useEffect(() => {\n    document.body.classList.add('lp-scroll-enabled');\n    return () => document.body.classList.remove('lp-scroll-enabled');\n  }, []);\n\n  useEffect(() => {
+  useEffect(() => {
+    document.body.classList.add('lp-scroll-enabled');
+    return () => document.body.classList.remove('lp-scroll-enabled');
+  }, []);
+
+  useEffect(() => {
     let active = true;
     setLoading(true);
     setError('');

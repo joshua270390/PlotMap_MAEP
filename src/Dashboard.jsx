@@ -130,10 +130,10 @@ export default function Dashboard() {
         if (path !== '/') window.location.replace('/');
         return;
       }
-      if (role === 'employee' && !['/bookings', '/plot_lists'].includes(path)) {
+      if (role === 'employee' && !['/bookings', '/plot_lists', '/layout_landing'].includes(path)) {
         window.history.replaceState({}, '', '/plot_lists'); setPage('plots'); return;
       }
-      const routes = role === 'employee' ? ['/bookings', '/plot_lists'] : ['/', '/dashboard', '/bookings', '/plot_lists', '/users', '/layout_landing'];
+      const routes = role === 'employee' ? ['/bookings', '/plot_lists', '/layout_landing'] : ['/', '/dashboard', '/bookings', '/plot_lists', '/users', '/layout_landing'];
       if (!routes.includes(path)) {
         window.location.reload();
         return;
@@ -264,7 +264,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (loggedIn && role === 'user') { window.location.replace('/'); return; }
-    if (loggedIn && role === 'employee' && !['plots', 'bookings'].includes(page)) { setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return; }
+    if (loggedIn && role === 'employee' && !['plots', 'bookings', 'layout-landing'].includes(page)) { setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return; }
     if (loggedIn && role !== 'user' && page !== 'plots' && page !== 'users' && page !== 'layout-landing') loadData('bookings', pin);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, loggedIn, role]);
@@ -406,7 +406,7 @@ export default function Dashboard() {
         {role !== 'user' && <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); setSidebarOpen(false); }}>
           <span className="nav-icon">▤</span> Bookings
         </button>}
-        {role === 'admin' && <button className={'nav-item' + (page === 'layout-landing' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/layout_landing'); setPage('layout-landing'); setSidebarOpen(false); }}><span className="nav-icon">✎</span> Layout Landing</button>}
+        {role !== 'user' && <button className={'nav-item' + (page === 'layout-landing' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/layout_landing'); setPage('layout-landing'); setSidebarOpen(false); }}><span className="nav-icon">✎</span> Layout Landing</button>}
         {role === 'admin' && <button className={'nav-item' + (page === 'users' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/users'); setPage('users'); setSidebarOpen(false); }}><span className="nav-icon">♙</span> Users</button>}
         <button className={'nav-item' + (page === 'plots' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/plot_lists'); setPage('plots'); setSidebarOpen(false); }}>
           <span className="nav-icon">▦</span> Plot lists
@@ -432,7 +432,7 @@ export default function Dashboard() {
           {page !== 'plots' && error && <div className="alert alert-error" role="alert">{error}</div>}
           {page !== 'plots' && notice && <div className="alert alert-success" role="status">{notice}</div>}
 
-          {page === 'layout-landing' ? <LayoutLandingEditor pin={pin} setError={setError} setNotice={setNotice} /> : page !== 'plots' ? (
+          {page === 'layout-landing' ? <LayoutLandingEditor pin={pin} employeeToken={employeeToken} setError={setError} setNotice={setNotice} /> : page !== 'plots' ? (
             <>
               {page === 'users' ? <EmployeeUsersPage pin={pin} employees={employees} setEmployees={setEmployees} employeeForm={employeeForm} setEmployeeForm={setEmployeeForm} employeeDelete={employeeDelete} setEmployeeDelete={setEmployeeDelete} setError={setError} setNotice={setNotice} /> : page === 'dashboard' ? (
                 <>

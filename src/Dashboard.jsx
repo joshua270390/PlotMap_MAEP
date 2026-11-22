@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import './Dashboard.css';
 import { P, G } from './data.js';
 import ProjectMapThumbnail from './ProjectMapThumbnail.jsx';
+import { normalizeIndianMobile, INDIAN_MOBILE_ERROR } from './validation.js';
 
 const PROJECT_IDS = { velavan_nagar: 1, saraswathi_garden: 3, shanmuga_avenue: 2, meenakshi_garden_phase1: 4, meenakshi_garden_phase2: 5 };
 const PROJECT_NAMES = { 1: 'Velavan Nagar', 3: 'Saraswathi Garden', 2: 'Shanmuga Avenue', 4: 'Meenakshi Garden Phase 1', 5: 'Meenakshi Garden Phase 2' };
@@ -273,12 +274,16 @@ export default function Dashboard() {
   }, [page, loggedIn, role]);
 
   async function saveBooking(values, rowId, statusOnly = false) {
+    if (saving) return;
+    const normalizedPhone = statusOnly ? values.phone : normalizeIndianMobile(values.phone);
+    if (!statusOnly && !normalizedPhone) { setError(INDIAN_MOBILE_ERROR); setNotice(''); return; }
+    const payloadValues = statusOnly ? values : { ...values, phone: normalizedPhone };
     setSaving(true); setError(''); setNotice('');
     try {
       const response = await fetch('/api/admin-data', {
         method: rowId == null ? 'POST' : 'PATCH',
         headers: { 'Content-Type': 'application/json', ...(employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': pin }) },
-        body: JSON.stringify({ ...(rowId == null ? {} : { id: rowId }), ...values, project_id: Number(values.project_id || (PROJECT_IDS[projectTab] || PROJECT_IDS.velavan_nagar)) }),
+        body: JSON.stringify({ ...(rowId == null ? {} : { id: rowId }), ...payloadValues, project_id: Number(values.project_id || (PROJECT_IDS[projectTab] || PROJECT_IDS.velavan_nagar)) }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not save booking.');
@@ -587,7 +592,7 @@ export default function Dashboard() {
           <button type="button" className="modal-close" onClick={() => setEdit(null)} aria-label="Close">×</button>
           <p className="eyebrow">{edit.id == null ? 'MANUAL CUSTOMER ENTRY' : 'BOOKING #' + edit.id}</p><h2>{edit.id == null ? 'Add customer' : 'Edit booking'}</h2><p className="modal-copy">{edit.id == null ? 'Enter customer details and add them to the bookings table.' : 'Update customer details, unit and availability status.'}</p>
           <label>Customer Name<input value={edit.customer_name} onChange={e => setEdit(s => ({ ...s, customer_name: e.target.value }))} required maxLength={120} /></label>
-          <label>Phone Number<input value={edit.phone} onChange={e => setEdit(s => ({ ...s, phone: e.target.value }))} required maxLength={25} /></label>
+          <label>Phone Number<input type="tel" inputMode="numeric" autoComplete="tel-national" placeholder="98765 43210 or +91 98765 43210" value={edit.phone} onChange={e => setEdit(s => ({ ...s, phone: e.target.value }))} onBlur={() => setEdit(s => ({ ...s, phone: normalizeIndianMobile(s.phone) || s.phone }))} required maxLength={16} /></label>
           <label>Unit Number<select value={edit.plot_id} onChange={e => {
             const selected = plots.find(plot => String(plot.id) === e.target.value);
             setEdit(s => ({ ...s, plot_id: e.target.value, status: normalizedStatus(selected?.status) === 'Reserved' ? 'Reserved' : s.status }));

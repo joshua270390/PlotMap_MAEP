@@ -320,7 +320,7 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
 
   return (
     <>
-      <PlotMap ref={mapRef} geometry={geometry} projectName={geometry.projectName} layoutName={geometry.layoutName} ax={ax} status={status} details={plotDetails} filt={filt} setFilt={setFilt} sel={sel} selD={selD} setSel={setSel}
+      <PlotMap ref={mapRef} backToProject={'/' + projectSlug} geometry={geometry} projectName={geometry.projectName} layoutName={geometry.layoutName} ax={ax} status={status} details={plotDetails} filt={filt} setFilt={setFilt} sel={sel} selD={selD} setSel={setSel}
         onTap={onTap} admin={admin} addMode={addMode} adminEnquiries={adminEnquiries} cv={cv} setCv={setCv} setAd={setAdH}
         history={{ undo, redo, canUndo: past.current.length > 0, canRedo: future.current.length > 0 }}>
         {syncNote ? <div className="sync-note" role="alert">{syncNote}</div> : savedAt ? <div className="sync-note ok" role="status">✓ Saved — everyone can see this change</div> : null}

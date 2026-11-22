@@ -184,35 +184,70 @@ export default async function handler(request) {
     return json({ ok: true });
   }
 
-  // Landing-page enquiries have no inventory plot. Allow customer/contact/enquiry
-  // details to be edited without forcing an unrelated plot assignment.
+  // Landing-page enquiries can be edited with or without assigning an inventory unit.
   if (method === "PATCH") {
     const existing = await db(cfg, "GET", cfg.bookingsTable,
-      new URLSearchParams({ select: "id,source,plot_id", id: "eq." + id, project_id: "eq." + cfg.projectId, limit: "1" }).toString());
+      new URLSearchParams({ select: "id,source,plot_id,status", id: "eq." + id, project_id: "eq." + cfg.projectId, limit: "1" }).toString());
     if (!existing.ok) return json({ ok: false, error: "Could not verify this booking before editing." }, 502);
     if (!Array.isArray(existing.data) || !existing.data.length) return json({ ok: false, error: "Booking was not found." }, 404);
     const current = existing.data[0];
-    if (String(current.source || "").trim().toLowerCase() === "landing page enquiry" && current.plot_id == null) {
+    if (String(current.source || "").trim().toLowerCase() === "landing page enquiry") {
       const customerName = String(body.customer_name ?? "").trim();
       const phone = String(body.phone ?? "").trim();
       const email = String(body.email ?? "").trim();
       const notes = String(body.notes ?? "").trim();
-      const plotSize = String(body.plot_size ?? "").trim();
+      const plotId = String(body.plot_id ?? "").trim();
+      const status = String(body.status ?? "");
       if (!customerName || customerName.length > 120) return json({ ok: false, error: "Enter a valid customer name." }, 422);
       if (!phone || phone.length > 25) return json({ ok: false, error: "Enter a valid phone number." }, 422);
       if (email && (email.length > 120 || !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)))
         return json({ ok: false, error: "Enter a valid email address." }, 422);
-      if (notes.length > 500 || plotSize.length > 80) return json({ ok: false, error: "Enquiry details are too long." }, 422);
-      const updatedNotes = [notes, plotSize ? "Plot size: " + plotSize : ""].filter(Boolean).join(" | ");
+      if (notes.length > 500) return json({ ok: false, error: "Enquiry message is too long." }, 422);
+      if (!allowedStatuses.has(status)) return json({ ok: false, error: "Select a valid status." }, 422);
+
+      let selectedPlot = null;
+      if (plotId) {
+        if (!/^\\d+$/.test(plotId)) return json({ ok: false, error: "Select a valid unit." }, 422);
+        const lookup = await db(cfg, "GET", cfg.plotsTable,
+          new URLSearchParams({ select: "id,project_id,status", id: "eq." + plotId, project_id: "eq." + cfg.projectId, limit: "1" }).toString());
+        if (!lookup.ok || !Array.isArray(lookup.data) || !lookup.data.length)
+          return json({ ok: false, error: "The selected unit does not belong to this project." }, 422);
+        selectedPlot = lookup.data[0];
+
+        if (["Booked", "Sold"].includes(status)) {
+          const otherBookings = await db(cfg, "GET", cfg.bookingsTable,
+            new URLSearchParams({ select: "id,status", project_id: "eq." + cfg.projectId, plot_id: "eq." + plotId, id: "neq." + id }).toString());
+          if (!otherBookings.ok) return json({ ok: false, error: "Could not verify other bookings for this unit." }, 502);
+          const anotherClosedBooking = (otherBookings.data || []).some(row =>
+            ["Booked", "Sold"].includes(String(row.status || "").trim()));
+          if (anotherClosedBooking)
+            return json({ ok: false, error: "Another customer's booking for this unit is already Booked or Sold." }, 409);
+          if (["Booked", "Sold"].includes(String(selectedPlot.status || "")) && String(current.plot_id) !== plotId)
+            return json({ ok: false, error: "This unit is already Booked or Sold." }, 409);
+        }
+      }
+
       const updated = await db(cfg, "PATCH", cfg.bookingsTable, filter.toString(), {
-        customer_name: customerName, phone, email: email || null, notes: updatedNotes || null,
+        customer_name: customerName, phone, email: email || null, notes: notes || null,
+        plot_id: plotId ? Number(plotId) : null, status,
       });
       if (!updated.ok) {
         console.error("[admin-data] Landing enquiry update failed:", updated.status, updated.error);
         return json({ ok: false, error: "Could not update landing page enquiry." }, 502);
       }
       if (!Array.isArray(updated.data) || !updated.data.length) return json({ ok: false, error: "Enquiry was not found." }, 404);
-      return json({ ok: true, booking: updated.data[0] });
+
+      let plotStatusSynced = true;
+      if (plotId) {
+        const plotUpdate = await db(cfg, "PATCH", cfg.plotsTable,
+          new URLSearchParams({ id: "eq." + plotId, project_id: "eq." + cfg.projectId }).toString(), { status });
+        plotStatusSynced = plotUpdate.ok;
+        if (!plotStatusSynced) console.error("[admin-data] Landing enquiry plot status sync failed:", plotUpdate.status, plotUpdate.error);
+      }
+      return json({
+        ok: true, booking: updated.data[0], plotStatusSynced,
+        warning: plotStatusSynced ? undefined : "Enquiry saved, but the selected unit status could not be synced.",
+      });
     }
   }
 

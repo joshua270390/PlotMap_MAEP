@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './ProjectLandingPage.css';
 
 const text = value => value == null ? '' : String(value);
@@ -25,7 +25,6 @@ export default function ProjectLandingPage({ projectSlug }) {
   const [language, setLanguage] = useState('Both');
   const [siteTab, setSiteTab] = useState('location');
   const [formMessage, setFormMessage] = useState('');
-  const map = '/' + projectSlug + '/layout';
 
   useEffect(() => {
     let active = true;
@@ -93,7 +92,7 @@ export default function ProjectLandingPage({ projectSlug }) {
     <main className="lp-page">
       <div className="lp-topbar-wrap">
         <header className="lp-topbar">
-          <a className="lp-brand" href="/" aria-label="Mary Ann Elite Properties"><img src="/mary-ann-plotmap-logo.png" alt="Mary Ann Elite Properties"/></a>
+          <div className="lp-brand"><img src="/mary-ann-plotmap-logo.png" alt="Mary Ann Elite Properties"/></div>
           <div className="lp-language" aria-label="Choose language">
             {['English', 'Tamil', 'Both'].map(item => <button key={item} type="button" className={language === item ? 'active' : ''} onClick={() => setLanguage(item)}>{item === 'Tamil' ? 'தமிழ்' : item}</button>)}
           </div>

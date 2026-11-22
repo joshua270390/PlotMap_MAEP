@@ -489,10 +489,18 @@ export default function Dashboard() {
                           }, row.id, true)} disabled={saving} aria-label={'Status for booking ' + row.id}>
                             {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                           </select>}</td>
-                          <td><div className="row-actions">{String(row.source || '').trim().toLowerCase() !== 'landing page enquiry' && <button className="edit-btn" type="button" onClick={() => { setError(''); setEdit({
-                            id: row.id, customer_name: field(row, 'customer_name', 'name'), phone: field(row, 'phone', 'phone_number'),
-                            plot_id: String(row.plot_id ?? ''), project_id: Number(row.project_id || 1), status: normalizedStatus(row.status),
-                          }); }} disabled={saving}>Edit</button>}<button className="delete-btn" type="button" onClick={() => setDeleteTarget(row)} disabled={saving}>Delete</button></div></td>
+                          <td><div className="row-actions"><button className="edit-btn" type="button" onClick={() => {
+                            setError('');
+                            const isLandingEnquiry = String(row.source || '').trim().toLowerCase() === 'landing page enquiry';
+                            const existingNotes = String(row.notes || '');
+                            const sizeMatch = existingNotes.match(/(?:^|\\s*\\|\\s*)Plot size:\\s*([^|]+)/i);
+                            const cleanNotes = existingNotes.replace(/(?:^|\\s*\\|\\s*)Plot size:\\s*[^|]+/i, '').replace(/^\\s*\\|\\s*|\\s*\\|\\s*$/g, '').trim();
+                            setEdit({
+                              id: row.id, customer_name: field(row, 'customer_name', 'name'), phone: field(row, 'phone', 'phone_number'),
+                              email: field(row, 'email'), plot_id: String(row.plot_id ?? ''), project_id: Number(row.project_id || 1),
+                              status: normalizedStatus(row.status), isLandingEnquiry, plot_size: sizeMatch?.[1]?.trim() || '', notes: cleanNotes,
+                            });
+                          }} disabled={saving}>Edit</button><button className="delete-btn" type="button" onClick={() => setDeleteTarget(row)} disabled={saving}>Delete</button></div></td>
                         </tr>;
                       })}
                       {!(page === 'bookings' ? paginatedBookings : visibleBookings.slice(0, 5)).length && <tr><td colSpan={(projectTab === 'all' ? 9 : 8) + (page === 'bookings' ? 1 : 0)} className="empty-cell">{selectedProjectBookings.length ? 'No bookings match your search.' : 'No bookings found in Supabase.'}</td></tr>}
@@ -585,21 +593,28 @@ export default function Dashboard() {
       {edit && <div className="edit-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setEdit(null); }}>
         <form className="edit-modal" onSubmit={e => { e.preventDefault(); saveBooking(edit, edit.id); }}>
           <button type="button" className="modal-close" onClick={() => setEdit(null)} aria-label="Close">×</button>
-          <p className="eyebrow">{edit.id == null ? 'MANUAL CUSTOMER ENTRY' : 'BOOKING #' + edit.id}</p><h2>{edit.id == null ? 'Add customer' : 'Edit booking'}</h2><p className="modal-copy">{edit.id == null ? 'Enter customer details and add them to the bookings table.' : 'Update customer details, unit and availability status.'}</p>
+          <p className="eyebrow">{edit.id == null ? 'MANUAL CUSTOMER ENTRY' : (edit.isLandingEnquiry ? 'LANDING PAGE ENQUIRY #' : 'BOOKING #') + edit.id}</p><h2>{edit.id == null ? 'Add customer' : edit.isLandingEnquiry ? 'Edit landing page enquiry' : 'Edit booking'}</h2><p className="modal-copy">{edit.id == null ? 'Enter customer details and add them to the bookings table.' : edit.isLandingEnquiry ? 'Update the customer details and enquiry information.' : 'Update customer details, unit and availability status.'}</p>
           <label>Customer Name<input value={edit.customer_name} onChange={e => setEdit(s => ({ ...s, customer_name: e.target.value }))} required maxLength={120} /></label>
           <label>Phone Number<input value={edit.phone} onChange={e => setEdit(s => ({ ...s, phone: e.target.value }))} required maxLength={25} /></label>
-          <label>Unit Number<select value={edit.plot_id} onChange={e => {
-            const selected = plots.find(plot => String(plot.id) === e.target.value);
-            setEdit(s => ({ ...s, plot_id: e.target.value, status: normalizedStatus(selected?.status) === 'Reserved' ? 'Reserved' : s.status }));
-          }} required>
-            <option value="" disabled>Select a unit</option>
-            {plots.filter(plot => {
-              const plotStatus = normalizedStatus(plot.status);
-              const sameProject = String(plot.project_id) === String(edit.project_id);
-              return sameProject && ((edit?.id != null && String(plot.id) === String(edit.plot_id)) || !['Booked', 'Sold'].includes(plotStatus));
-            }).map(plot => <option key={plot.id} value={String(plot.id)}>{field(plot, 'plot_number', 'unit_number')} (Plot ID: {plot.id})</option>)}
-          </select></label>
-          <label>Status<select value={edit.status} onChange={e => setEdit(s => ({ ...s, status: e.target.value }))}>{STATUSES.filter(s => edit.id != null || ['Available', 'Reserved'].includes(s.value)).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></label>
+          {edit.isLandingEnquiry ? <>
+            <label>Email Address<input type="email" value={edit.email} onChange={e => setEdit(s => ({ ...s, email: e.target.value }))} maxLength={120} /></label>
+            <label>Plot Size<input value={edit.plot_size} onChange={e => setEdit(s => ({ ...s, plot_size: e.target.value }))} maxLength={80} placeholder="e.g. 1200 sq.ft" /></label>
+            <label>Enquiry Message<textarea value={edit.notes} onChange={e => setEdit(s => ({ ...s, notes: e.target.value }))} maxLength={500} rows={4} /></label>
+            <p className="modal-copy">Source: Landing Page Enquiry · Project: {PROJECT_NAMES[edit.project_id] || ('Project ' + edit.project_id)}</p>
+          </> : <>
+            <label>Unit Number<select value={edit.plot_id} onChange={e => {
+              const selected = plots.find(plot => String(plot.id) === e.target.value);
+              setEdit(s => ({ ...s, plot_id: e.target.value, status: normalizedStatus(selected?.status) === 'Reserved' ? 'Reserved' : s.status }));
+            }} required>
+              <option value="" disabled>Select a unit</option>
+              {plots.filter(plot => {
+                const plotStatus = normalizedStatus(plot.status);
+                const sameProject = String(plot.project_id) === String(edit.project_id);
+                return sameProject && ((edit?.id != null && String(plot.id) === String(edit.plot_id)) || !['Booked', 'Sold'].includes(plotStatus));
+              }).map(plot => <option key={plot.id} value={String(plot.id)}>{field(plot, 'plot_number', 'unit_number')} (Plot ID: {plot.id})</option>)}
+            </select></label>
+            <label>Status<select value={edit.status} onChange={e => setEdit(s => ({ ...s, status: e.target.value }))}>{STATUSES.filter(s => edit.id != null || ['Available', 'Reserved'].includes(s.value)).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></label>
+          </>}
           {error && <p className="dash-error">{error}</p>}
           <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setEdit(null)}>Cancel</button><button className="primary-btn" disabled={saving}>{saving ? 'Saving…' : edit.id == null ? 'Add customer' : 'Save changes'}</button></div>
         </form>

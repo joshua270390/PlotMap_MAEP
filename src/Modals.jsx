@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { COMPANY, PHONE, PROJECT } from './config.js';
 import { NAMES, inr } from './plots.js';
 import { P } from './data.js';
+import { normalizeIndianMobile, INDIAN_MOBILE_ERROR } from './validation.js';
 
 const backdrop = onClose => ({ onPointerDown: e => { if (e.target === e.currentTarget) onClose(); } });
 
@@ -24,8 +25,8 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
   const draftArea = Number(draft.area);
   const applyContactDetails = () => {
     const field = confirmApply?.field;
-    const value = String(draft[field] || '').trim();
-    if (!value) { setEditError(`Enter a valid ${field === 'phone' ? 'Contact' : 'WhatsApp'} number.`); setConfirmApply(null); return; }
+    const value = normalizeIndianMobile(draft[field]);
+    if (!value) { setEditError(INDIAN_MOBILE_ERROR); setConfirmApply(null); return; }
     setAd(old => {
       const plotDetails = { ...(old.plotDetails || {}) };
       const ids = confirmApply.scope === 'all' ? (ax.geometry?.P || P).map(plot => String(plot[0])) : [String(id)];
@@ -37,8 +38,8 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
   const askApply = (field, scope) => { setEditError(''); setConfirmApply({ field, scope }); };
   const saveDetails = () => {
     if (!(draftArea > 0) || !Number.isFinite(draftArea)) { setEditError('Enter a valid Sq.ft. value.'); return; }
-    const phone = draft.phone.trim(), whatsapp = draft.whatsapp.trim();
-    if (!phone || !whatsapp) { setEditError('Enter both contact and WhatsApp numbers.'); return; }
+    const phone = normalizeIndianMobile(draft.phone), whatsapp = normalizeIndianMobile(draft.whatsapp);
+    if (!phone || !whatsapp) { setEditError(INDIAN_MOBILE_ERROR); return; }
     setAd(old => ({
       ...old,
       area: { ...(old.area || {}), [id]: draftArea },
@@ -91,12 +92,12 @@ export function UnitModal({ id, ax, status, setAd, onClose, onEnquire, onViewMap
             <div className="unit-edit-form">
               <div className="unit-contact-settings">
                 <div className="unit-contact-row">
-                  <label>Contact number<input type="tel" inputMode="tel" value={draft.phone} onChange={e => setDraft(v => ({ ...v, phone: e.target.value }))} /></label>
+                  <label>Contact number<input type="tel" inputMode="numeric" autoComplete="tel-national" maxLength={16} value={draft.phone} onChange={e => setDraft(v => ({ ...v, phone: e.target.value }))} /></label>
                   <button className="mbtn" type="button" onClick={() => askApply('phone', 'single')}>Apply for this plot</button>
                   <button className="unit-apply-all" type="button" onClick={() => askApply('phone', 'all')}>Apply to all</button>
                 </div>
                 <div className="unit-contact-row">
-                  <label>WhatsApp number<input type="tel" inputMode="tel" value={draft.whatsapp} onChange={e => setDraft(v => ({ ...v, whatsapp: e.target.value }))} /></label>
+                  <label>WhatsApp number<input type="tel" inputMode="numeric" autoComplete="tel-national" maxLength={16} value={draft.whatsapp} onChange={e => setDraft(v => ({ ...v, whatsapp: e.target.value }))} /></label>
                   <button className="mbtn" type="button" onClick={() => askApply('whatsapp', 'single')}>Apply for this plot</button>
                   <button className="unit-apply-all" type="button" onClick={() => askApply('whatsapp', 'all')}>Apply to all</button>
                 </div>
@@ -169,10 +170,10 @@ export function EnquiryModal({ id, ax, onClose }) {
   const set = k => e => setF(s => ({ ...s, [k]: e.target.value }));
 
   async function send() {
-    const n = f.n.trim(), e = f.e.trim(), p = f.p.trim(), digits = p.replace(/\D/g, '');
+    const n = f.n.trim(), e = f.e.trim(), p = normalizeIndianMobile(f.p);
     const fail = (k, m) => { setBad(k); setErr(m); };
     if (!n) return fail('n', 'Please enter your name.');
-    if (digits.length < 10 || digits.length > 13) return fail('p', 'Please enter a valid mobile number.');
+    if (!p) return fail('p', INDIAN_MOBILE_ERROR);
     if (e && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) return fail('e', 'Please enter a valid email or leave it empty.');
     setErr(''); setBad(''); setBusy(true);
     try {
@@ -203,7 +204,7 @@ export function EnquiryModal({ id, ax, onClose }) {
                 style={{ position: 'absolute', left: -9999, width: 1, height: 1, opacity: 0 }} />
               <label>Name<input autoFocus type="text" autoComplete="name" maxLength={80} className={bad === 'n' ? 'bad' : ''} value={f.n} onChange={set('n')} /></label>
               <label>Email <em>(optional)</em><input type="email" autoComplete="email" maxLength={120} className={bad === 'e' ? 'bad' : ''} value={f.e} onChange={set('e')} /></label>
-              <label>Mobile number<input type="tel" inputMode="tel" autoComplete="tel" maxLength={20} className={bad === 'p' ? 'bad' : ''} value={f.p} onChange={set('p')} /></label>
+              <label>Mobile number<input type="tel" inputMode="numeric" autoComplete="tel-national" maxLength={16} placeholder="98765 43210 or +91 98765 43210" className={bad === 'p' ? 'bad' : ''} value={f.p} onChange={set('p')} onBlur={() => setF(old => ({ ...old, p: normalizeIndianMobile(old.p) || old.p }))} /></label>
               <label>Message<textarea maxLength={500} value={f.m} onChange={set('m')} /></label>
               <p className="fe" role="alert">{err}</p>
               <button className="sub-btn" type="button" disabled={busy} onClick={send}><span>{busy ? 'Submitting\u2026' : 'Submit'}</span> &rarr;</button>

@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from 'node:crypto';
 // Independent project landing-page content. Public reads are slug-scoped; writes require Admin PIN.
 const out = (res, code, body) => { res.setHeader('Cache-Control', 'no-store'); return res.status(code).json(body); };
 const parseBody = req => { if (typeof req.body === 'string') { try { return JSON.parse(req.body); } catch { return null; } } return req.body && typeof req.body === 'object' ? req.body : null; };
@@ -13,7 +14,22 @@ async function db(cfg, method, query, body) {
     return response.ok ? { ok: true, status: response.status, data } : { ok: false, status: response.status, error: data?.message || data?.details || 'Database request failed' };
   } catch (error) { return { ok: false, status: 0, error: error.message || 'Network error' }; }
 }
+function isEmployee(req) {
+  const secret = process.env.EMPLOYEE_SESSION_SECRET || '';
+  const token = String(req.headers['x-employee-token'] || '');
+  if (!secret || !token) return false;
+  const [payload, signature] = token.split('.');
+  if (!payload || !signature) return false;
+  try {
+    const expected = createHmac('sha256', secret).update(payload).digest();
+    const actual = Buffer.from(signature, 'base64url');
+    if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) return false;
+    const claims = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    return claims.role === 'employee' && Number(claims.exp) > Math.floor(Date.now() / 1000);
+  } catch { return false; }
+}
 const isAdmin = (req, cfg) => !!cfg.pin && String(req.headers['x-admin-pin'] || '') === cfg.pin;
+const canManage = (req, cfg) => isAdmin(req, cfg) || isEmployee(req);
 export default async function handler(req, res) {
   const cfg = getConfig();
   if (!['GET','POST','PATCH','DELETE'].includes(req.method)) { res.setHeader('Allow','GET, POST, PATCH, DELETE'); return out(res,405,{ok:false,error:'Method not allowed'}); }
@@ -21,7 +37,7 @@ export default async function handler(req, res) {
   const slug = String(req.query?.slug || '').trim();
   if (req.method === 'GET') {
     const adminList = req.query?.all === '1';
-    if (adminList && !isAdmin(req,cfg)) return out(res,401,{ok:false,error:'Admin authentication failed.'});
+    if (adminList && !canManage(req,cfg)) return out(res,401,{ok:false,error:'Admin authentication failed.'});
     if (!adminList && !slugPattern.test(slug)) return out(res,400,{ok:false,error:'A valid project slug is required.'});
     const query = new URLSearchParams({ select: 'slug,content,updated_at', order: 'slug.asc' });
     if (!adminList) { query.set('slug','eq.' + slug); query.set('limit','1'); }
@@ -29,7 +45,7 @@ export default async function handler(req, res) {
     if (!result.ok) return out(res,502,{ok:false,error:'Could not load landing page content. Check that the layout_landing_pages table exists.'});
     return out(res,200,adminList ? {ok:true,pages:result.data || []} : {ok:true,page:(result.data || [])[0] || null});
   }
-  if (!isAdmin(req,cfg)) return out(res,401,{ok:false,error:'Admin authentication failed. Please sign in again.'});
+  if (!canManage(req,cfg)) return out(res,401,{ok:false,error:'Please sign in again.'});
   const body = parseBody(req);
   if (!body) return out(res,400,{ok:false,error:'Invalid request body.'});
   const targetSlug = String(body.slug || slug || '').trim();

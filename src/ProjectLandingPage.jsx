@@ -6,6 +6,7 @@ const visible = value => text(value).trim().length > 0;
 const safeUrl = value => /^https?:\/\//i.test(text(value).trim()) ? text(value).trim() : '';
 const cleanPhone = value => text(value).replace(/[^+\d]/g, '');
 const cleanWhatsApp = value => text(value).replace(/\D/g, '');
+const PROJECT_IDS = { velavan_nagar: 1, shanmuga_avenue: 2, saraswathi_garden: 3, meenakshi_garden_phase1: 4, meenakshi_garden_phase2: 5 };
 
 function LanguageText({ english, tamil, language, as: Tag = 'span', className = '' }) {
   const en = text(english), ta = text(tamil);
@@ -25,6 +26,7 @@ export default function ProjectLandingPage({ projectSlug }) {
   const [language, setLanguage] = useState('Both');
   const [siteTab, setSiteTab] = useState('location');
   const [formMessage, setFormMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     document.body.classList.add('lp-scroll-enabled');
@@ -70,9 +72,11 @@ export default function ProjectLandingPage({ projectSlug }) {
     document.title = (text(content?.hero?.title) || projectSlug.replaceAll('_', ' ')) + ' | Mary Ann Elite Properties';
   }, [content, projectSlug]);
 
-  const submitEnquiry = event => {
+  const submitEnquiry = async event => {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
+    if (submitting) return;
+    const form = event.currentTarget;
+    const data = new FormData(form);
     const name = text(data.get('name')).trim();
     const phoneNumber = text(data.get('phone')).trim();
     const size = text(data.get('size')).trim();
@@ -80,13 +84,36 @@ export default function ProjectLandingPage({ projectSlug }) {
       setFormMessage('Please enter your name and a valid phone number. / பெயர் மற்றும் சரியான தொலைபேசி எண்ணை உள்ளிடவும்.');
       return;
     }
-    if (!whatsappHref) {
-      setFormMessage('WhatsApp number is not configured yet. Please call us.');
-      return;
-    }
     setFormMessage('');
-    const message = 'Hi, I am ' + name + '. Phone: ' + phoneNumber + (size ? '. Plot size: ' + size : '') + '. I am interested in ' + (text(content?.hero?.title) || projectSlug) + '. Please call me.';
-    window.open(whatsappHref + '?text=' + encodeURIComponent(message), '_blank', 'noopener,noreferrer');
+    setSubmitting(true);
+    const whatsappWindow = whatsappHref ? window.open('', '_blank') : null;
+    const whatsappMessage = 'Hi, I am ' + name + '. Phone: ' + phoneNumber + (size ? '. Plot size: ' + size : '') + '. I am interested in ' + (text(content?.hero?.title) || projectSlug) + '. Please call me.';
+    try {
+      const response = await fetch('/api/enquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: PROJECT_IDS[projectSlug],
+          name,
+          phone: phoneNumber,
+          plot_size: size,
+          message: size ? 'Plot size required: ' + size : 'Landing page enquiry',
+          source: 'Landing Page Enquiry',
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.error || 'Could not save your enquiry. Please try again.');
+      setFormMessage('Your enquiry has been submitted successfully. Our team will contact you soon.');
+      form.reset();
+      if (whatsappWindow && whatsappHref) {
+        whatsappWindow.location.href = whatsappHref + '?text=' + encodeURIComponent(whatsappMessage);
+      }
+    } catch (error) {
+      if (whatsappWindow) whatsappWindow.close();
+      setFormMessage(error.message || 'Could not submit your enquiry. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) return <main className="lp-page"><div className="lp-state">Loading project information…</div></main>;
@@ -114,6 +141,7 @@ export default function ProjectLandingPage({ projectSlug }) {
               {phone && <a className="lp-button" href={'tel:' + phone}>☎ {contact.callLabel || 'Call Now'}</a>}
               {whatsappHref && <a className="lp-button lp-button-green" href={whatsappHref} target="_blank" rel="noreferrer">▣ {contact.whatsappLabel || 'WhatsApp Us'}</a>}
               <a className="lp-button lp-button-orange" href="#enquiry">⌖ {contact.visitLabel || 'Book Site Visit'}</a>
+              <a className="lp-button" href={'/' + projectSlug + '/layout'}>▦ View Layout</a>
             </div>
           </div>
           <div className="lp-hero-image">
@@ -167,7 +195,8 @@ export default function ProjectLandingPage({ projectSlug }) {
           <label><LanguageText english={enquiry.nameLabel || 'Your Name'} tamil={enquiry.nameLabelTa || 'உங்கள் பெயர்'} language={language}/><input name="name" type="text" autoComplete="name" required/></label>
           <label><LanguageText english={enquiry.phoneLabel || 'Phone / WhatsApp Number'} tamil={enquiry.phoneLabelTa || 'தொலைபேசி / WhatsApp எண்'} language={language}/><input name="phone" type="tel" inputMode="tel" autoComplete="tel" required/></label>
           <label><LanguageText english={enquiry.plotSizeLabel || 'Plot size needed'} tamil={enquiry.plotSizeLabelTa || 'தேவையான மனை அளவு'} language={language}/><select name="size" defaultValue=""><option value="">Select / தேர்வு செய்யவும்</option><option>600 sq.ft</option><option>800 sq.ft</option><option>1000 sq.ft</option><option>1200 sq.ft</option><option>1200+ sq.ft</option></select></label>
-          <button type="submit">{enquiry.submitLabel || 'Submit on WhatsApp'} 💬</button>
+          <input type="text" name="website" tabIndex="-1" autoComplete="off" aria-hidden="true" className="lp-honeypot" />
+          <button type="submit" disabled={submitting}>{submitting ? 'Submitting…' : (enquiry.submitLabel || 'Submit Enquiry') } 💬</button>
           {formMessage && <p className="lp-form-message" role="status">{formMessage}</p>}
         </form>
       </section>

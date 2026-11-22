@@ -120,3 +120,4 @@
   .lp-footer span{width:100%}
 }
 @media(prefers-reduced-motion:reduce){.lp-button{transition:none}}
+\n\n/* Allow normal document scrolling only on the public landing page. */\nbody.lp-scroll-enabled{display:block!important;height:auto!important;min-height:100vh;overflow-x:hidden!important;overflow-y:auto!important}\n

@@ -58,6 +58,7 @@ export default async function handler(request) {
   const email = String(input.email ?? "").trim();
   const phone = String(input.phone ?? "").trim();
   const plotNumber = String(input.plot_number ?? "").trim();
+  const plotSize = String(input.plot_size ?? "").trim();
   let message = String(input.message ?? "").trim();
   const digits = phone.replace(/\D/g, "");
   if (!name || name.length > 80) return json({ ok: false, error: "Please enter your name." }, 422);
@@ -65,24 +66,30 @@ export default async function handler(request) {
     return json({ ok: false, error: "Please enter a valid mobile number." }, 422);
   if (email && (email.length > 120 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)))
     return json({ ok: false, error: "Please enter a valid email." }, 422);
-  if (!/^[A-Za-z0-9-]{1,20}$/.test(plotNumber)) return json({ ok: false, error: "Invalid unit number." }, 422);
+  if (plotNumber && !/^[A-Za-z0-9-]{1,20}$/.test(plotNumber)) return json({ ok: false, error: "Invalid unit number." }, 422);
+  if (plotSize.length > 80) return json({ ok: false, error: "Invalid plot size." }, 422);
   if (message.length > 500) message = message.slice(0, 500);
 
-  const lookupQuery = new URLSearchParams({ select: "id,status", project_id: "eq." + projectId, plot_number: "eq." + plotNumber, limit: "1" });
-  const plot = await db(url, key, "GET", plotsTable, lookupQuery.toString());
-  if (!plot.ok) {
-    console.error("[enquiry] Plot lookup failed:", plot.error);
-    return json({ ok: false, error: "Could not verify this unit. Please try again." }, 502);
+  let plotId = null;
+  if (plotNumber) {
+    const lookupQuery = new URLSearchParams({ select: "id,status", project_id: "eq." + projectId, plot_number: "eq." + plotNumber, limit: "1" });
+    const plot = await db(url, key, "GET", plotsTable, lookupQuery.toString());
+    if (!plot.ok) {
+      console.error("[enquiry] Plot lookup failed:", plot.error);
+      return json({ ok: false, error: "Could not verify this unit. Please try again." }, 502);
+    }
+    if (!Array.isArray(plot.data) || !plot.data.length) return json({ ok: false, error: "This unit was not found for the selected project." }, 404);
+    const inventoryStatus = String(plot.data[0].status || "Available").trim().toLowerCase();
+    // Reserved units still accept additional enquiries. Only Booked and Sold are closed.
+    if (!["available", "reserved"].includes(inventoryStatus))
+      return json({ ok: false, error: "Sorry, this unit is no longer available." }, 409);
+    plotId = Number(plot.data[0].id);
   }
-  if (!Array.isArray(plot.data) || !plot.data.length) return json({ ok: false, error: "This unit was not found for the selected project." }, 404);
-  const inventoryStatus = String(plot.data[0].status || "Available").trim().toLowerCase();
-  // Reserved units still accept additional enquiries. Only Booked and Sold are closed.
-  if (!["available", "reserved"].includes(inventoryStatus))
-    return json({ ok: false, error: "Sorry, this unit is no longer available." }, 409);
 
+  const notes = [message, plotSize ? "Plot size: " + plotSize : ""].filter(Boolean).join(" | ");
   const inserted = await db(url, key, "POST", bookingsTable, "", {
-    project_id: Number(projectId), status: "New", source: "Website",
-    customer_name: name, email: email || null, phone, notes: message || null, plot_id: Number(plot.data[0].id),
+    project_id: Number(projectId), status: "New", source: "Landing Page Enquiry",
+    customer_name: name, email: email || null, phone, notes: notes || null, plot_id: plotId,
   });
   if (!inserted.ok) {
     console.error("[enquiry] Booking insert failed:", inserted.status, inserted.error);

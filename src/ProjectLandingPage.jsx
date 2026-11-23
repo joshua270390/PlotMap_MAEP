@@ -79,7 +79,7 @@ export default function ProjectLandingPage({ projectSlug }) {
     const name = text(data.get('name')).trim();
     const phoneNumber = text(data.get('phone')).trim();
     const size = text(data.get('size')).trim();
-    if (!name || !/^[0-9+\\s-]{10,15}$/.test(phoneNumber)) {
+    if (!name || !/^[0-9+\s-]{10,15}$/.test(phoneNumber)) {
       setFormMessage('Please enter your name and a valid phone number. / பெயர் மற்றும் சரியான தொலைபேசி எண்ணை உள்ளிடவும்.');
       return;
     }

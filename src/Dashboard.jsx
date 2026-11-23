@@ -331,10 +331,9 @@ export default function Dashboard() {
   const visibleBookings = useMemo(() => bookings.filter(row => {
     const plot = plotById.get(String(row.project_id) + ':' + String(row.plot_id)) || plotById.get(String(row.plot_id));
     const unit = field(plot, 'plot_number', 'unit_number');
-    const isLandingEnquiry = String(row.source || '').trim().toLowerCase() === 'landing page enquiry';
-    const text = [row.id, row.customer_name, row.phone, row.plot_id, unit, row.source, row.notes, row.plot_size].map(v => String(v ?? '')).join(' ').toLowerCase();
+    const text = [row.id, row.customer_name, row.phone, row.plot_id, unit].map(v => String(v ?? '')).join(' ').toLowerCase();
     const matchesSearch = text.includes(search.toLowerCase().trim());
-    const matchesStatus = statusFilter === 'All' || (statusFilter === 'New Enquiry' ? isLandingEnquiry : !isLandingEnquiry && normalizedStatus(row.status) === statusFilter);
+    const matchesStatus = statusFilter === 'All' || normalizedStatus(row.status) === statusFilter;
     const matchesProject = page !== 'bookings' || projectTab === 'all' || String(row.project_id) === String(PROJECT_IDS[projectTab]);
     return matchesSearch && matchesStatus && matchesProject;
   }), [bookings, plotById, search, statusFilter, projectTab, page]);
@@ -460,14 +459,14 @@ export default function Dashboard() {
                   <div className="booking-toolbar-actions">
                     {page === 'bookings' && <button type="button" className="add-customer-btn" onClick={() => { setError(''); setEdit({ id: null, customer_name: '', phone: '', plot_id: '', status: 'Available', project_id: PROJECT_IDS[projectTab === 'all' ? 'velavan_nagar' : projectTab] }); }}>Add Customers +</button>}
                     <select className="filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} aria-label="Filter by status">
-                      <option value="All">All statuses</option><option value="New Enquiry">New Enquiry</option>{STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                      <option value="All">All statuses</option>{STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                     </select>
                   </div>
                 </div>
                 {page === 'bookings' && <div className="booking-bulk-toolbar"><span>{selectedBookingKeys.length} selected</span><button type="button" className="delete-btn" onClick={() => setBulkDeleteConfirm(true)} disabled={!selectedBookingRows.length || saving}>Delete selected</button></div>}
                 {loading ? <div className="table-state">Loading bookings from Supabase…</div> : (
                   <div className="table-scroll"><table className="data-table">
-                    <thead><tr>{page === 'bookings' && <th><input type="checkbox" aria-label="Select all bookings on this page" checked={allCurrentPageSelected} onChange={e => togglePageSelection(e.target.checked)} /></th>}<th>ID</th>{projectTab === 'all' && <th>Project</th>}<th>Customer Name</th><th>Phone Number</th><th>Source</th><th>Plot Id</th><th>Unit Number</th><th>Status</th><th>Action</th></tr></thead>
+                    <thead><tr>{page === 'bookings' && <th><input type="checkbox" aria-label="Select all bookings on this page" checked={allCurrentPageSelected} onChange={e => togglePageSelection(e.target.checked)} /></th>}<th>ID</th>{projectTab === 'all' && <th>Project</th>}<th>Customer Name</th><th>Phone Number</th><th>Plot Id</th><th>Unit Number</th><th>Status</th><th>Action</th></tr></thead>
                     <tbody>
                       {(page === 'bookings' ? paginatedBookings : visibleBookings.slice(0, 5)).map(row => {
                         const plot = plotById.get(String(row.project_id) + ':' + String(row.plot_id)) || plotById.get(String(row.plot_id));
@@ -477,10 +476,9 @@ export default function Dashboard() {
                           {projectTab === 'all' && <td><span className="unit-pill">{PROJECT_NAMES[row.project_id] || ('Project ' + row.project_id)}</span></td>}
                           <td><strong>{field(row, 'customer_name', 'name') || '—'}</strong></td>
                           <td>{field(row, 'phone', 'phone_number') || '—'}</td>
-                          <td><span className="unit-pill">{row.source || 'Manual Entry'}</span></td>
                           <td>{row.plot_id ?? '—'}</td>
                           <td><span className="unit-pill">{field(plot, 'plot_number', 'unit_number') || '—'}</span></td>
-                          <td>{String(row.source || '').trim().toLowerCase() === 'landing page enquiry' ? (STATUSES.some(item => item.value.toLowerCase() === String(row.status || '').trim().toLowerCase()) ? <span className={'status-select status-' + normalizedStatus(row.status).toLowerCase()}>{statusLabel(row.status)}</span> : <span className="status-select status-available">New Enquiry</span>) : role === 'employee' ? <span className={'status-select status-' + normalizedStatus(row.status).toLowerCase()}>{statusLabel(row.status)}</span> : <select className={'status-select status-' + normalizedStatus(row.status).toLowerCase()} value={normalizedStatus(row.status)} onChange={e => saveBooking({
+                          <td>{role === 'employee' ? <span className={'status-select status-' + normalizedStatus(row.status).toLowerCase()}>{statusLabel(row.status)}</span> : <select className={'status-select status-' + normalizedStatus(row.status).toLowerCase()} value={normalizedStatus(row.status)} onChange={e => saveBooking({
                             customer_name: field(row, 'customer_name', 'name'),
                             phone: field(row, 'phone', 'phone_number'),
                             plot_id: row.plot_id,
@@ -489,19 +487,13 @@ export default function Dashboard() {
                           }, row.id, true)} disabled={saving} aria-label={'Status for booking ' + row.id}>
                             {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                           </select>}</td>
-                          <td><div className="row-actions"><button className="edit-btn" type="button" onClick={() => {
-                            setError('');
-                            const isLandingEnquiry = String(row.source || '').trim().toLowerCase() === 'landing page enquiry';
-                            const existingNotes = String(row.notes || '');
-                            setEdit({
-                              id: row.id, customer_name: field(row, 'customer_name', 'name'), phone: field(row, 'phone', 'phone_number'),
-                              email: field(row, 'email'), plot_id: String(row.plot_id ?? ''), project_id: Number(row.project_id || 1),
-                              status: STATUSES.some(item => item.value.toLowerCase() === String(row.status || '').trim().toLowerCase()) ? normalizedStatus(row.status) : 'Available', isLandingEnquiry, notes: existingNotes,
-                            });
-                          }} disabled={saving}>Edit</button><button className="delete-btn" type="button" onClick={() => setDeleteTarget(row)} disabled={saving}>Delete</button></div></td>
+                          <td><div className="row-actions"><button className="edit-btn" type="button" onClick={() => { setError(''); setEdit({
+                            id: row.id, customer_name: field(row, 'customer_name', 'name'), phone: field(row, 'phone', 'phone_number'),
+                            plot_id: String(row.plot_id ?? ''), project_id: Number(row.project_id || 1), status: normalizedStatus(row.status),
+                          }); }} disabled={saving}>Edit</button><button className="delete-btn" type="button" onClick={() => setDeleteTarget(row)} disabled={saving}>Delete</button></div></td>
                         </tr>;
                       })}
-                      {!(page === 'bookings' ? paginatedBookings : visibleBookings.slice(0, 5)).length && <tr><td colSpan={(projectTab === 'all' ? 9 : 8) + (page === 'bookings' ? 1 : 0)} className="empty-cell">{selectedProjectBookings.length ? 'No bookings match your search.' : 'No bookings found in Supabase.'}</td></tr>}
+                      {!(page === 'bookings' ? paginatedBookings : visibleBookings.slice(0, 5)).length && <tr><td colSpan={(projectTab === 'all' ? 8 : 7) + (page === 'bookings' ? 1 : 0)} className="empty-cell">{selectedProjectBookings.length ? 'No bookings match your search.' : 'No bookings found in Supabase.'}</td></tr>}
                     </tbody>
                   </table></div>
                 )}
@@ -591,39 +583,21 @@ export default function Dashboard() {
       {edit && <div className="edit-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setEdit(null); }}>
         <form className="edit-modal" onSubmit={e => { e.preventDefault(); saveBooking(edit, edit.id); }}>
           <button type="button" className="modal-close" onClick={() => setEdit(null)} aria-label="Close">×</button>
-          <p className="eyebrow">{edit.id == null ? 'MANUAL CUSTOMER ENTRY' : (edit.isLandingEnquiry ? 'LANDING PAGE ENQUIRY #' : 'BOOKING #') + edit.id}</p><h2>{edit.id == null ? 'Add customer' : edit.isLandingEnquiry ? 'Edit landing page enquiry' : 'Edit booking'}</h2><p className="modal-copy">{edit.id == null ? 'Enter customer details and add them to the bookings table.' : edit.isLandingEnquiry ? 'Update the customer details and enquiry information.' : 'Update customer details, unit and availability status.'}</p>
+          <p className="eyebrow">{edit.id == null ? 'MANUAL CUSTOMER ENTRY' : 'BOOKING #' + edit.id}</p><h2>{edit.id == null ? 'Add customer' : 'Edit booking'}</h2><p className="modal-copy">{edit.id == null ? 'Enter customer details and add them to the bookings table.' : 'Update customer details, unit and availability status.'}</p>
           <label>Customer Name<input value={edit.customer_name} onChange={e => setEdit(s => ({ ...s, customer_name: e.target.value }))} required maxLength={120} /></label>
           <label>Phone Number<input value={edit.phone} onChange={e => setEdit(s => ({ ...s, phone: e.target.value }))} required maxLength={25} /></label>
-          {edit.isLandingEnquiry ? <>
-            <label>Email Address<input type="email" value={edit.email} onChange={e => setEdit(s => ({ ...s, email: e.target.value }))} maxLength={120} /></label>
-            <label>Unit Number<select value={edit.plot_id} onChange={e => {
-              const selected = plots.find(plot => String(plot.id) === e.target.value);
-              setEdit(s => ({ ...s, plot_id: e.target.value, status: e.target.value ? (normalizedStatus(selected?.status) === 'Reserved' ? 'Reserved' : s.status) : s.status }));
-            }}>
-              <option value="">Not assigned</option>
-              {plots.filter(plot => {
-                const plotStatus = normalizedStatus(plot.status);
-                const sameProject = String(plot.project_id) === String(edit.project_id);
-                return sameProject && ((edit.plot_id && String(plot.id) === String(edit.plot_id)) || !['Booked', 'Sold'].includes(plotStatus));
-              }).map(plot => <option key={plot.id} value={String(plot.id)}>{field(plot, 'plot_number', 'unit_number')} (Plot ID: {plot.id})</option>)}
-            </select></label>
-            <label>Status<select value={edit.status} onChange={e => setEdit(s => ({ ...s, status: e.target.value }))}>{STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></label>
-            <label>Enquiry Message<textarea value={edit.notes} onChange={e => setEdit(s => ({ ...s, notes: e.target.value }))} maxLength={500} rows={4} /></label>
-            <p className="modal-copy">Source: Landing Page Enquiry · Project: {PROJECT_NAMES[edit.project_id] || ('Project ' + edit.project_id)}</p>
-          </> : <>
-            <label>Unit Number<select value={edit.plot_id} onChange={e => {
-              const selected = plots.find(plot => String(plot.id) === e.target.value);
-              setEdit(s => ({ ...s, plot_id: e.target.value, status: normalizedStatus(selected?.status) === 'Reserved' ? 'Reserved' : s.status }));
-            }} required>
-              <option value="" disabled>Select a unit</option>
-              {plots.filter(plot => {
-                const plotStatus = normalizedStatus(plot.status);
-                const sameProject = String(plot.project_id) === String(edit.project_id);
-                return sameProject && ((edit?.id != null && String(plot.id) === String(edit.plot_id)) || !['Booked', 'Sold'].includes(plotStatus));
-              }).map(plot => <option key={plot.id} value={String(plot.id)}>{field(plot, 'plot_number', 'unit_number')} (Plot ID: {plot.id})</option>)}
-            </select></label>
-            <label>Status<select value={edit.status} onChange={e => setEdit(s => ({ ...s, status: e.target.value }))}>{STATUSES.filter(s => edit.id != null || ['Available', 'Reserved'].includes(s.value)).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></label>
-          </>}
+          <label>Unit Number<select value={edit.plot_id} onChange={e => {
+            const selected = plots.find(plot => String(plot.id) === e.target.value);
+            setEdit(s => ({ ...s, plot_id: e.target.value, status: normalizedStatus(selected?.status) === 'Reserved' ? 'Reserved' : s.status }));
+          }} required>
+            <option value="" disabled>Select a unit</option>
+            {plots.filter(plot => {
+              const plotStatus = normalizedStatus(plot.status);
+              const sameProject = String(plot.project_id) === String(edit.project_id);
+              return sameProject && ((edit?.id != null && String(plot.id) === String(edit.plot_id)) || !['Booked', 'Sold'].includes(plotStatus));
+            }).map(plot => <option key={plot.id} value={String(plot.id)}>{field(plot, 'plot_number', 'unit_number')} (Plot ID: {plot.id})</option>)}
+          </select></label>
+          <label>Status<select value={edit.status} onChange={e => setEdit(s => ({ ...s, status: e.target.value }))}>{STATUSES.filter(s => edit.id != null || ['Available', 'Reserved'].includes(s.value)).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></label>
           {error && <p className="dash-error">{error}</p>}
           <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setEdit(null)}>Cancel</button><button className="primary-btn" disabled={saving}>{saving ? 'Saving…' : edit.id == null ? 'Add customer' : 'Save changes'}</button></div>
         </form>

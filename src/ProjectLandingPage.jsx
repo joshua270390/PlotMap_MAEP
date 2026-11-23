@@ -6,7 +6,6 @@ const visible = value => text(value).trim().length > 0;
 const safeUrl = value => /^https?:\/\//i.test(text(value).trim()) ? text(value).trim() : '';
 const cleanPhone = value => text(value).replace(/[^+\d]/g, '');
 const cleanWhatsApp = value => text(value).replace(/\D/g, '');
-const PROJECT_IDS = { velavan_nagar: 1, shanmuga_avenue: 2, saraswathi_garden: 3, meenakshi_garden_phase1: 4, meenakshi_garden_phase2: 5 };
 
 function LanguageText({ english, tamil, language, as: Tag = 'span', className = '' }) {
   const en = text(english), ta = text(tamil);
@@ -72,7 +71,7 @@ export default function ProjectLandingPage({ projectSlug }) {
     document.title = (text(content?.hero?.title) || projectSlug.replaceAll('_', ' ')) + ' | Mary Ann Elite Properties';
   }, [content, projectSlug]);
 
-  const submitEnquiry = async event => {
+  const submitEnquiry = event => {
     event.preventDefault();
     if (submitting) return;
     const form = event.currentTarget;
@@ -80,40 +79,18 @@ export default function ProjectLandingPage({ projectSlug }) {
     const name = text(data.get('name')).trim();
     const phoneNumber = text(data.get('phone')).trim();
     const size = text(data.get('size')).trim();
-    if (!name || !/^[0-9+\s-]{10,15}$/.test(phoneNumber)) {
+    if (!name || !/^[0-9+\\s-]{10,15}$/.test(phoneNumber)) {
       setFormMessage('Please enter your name and a valid phone number. / பெயர் மற்றும் சரியான தொலைபேசி எண்ணை உள்ளிடவும்.');
       return;
     }
-    setFormMessage('');
-    setSubmitting(true);
     const whatsappWindow = whatsappHref ? window.open('', '_blank') : null;
     const whatsappMessage = 'Hi, I am ' + name + '. Phone: ' + phoneNumber + (size ? '. Plot size: ' + size : '') + '. I am interested in ' + (text(content?.hero?.title) || projectSlug) + '. Please call me.';
-    try {
-      const response = await fetch('/api/enquiry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          project_id: PROJECT_IDS[projectSlug],
-          name,
-          phone: phoneNumber,
-          website: text(data.get('website')),
-          plot_size: size,
-          message: size ? 'Plot size required: ' + size : 'Landing page enquiry',
-          source: 'Landing Page Enquiry',
-        }),
-      });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || !result.ok) throw new Error(result.error || 'Could not save your enquiry. Please try again.');
-      setFormMessage('Your enquiry has been submitted successfully. Our team will contact you soon.');
-      form.reset();
-      if (whatsappWindow && whatsappHref) {
-        whatsappWindow.location.href = whatsappHref + '?text=' + encodeURIComponent(whatsappMessage);
-      }
-    } catch (error) {
-      if (whatsappWindow) whatsappWindow.close();
-      setFormMessage(error.message || 'Could not submit your enquiry. Please try again.');
-    } finally {
-      setSubmitting(false);
+    setFormMessage(whatsappHref
+      ? 'Your enquiry is ready. Please send the message in WhatsApp to reach our team.'
+      : 'Thank you. Please call our team to share your enquiry.');
+    form.reset();
+    if (whatsappWindow && whatsappHref) {
+      whatsappWindow.location.href = whatsappHref + '?text=' + encodeURIComponent(whatsappMessage);
     }
   };
 

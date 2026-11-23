@@ -89,8 +89,10 @@ export default function ProjectLandingPage({ projectSlug }) {
       ? 'Your enquiry is ready. Please send the message in WhatsApp to reach our team.'
       : 'Thank you. Please call our team to share your enquiry.');
     form.reset();
-    if (whatsappWindow && whatsappHref) {
-      whatsappWindow.location.href = whatsappHref + '?text=' + encodeURIComponent(whatsappMessage);
+    if (whatsappHref) {
+      const whatsappUrl = whatsappHref + '?text=' + encodeURIComponent(whatsappMessage);
+      if (whatsappWindow) whatsappWindow.location.href = whatsappUrl;
+      else window.location.href = whatsappUrl;
     }
   };
 

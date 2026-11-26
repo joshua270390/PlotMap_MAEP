@@ -47,5 +47,3 @@ Two projects share the same workflow and design as Velavan Nagar, Saraswathi Gar
 | --- | --- | --- | --- | --- |
 | Sri Meenakshi Garden - Phase 1 | `/meenakshi_garden_phase1` | 4 | `src/meenakshiPhase1Geometry.js` | 42 |
 | Sri Meenakshi Garden - Phase 2 | `/meenakshi_garden_phase2` | 5 | `src/meenakshiPhase2Geometry.js` | 49 |
-
-Run `supabase/reconcile_dashboard_inventory.sql` in the Supabase SQL Editor to insert any missing Meenakshi Phase 1/2 inventory rows and inspect Saraswathi duplicate/out-of-range rows. The script does not overwrite existing statuses or delete any records.

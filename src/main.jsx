@@ -43,7 +43,7 @@ window.setInterval(async () => {
   } catch { /* offline: try again next beat */ }
 }, 30000);
 
-const dashboardPaths = ['/dashboard', '/bookings', '/plot_lists'];
+const dashboardPaths = ['/dashboard', '/bookings', '/plot_lists', '/users', '/layout_landing', '/create_plots'];
 const mapRoutes = new Set(['velavan_nagar', 'saraswathi_garden', 'shanmuga_avenue', 'meenakshi_garden_phase1', 'meenakshi_garden_phase2']);
 const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
 const isDashboard = dashboardPaths.includes(currentPath);
@@ -51,10 +51,29 @@ const routeParts = currentPath.split('/').filter(Boolean);
 const routeId = routeParts[0] || '';
 const isProjectRoute = routeParts.length === 1 && mapRoutes.has(routeId);
 const isMapRoute = routeParts.length === 2 && mapRoutes.has(routeId) && routeParts[1] === 'layout';
-if (!isDashboard && currentPath !== '/' && !isProjectRoute && !isMapRoute) window.location.replace('/plot_lists');
+const isCustomProjectRoute = routeParts.length === 1 && !isDashboard && !isProjectRoute && currentPath !== '/';
+const root = createRoot(document.getElementById('root'));
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    {currentPath === '/' ? <LandingPage /> : isDashboard ? <Dashboard /> : isProjectRoute ? <ProjectLandingPage projectSlug={routeId} /> : isMapRoute ? <App projectSlug={routeId} /> : <Dashboard />}
-  </StrictMode>
-);
+if (currentPath === '/') {
+  root.render(<StrictMode><LandingPage /></StrictMode>);
+} else if (isDashboard) {
+  root.render(<StrictMode><Dashboard /></StrictMode>);
+} else if (isProjectRoute) {
+  root.render(<StrictMode><ProjectLandingPage projectSlug={routeId} /></StrictMode>);
+} else if (isMapRoute) {
+  root.render(<StrictMode><App projectSlug={routeId} /></StrictMode>);
+} else if (isCustomProjectRoute) {
+  root.render(<StrictMode><main className="project-load-state"><div>Loading project…</div></main></StrictMode>);
+  fetch('/api/projects', { cache: 'no-store' })
+    .then(async response => {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error('Project registry unavailable');
+      const project = (data.projects || []).find(item => item.customProjectId != null &&
+        (item.slug === routeId || item.route === currentPath));
+      if (!project?.geometry?.P?.length) throw new Error('Project not found');
+      root.render(<StrictMode><App projectSlug={project.slug} /></StrictMode>);
+    })
+    .catch(() => window.location.replace('/plot_lists'));
+} else {
+  window.location.replace('/plot_lists');
+}

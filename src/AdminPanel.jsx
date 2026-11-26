@@ -373,10 +373,10 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, cv, 
   const saveCustomer = async event => {
     event.preventDefault();
     if (customerBusy) return;
-    const phone = normalizeIndianMobile(customerForm.phone);
-    if (!phone) { setCustomerError(INDIAN_MOBILE_ERROR); return; }
     setCustomerBusy(true); setCustomerError(''); setCustomerNotice('');
     try {
+      const phone = normalizeIndianMobile(customerForm.phone);
+      if (!phone) { setCustomerError(INDIAN_MOBILE_ERROR); return; }
       const response = await fetch('/api/admin-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': authPin }) },
@@ -489,7 +489,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, cv, 
             setCustomerForm(old => ({ ...old, plot_id: event.target.value, status: String(selected?.status || '').toLowerCase() === 'reserved' ? 'Reserved' : old.status }));
           }} required disabled={customerLoading || customerBusy || !customerPlots.length || (sel != null && customerPlots.some(plot => String(plot.id) === String(customerForm.plot_id) && String(plot.plot_number ?? plot.unit_number ?? plot.plot_no ?? plot.unit_no ?? '') === String(sel)))}>
           <option value="" disabled>{customerLoading ? 'Loading units…' : 'Select a unit'}</option>
-          {customerPlots.filter(plot => String(plot.id) === String(customerForm.plot_id) || !['booked', 'sold'].includes(String(plot.status || 'Available').trim().toLowerCase())).map(plot => <option key={plot.id} value={String(plot.id)}>{String(plot.plot_number ?? plot.unit_number ?? plot.id)}{String(plot.status || '').toLowerCase() === 'reserved' ? ' · Reserved' : ''} (Plot ID: {plot.id})</option>)}
+          {customerPlots.filter(plot => String(plot.id) === String(customerForm.plot_id) || !['booked', 'sold'].includes(String(plot.status || 'Available').trim().toLowerCase())).map(plot => <option key={plot.id} value={String(plot.id)}>{ax.lbl(Number(plot.plot_number ?? plot.unit_number ?? plot.id))}{String(plot.status || '').toLowerCase() === 'reserved' ? ' · Reserved' : ''} (Plot ID: {plot.id})</option>)}
         </select></label>
         <label>Status<select value={customerForm.status} onChange={event => setCustomerForm(old => ({ ...old, status: event.target.value }))}>
           <option value="Available">Available</option><option value="Reserved">Reserved</option><option value="Booked">Booked</option><option value="Sold">Sold</option>

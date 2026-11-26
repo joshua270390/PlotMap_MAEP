@@ -27,12 +27,32 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [analysed, setAnalysed] = useState(false);
+  const [analysisJobId, setAnalysisJobId] = useState("");
   const set = key => event => setForm(value => ({ ...value, [key]: event.target.value }));
   const chooseFile = event => {
     const file = event.target.files?.[0] || null;
     setForm(value => ({ ...value, file, ...(editingProject ? {} : { geometry: null }) }));
-    setAnalysed(false); setError(""); setNotice("");
+    setAnalysed(false); setAnalysisJobId(""); setError(""); setNotice("");
   };
+  async function waitForAnalysis(jobId, attempts = 180) {
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await fetch("/api/create-project?action=analysis-status&job_id=" + encodeURIComponent(jobId), {
+        headers: authHeaders, cache: "no-store",
+      });
+      const status = await response.json().catch(() => ({}));
+      if (!response.ok || !status.ok) throw new Error(status.error || "Could not check AI analysis status.");
+      if (status.status === "completed" && status.result?.geometry?.P?.length) return status.result;
+      if (status.status === "failed") throw new Error(status.error || "AI analysis failed. Please try another source file.");
+      setNotice("AI is analysing your plan in the background. Please keep this page open… (" + Math.round((attempt + 1) * 2) + "s)");
+    }
+    return null;
+  }
+  function applyAnalysis(result) {
+    setForm(value => ({ ...value, geometry: result.geometry, notes: result.notes || "", plots: result.plots || [] }));
+    setAnalysed(true); setAnalysisJobId("");
+    setNotice("AI draft ready. Review the extracted plot map before saving.");
+  }
   async function analyse() {
     if (!form.file) { setError("Please choose a PDF or image first."); return; }
     setBusy(true); setError(""); setNotice("");
@@ -40,11 +60,22 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
       const data = new FormData(); data.append("file", form.file);
       const response = await fetch("/api/create-project?action=analyze", { method: "POST", headers: authHeaders, body: data });
       const result = await response.json().catch(() => ({}));
-      if (!response.ok || !result.ok) throw new Error(result.error || "Could not analyse the layout.");
-      setForm(value => ({ ...value, geometry: result.geometry, notes: result.notes || "", plots: result.plots || [] }));
-      setAnalysed(true);
-      setNotice("AI draft ready. Review the extracted plot map before saving.");
+      if (!response.ok || !result.ok || !result.job_id) throw new Error(result.error || "Could not start AI analysis.");
+      setAnalysisJobId(result.job_id);
+      const completed = await waitForAnalysis(result.job_id);
+      if (completed) applyAnalysis(completed);
+      else setNotice("AI analysis is still running. Use Check Status to continue without uploading the file again.");
     } catch (e) { setError(e.message || "AI analysis failed."); }
+    finally { setBusy(false); }
+  }
+  async function checkAnalysisStatus() {
+    if (!analysisJobId || busy) return;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const completed = await waitForAnalysis(analysisJobId, 60);
+      if (completed) applyAnalysis(completed);
+      else setNotice("AI analysis is still running. You can check its status again shortly.");
+    } catch (e) { setError(e.message || "Could not check AI analysis status."); }
     finally { setBusy(false); }
   }
   async function save(event) {
@@ -83,7 +114,7 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
         {form.file && <span className="create-file-name">{form.file.name}</span>}
         {!form.file && editingProject?.source_file_name && <span className="create-file-name">Current: {editingProject.source_file_name}</span>}
       </div>
-      {!editingProject && <div className="create-analysis-row"><button type="button" className="primary-btn" onClick={analyse} disabled={busy || !form.file}>{busy ? "Analysing…" : "Analyse layout with AI"}</button><span>AI extraction is a draft. Please verify plot numbers and boundaries against the original plan.</span></div>}
+      {!editingProject && <div className="create-analysis-row"><button type="button" className="primary-btn" onClick={analyse} disabled={busy || !form.file || Boolean(analysisJobId)}>{busy ? "Analysing…" : "Analyse layout with AI"}</button>{analysisJobId && !form.geometry && <button type="button" className="cancel-btn" onClick={checkAnalysisStatus} disabled={busy}>{busy ? "Checking…" : "Check Status"}</button>}<span>AI extraction runs in the background. Please verify plot numbers and boundaries against the original plan.</span></div>}
       {!editingProject && form.geometry && <div className="create-analysis-result">
         <div className="create-result-heading"><div><strong>AI layout preview</strong><p>{form.geometry.P.length} plots extracted · {form.plots.filter(p => Number(p.confidence) < 0.75).length} low-confidence plots</p></div><span className="create-result-status">Draft ready</span></div>
         <GeometryPreview geometry={form.geometry} />

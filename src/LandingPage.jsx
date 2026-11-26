@@ -70,7 +70,6 @@ export default function LandingPage() {
           </div>
           <div className="ma-floating-note"><span>⌖</span><div><b>Find your plot</b><small>Explore layouts online</small></div></div>
         </div>
-        <div className="ma-hero-bottom"><span>MARY ANN ELITE PROPERTIES</span><span>LAND WITH A PLAN. FUTURE WITH CONFIDENCE.</span></div>
       </section>
 
       <section className="ma-projects" id="projects">

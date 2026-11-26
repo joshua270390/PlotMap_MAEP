@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AD0, delDm, revertPlot, setDm, setPlot } from './adminData.js';
 import { cents } from './plots.js';
+import { normalizeIndianMobile, INDIAN_MOBILE_ERROR } from './validation.js';
 
 const num = v => parseFloat(v);
 
@@ -372,12 +373,14 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, cv, 
   const saveCustomer = async event => {
     event.preventDefault();
     if (customerBusy) return;
+    const phone = normalizeIndianMobile(customerForm.phone);
+    if (!phone) { setCustomerError(INDIAN_MOBILE_ERROR); return; }
     setCustomerBusy(true); setCustomerError(''); setCustomerNotice('');
     try {
       const response = await fetch('/api/admin-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': authPin }) },
-        body: JSON.stringify({ ...customerForm, project_id: ax.geometry?.projectId || 1 }),
+        body: JSON.stringify({ ...customerForm, phone, project_id: ax.geometry?.projectId || 1 }),
         signal: AbortSignal.timeout(20000),
       });
       const data = await response.json().catch(() => ({}));
@@ -480,7 +483,7 @@ export default function AdminPanel({ panel, setPanel, ax, setAd, sel, selD, cv, 
         <h2>Add Customer</h2>
         <p className="admin-customer-copy">Enter the customer details. After saving, the booking will be available in the Bookings page.</p>
         <label>Customer Name<input value={customerForm.customer_name} onChange={event => setCustomerForm(old => ({ ...old, customer_name: event.target.value }))} required maxLength={120} autoFocus /></label>
-        <label>Phone Number<input type="tel" value={customerForm.phone} onChange={event => setCustomerForm(old => ({ ...old, phone: event.target.value }))} required maxLength={25} /></label>
+        <label>Phone Number<input type="tel" inputMode="numeric" autoComplete="tel-national" placeholder="98765 43210 or +91 98765 43210" value={customerForm.phone} onChange={event => setCustomerForm(old => ({ ...old, phone: event.target.value }))} onBlur={() => setCustomerForm(old => ({ ...old, phone: normalizeIndianMobile(old.phone) || old.phone }))} required maxLength={16} /></label>
         <label>Unit Number<select value={customerForm.plot_id} onChange={event => {
             const selected = customerPlots.find(plot => String(plot.id) === event.target.value);
             setCustomerForm(old => ({ ...old, plot_id: event.target.value, status: String(selected?.status || '').toLowerCase() === 'reserved' ? 'Reserved' : old.status }));

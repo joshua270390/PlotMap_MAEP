@@ -1,6 +1,16 @@
 import { verifyAdmin } from "../lib/admin-session.mjs";
 import { verifyEmployeeToken } from "./employee-auth.mjs";
 const allowedStatuses = new Set(["Available", "Reserved", "Booked", "Sold"]);
+function normalizeIndianMobile(value) {
+  const input = String(value ?? "").trim();
+  if (!input || !/^\+?[\d\s()-]+$/.test(input)) return "";
+  let digits = input.replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith("91")) digits = digits.slice(2);
+  else if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1);
+  return /^[6-9]\d{9}$/.test(digits) ? digits : "";
+}
+
+
 const json = (body, status = 200, extraHeaders = {}) =>
   new Response(JSON.stringify(body), {
     status,
@@ -133,11 +143,11 @@ export default async function handler(request) {
   }
   if (method === "POST") {
     const customerName = String(body.customer_name ?? "").trim();
-    const phone = String(body.phone ?? "").trim();
+    const phone = normalizeIndianMobile(body.phone);
     const plotId = String(body.plot_id ?? "").trim();
     const status = String(body.status ?? "");
     if (!customerName || customerName.length > 120) return json({ ok: false, error: "Enter a valid customer name." }, 422);
-    if (!phone || phone.length > 25) return json({ ok: false, error: "Enter a valid phone number." }, 422);
+    if (!phone) return json({ ok: false, error: "Enter a valid 10-digit Indian mobile number starting with 6–9." }, 422);
     if (!/^\d+$/.test(plotId)) return json({ ok: false, error: "Select a valid plot." }, 422);
     if (!allowedStatuses.has(status)) return json({ ok: false, error: "Select a valid status." }, 422);
 
@@ -185,11 +195,11 @@ export default async function handler(request) {
   }
 
   const customerName = String(body.customer_name ?? "").trim();
-  const phone = String(body.phone ?? "").trim();
+  const phone = normalizeIndianMobile(body.phone);
   const plotId = String(body.plot_id ?? "").trim();
   const status = String(body.status ?? "");
   if (!customerName || customerName.length > 120) return json({ ok: false, error: "Enter a valid customer name." }, 422);
-  if (!phone || phone.length > 25) return json({ ok: false, error: "Enter a valid phone number." }, 422);
+  if (!phone) return json({ ok: false, error: "Enter a valid 10-digit Indian mobile number starting with 6–9." }, 422);
   if (!/^\d+$/.test(plotId)) return json({ ok: false, error: "Select a valid plot." }, 422);
   if (!allowedStatuses.has(status)) return json({ ok: false, error: "Select a valid status." }, 422);
 

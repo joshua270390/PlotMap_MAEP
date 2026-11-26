@@ -16,6 +16,9 @@ const cfg = () => ({
   jobs: process.env.PROJECT_ANALYSIS_JOBS_TABLE || "project_analysis_jobs",
 });
 const headers = c => ({ apikey: c.key, Authorization: "Bearer " + c.key, Accept: "application/json" });
+const schemaReady = c => c.projects === "custom_projects" && c.plots === "plots" &&
+  c.bookings === "bookings" && c.edits === "map_edits" &&
+  c.bucket === "plot-project-files" && c.jobs === "project_analysis_jobs";
 async function db(c, table, method, query = "", body) {
   const h = headers(c);
   if (body !== undefined) { h["Content-Type"] = "application/json"; h.Prefer = "return=representation"; }
@@ -176,6 +179,7 @@ export default async function handler(request) {
   const c = cfg();
   if (!c.url || !c.key) return json({ ok: false, error: "Supabase is not configured." }, 500);
   if (!(await canManageProjects(request, c))) return json({ ok: false, error: "Sign in with an authorized Admin or Employee account to manage projects." }, 401);
+  if (!schemaReady(c)) return json({ ok: false, error: "The atomic Create Plots SQL setup requires the default tables custom_projects, plots, bookings, map_edits, project_analysis_jobs and bucket plot-project-files. Remove custom table/bucket overrides or adapt the SQL functions before using this feature." }, 500);
   const action = new URL(request.url).searchParams.get("action") || "";
   if (request.method === "GET" && action === "analysis-status") {
     const jobId = String(new URL(request.url).searchParams.get("job_id") || "");

@@ -1,78 +1,83 @@
-.ma-landing{height:100vh;min-height:100vh;overflow-y:auto;overflow-x:hidden;background:#f7f6f1;color:#172b28;font-family:"Instrument Sans",sans-serif;scroll-behavior:smooth}
-.ma-landing *{box-sizing:border-box}.ma-landing a{color:inherit;text-decoration:none}
-.ma-nav{height:82px;padding:0 clamp(22px,6vw,96px);display:flex;align-items:center;justify-content:space-between;background:#fbfaf6;border-bottom:1px solid #e7e5dc}
-.ma-brand{display:flex;align-items:center}.ma-brand img{width:190px;max-height:62px;object-fit:contain}
-.ma-nav nav{display:flex;align-items:center;gap:36px;font-size:13px;font-weight:700;color:#435650}.ma-nav nav>a:not(.ma-nav-cta):hover,.ma-text-link:hover{color:#b18a48}
-.ma-nav-cta,.ma-primary{display:inline-flex;align-items:center;gap:22px;background:#183d35;color:#fff!important;padding:15px 21px;font-size:13px;font-weight:700;letter-spacing:.01em;transition:background .2s,transform .2s}.ma-nav-cta:hover,.ma-primary:hover{background:#b18a48;transform:translateY(-2px)}
-.ma-hero{position:relative;min-height:630px;padding:78px clamp(22px,9vw,144px) 86px;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:5%;background:#f0efe7;overflow:hidden}
-.ma-hero:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 78% 45%,rgba(201,190,155,.32),transparent 48%);pointer-events:none}
-.ma-hero-copy{position:relative;z-index:1;max-width:570px}.ma-eyebrow,.ma-kicker{font-size:10px;font-weight:700;letter-spacing:.19em;color:#a17d42}.ma-eyebrow{display:flex;align-items:center;gap:10px}.ma-eyebrow i{width:7px;height:7px;border-radius:50%;background:#b18a48}
-.ma-hero h1,.ma-section-head h2,.ma-why h2,.ma-contact h2{font:800 clamp(46px,5.4vw,76px)/.99 "Bricolage Grotesque",sans-serif;letter-spacing:-.055em;margin:24px 0 20px;color:#18352f}.ma-hero h1 em,.ma-section-head h2 em,.ma-why h2 em,.ma-contact h2 em{font-style:normal;color:#b18a48}
-.ma-hero-copy>p{max-width:475px;color:#65736b;font-size:16px;line-height:1.75;margin:0}.ma-hero-actions{display:flex;align-items:center;gap:28px;margin-top:30px}.ma-primary{padding:17px 22px}.ma-text-link{font-size:13px;font-weight:700;color:#435650}.ma-text-link span{padding-left:8px}
-.ma-proof{display:flex;align-items:center;gap:22px;margin-top:55px}.ma-proof div{display:flex;flex-direction:column;gap:3px}.ma-proof strong{font:800 25px "Bricolage Grotesque"}.ma-proof span{font-size:11px;color:#77837b}.ma-proof-line{height:30px;width:1px;background:#d6d3c7}
-.ma-hero-art{height:440px;position:relative;z-index:1;display:grid;place-items:center}.ma-art-glow{position:absolute;width:390px;height:390px;border-radius:50%;background:#e2dfd2;filter:blur(1px)}
-.ma-land-card{position:relative;width:min(100%,450px);height:330px;background:#e4e7d8;border:10px solid #fffdf8;box-shadow:0 25px 55px rgba(40,55,45,.14);transform:rotate(-7deg);overflow:hidden;background-image:linear-gradient(90deg,transparent 49%,rgba(255,255,255,.7) 50%,transparent 51%),linear-gradient(0deg,transparent 49%,rgba(255,255,255,.7) 50%,transparent 51%);background-size:100px 100px}
-.ma-road{position:absolute;background:#c5c7b8;border:5px solid #f8f7ee;z-index:2}.ma-road-one{height:48px;left:-8%;right:-8%;top:45%;transform:rotate(-13deg)}.ma-road-two{width:48px;top:-10%;bottom:-10%;left:46%;transform:rotate(14deg)}
-.ma-plot{position:absolute;z-index:1;width:19%;height:25%;background:#c6d2b7;border:2px solid #f9f7ed;color:#60755c;font-size:11px;font-weight:700;display:grid;place-items:center}.ma-plot.p1{left:8%;top:8%}.ma-plot.p2{left:29%;top:8%}.ma-plot.p3{right:8%;top:8%}.ma-plot.p4{left:8%;bottom:8%}.ma-plot.p5{left:29%;bottom:8%}.ma-plot.p6{right:8%;bottom:8%}
-.ma-park{position:absolute;z-index:3;right:9%;top:39%;width:20%;height:23%;background:#9caf86;border:2px solid #f9f7ed;display:grid;place-items:center;text-align:center;color:#fff;font-size:9px;font-weight:700;letter-spacing:.12em}
-.ma-compass{position:absolute;z-index:4;right:12px;top:10px;font-size:10px;font-weight:700;color:#50624f}.ma-compass span{font-size:20px;padding-left:4px}
-.ma-art-label{position:absolute;z-index:4;left:0;top:0;display:flex;flex-direction:column;gap:9px}.ma-art-label>span{font-size:9px;letter-spacing:.17em;color:#9a855e}.ma-art-label b{font:700 20px/1.1 "Bricolage Grotesque";color:#203d34}
-.ma-floating-note{position:absolute;z-index:5;right:0;bottom:12px;display:flex;align-items:center;gap:12px;padding:14px 18px;background:#fffdf8;box-shadow:0 12px 35px #263d2a1a}.ma-floating-note>span{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#e8eddf;color:#42664d;font-size:20px}.ma-floating-note b,.ma-floating-note small{display:block}.ma-floating-note b{font-size:12px}.ma-floating-note small{font-size:10px;color:#899188;margin-top:3px}
-.ma-hero-bottom{position:absolute;bottom:0;left:0;right:0;padding:15px clamp(22px,6vw,96px);display:flex;justify-content:space-between;border-top:1px solid #dedbd0;color:#8b9186;font-size:9px;letter-spacing:.14em;font-weight:700}
-.ma-projects{padding:105px clamp(22px,9vw,144px) 112px;background:#fbfaf6}.ma-section-head{display:flex;justify-content:space-between;align-items:end;gap:30px;margin-bottom:42px}.ma-section-head h2,.ma-why h2,.ma-contact h2{font-size:clamp(42px,4.5vw,60px);margin:18px 0 0}.ma-section-head>p{max-width:340px;margin:0 0 4px;color:#778078;font-size:14px;line-height:1.7}
-.ma-project-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}.ma-project-card{background:#f5f4ed;border:1px solid #e9e7de;transition:transform .25s,box-shadow .25s}.ma-project-card:hover{transform:translateY(-5px);box-shadow:0 16px 35px #1a35200f}
-.ma-project-visual{height:205px;position:relative;overflow:hidden;background:#dce3d2}.ma-project-visual:before,.ma-project-visual:after{content:"";position:absolute;background:#f7f6ed;opacity:.9}.ma-project-visual:before{height:24px;left:-5%;right:-5%;top:48%;transform:rotate(-14deg)}.ma-project-visual:after{width:22px;top:-10%;bottom:-10%;left:48%;transform:rotate(12deg)}
-.visual-2{background:#e6dfcf}.visual-3{background:#d5e0d7}.visual-4{background:#dfe4d2}.visual-5{background:#e3ddcf}
-.ma-project-number{position:absolute;z-index:3;left:17px;top:15px;font:700 13px "Bricolage Grotesque";color:#62745d}.ma-project-tag{position:absolute;z-index:4;right:14px;top:14px;padding:6px 10px;background:#fffdf0d9;font-size:10px;font-weight:700;color:#4c6352}
-.ma-mini-layout{position:absolute;inset:0;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);gap:3px;padding:34px 22px 22px;transform:rotate(-5deg) scale(.9)}.ma-mini-layout i{background:#a9bd9d;border:2px solid #f8f7ed}.ma-mini-layout i:nth-child(3n){background:#c1cba9}.ma-mini-layout b{position:absolute;left:42%;top:42%;z-index:3;background:#a5b88f;color:#fff;padding:7px 12px;font-size:9px;letter-spacing:.12em;text-align:center}
-.ma-project-info{padding:19px 19px 10px;display:flex;justify-content:space-between;gap:10px}.ma-project-info h3{font:700 18px/1.2 "Bricolage Grotesque";margin:0;color:#203b33}.ma-project-info p{margin:8px 0 0;color:#7d877d;font-size:11px}.ma-project-info p span{color:#b18a48}.ma-project-info>a{flex:none;width:36px;height:36px;display:grid;place-items:center;background:#e7eadd;color:#335344;font-size:19px;transition:background .2s}.ma-project-info>a:hover{background:#d2dec8}
-.ma-card-link{display:flex;justify-content:space-between;padding:13px 19px 17px;border-top:1px solid #e5e3d9;margin-top:8px;font-size:11px;font-weight:700;color:#496052!important}.ma-card-link span{font-size:17px}
-.ma-why{padding:100px clamp(22px,9vw,144px);background:#193b33;color:#fff;display:grid;grid-template-columns:.9fr 1.1fr;gap:9%}.ma-why .ma-kicker{color:#d4b77c}.ma-why h2{color:#fff}.ma-why h2 em{color:#d6b77b}.ma-why-intro>p{max-width:350px;color:#c0cec4;font-size:14px;line-height:1.8;margin-top:22px}
-.ma-benefits>div{display:grid;grid-template-columns:48px 1fr;gap:18px;padding:22px 0;border-bottom:1px solid #ffffff25}.ma-benefits>div:first-child{padding-top:0}.ma-benefits>div>span{font:700 12px "Bricolage Grotesque";color:#d6b77b}.ma-benefits h3{margin:0 0 7px;font:700 18px "Bricolage Grotesque"}.ma-benefits p{margin:0;color:#bdcbc2;font-size:13px;line-height:1.7;max-width:470px}
-.ma-contact{padding:84px clamp(22px,9vw,144px);display:flex;justify-content:space-between;align-items:center;gap:30px;background:#e9e8dc}.ma-contact h2{margin-bottom:15px}.ma-contact>div>p{max-width:490px;color:#6c786f;font-size:13px;line-height:1.7}.ma-contact>.ma-primary{flex:none}
-.ma-footer{min-height:92px;padding:18px clamp(22px,6vw,96px);display:flex;align-items:center;justify-content:space-between;gap:20px;background:#fbfaf6;color:#879087;font-size:10px}.ma-footer img{width:150px;max-height:48px;object-fit:contain}.ma-footer a{font-weight:700;color:#435c4c}.ma-footer a span{padding-left:6px}
-@media(max-width:900px){.ma-hero{grid-template-columns:1fr 1fr;padding-left:6vw;padding-right:6vw}.ma-project-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ma-why{padding-left:6vw;padding-right:6vw;gap:5%}.ma-section-head,.ma-contact{padding-left:6vw;padding-right:6vw}}
-@media(max-width:650px){.ma-nav{height:70px;padding:0 18px}.ma-brand img{width:155px}.ma-nav nav{gap:14px;font-size:11px}.ma-nav nav>a:first-child,.ma-nav nav>a:nth-child(2){display:none}.ma-nav-cta{padding:12px 14px}.ma-hero{display:block;padding:60px 23px 80px;min-height:auto}.ma-hero h1{font-size:51px}.ma-hero-copy>p{font-size:14px}.ma-proof{gap:14px;margin-top:35px}.ma-proof strong{font-size:21px}.ma-proof span{font-size:9px}.ma-hero-art{height:340px;margin-top:30px}.ma-land-card{height:245px;width:92%}.ma-art-glow{width:290px;height:290px}.ma-art-label{left:0;top:0}.ma-art-label b{font-size:17px}.ma-floating-note{right:-4px;bottom:0}.ma-hero-bottom{padding:12px 18px;font-size:7px;letter-spacing:.08em}.ma-hero-bottom span:last-child{display:none}.ma-projects{padding:72px 20px}.ma-section-head{display:block;margin-bottom:28px}.ma-section-head h2,.ma-why h2,.ma-contact h2{font-size:44px}.ma-section-head>p{margin-top:18px}.ma-project-grid{grid-template-columns:1fr;gap:16px}.ma-project-visual{height:190px}.ma-why{display:block;padding:70px 23px}.ma-benefits{margin-top:38px}.ma-benefits>div{gap:12px}.ma-contact{display:block;padding:70px 23px}.ma-contact>.ma-primary{margin-top:20px}.ma-footer{padding:22px;flex-wrap:wrap}.ma-footer img{width:130px}.ma-footer>span{order:3;width:100%}}
-@media(prefers-reduced-motion:reduce){.ma-landing *{scroll-behavior:auto!important;transition:none!important}}
-
-
-/* Public landing page polish and shared Plot Lists card treatment */
-.ma-landing .ma-nav{position:sticky;top:0;z-index:20;background:rgba(251,250,246,.94);backdrop-filter:blur(14px);box-shadow:0 5px 22px rgba(25,45,35,.035)}
-.ma-landing .ma-hero{min-height:650px}
+.ma-landing{background:#f7f4ed;color:#241f1a;font-family:"Instrument Sans",sans-serif}
+.ma-landing .ma-nav{height:88px;padding-inline:clamp(22px,7vw,112px);background:rgba(249,247,241,.94);border-bottom:1px solid #e7e0d4;box-shadow:0 8px 28px rgba(40,31,22,.035)}
+.ma-landing .ma-brand img{width:200px}
+.ma-landing .ma-nav nav{gap:clamp(18px,3vw,42px);color:#51483f}
+.ma-landing .ma-nav nav>a:not(.ma-nav-cta){font-size:12px;letter-spacing:.025em}
+.ma-landing .ma-nav nav>a:not(.ma-nav-cta):hover{color:#a9573d}
+.ma-landing .ma-nav-cta,.ma-landing .ma-primary{border-radius:3px;background:#28221d;padding:16px 22px;color:#fff!important;letter-spacing:.035em}
+.ma-landing .ma-nav-cta:hover,.ma-landing .ma-primary:hover{background:#a9573d}
+.ma-landing .ma-hero{min-height:690px;padding:92px clamp(22px,9vw,144px) 92px;grid-template-columns:1.02fr .98fr;gap:4%;background:#eee8dc}
+.ma-landing .ma-hero:before{inset:0;background:radial-gradient(ellipse at 78% 48%,rgba(169,87,61,.13),transparent 43%),linear-gradient(115deg,rgba(255,255,255,.18),transparent 58%)}
+.ma-landing .ma-eyebrow,.ma-landing .ma-kicker{color:#a9573d;letter-spacing:.2em}
+.ma-landing .ma-eyebrow i{background:#a9573d}
+.ma-landing .ma-hero h1,.ma-landing .ma-section-head h2,.ma-landing .ma-why h2,.ma-landing .ma-contact h2{font-family:"Bricolage Grotesque",sans-serif;color:#29221c;letter-spacing:-.06em}
+.ma-landing .ma-hero h1{font-size:clamp(52px,6vw,84px);line-height:.96;margin:27px 0 23px}
+.ma-landing .ma-hero h1 em,.ma-landing .ma-section-head h2 em,.ma-landing .ma-why h2 em,.ma-landing .ma-contact h2 em{color:#a9573d}
+.ma-landing .ma-hero-copy>p{max-width:460px;color:#71675d;font-size:15px;line-height:1.85}
+.ma-landing .ma-hero-actions{gap:30px;margin-top:34px}
+.ma-landing .ma-text-link{color:#51483f}
+.ma-landing .ma-text-link:hover{color:#a9573d}
+.ma-landing .ma-proof{gap:25px;margin-top:58px}
+.ma-landing .ma-proof strong{font-size:28px;color:#29221c}
+.ma-landing .ma-proof span{color:#81766a;font-size:10px;letter-spacing:.025em}
+.ma-landing .ma-proof-line{background:#d2c7b8}
+.ma-landing .ma-hero-art{height:470px}
+.ma-landing .ma-art-glow{width:430px;height:430px;background:#e2d7c7}
+.ma-landing .ma-land-card{width:min(100%,470px);height:350px;border:9px solid #fbf8f1;background-color:#d8ddcc;box-shadow:0 32px 70px rgba(52,39,27,.17);transform:rotate(-5deg)}
+.ma-landing .ma-road{background:#bcb8aa;border-color:#fbf8f1}
+.ma-landing .ma-plot{background:#c4cdb5;border-color:#fbf8f1;color:#5d6b50}
+.ma-landing .ma-park{background:#879778;border-color:#fbf8f1}
+.ma-landing .ma-art-label>span{color:#9b6a50}
+.ma-landing .ma-art-label b{color:#302820;font-size:22px}
+.ma-landing .ma-floating-note{right:-5px;bottom:0;border:1px solid #eee5d8;box-shadow:0 18px 42px rgba(45,34,24,.13)}
+.ma-landing .ma-floating-note>span{background:#f0e1d7;color:#a9573d}
+.ma-landing .ma-floating-note b{color:#302820}
+.ma-landing .ma-floating-note small{color:#8b7e70}
+.ma-landing .ma-hero-bottom{padding-inline:clamp(22px,7vw,112px);border-color:#d9cfc1;color:#82786c}
+.ma-landing .ma-hero-bottom span:first-child{color:#a9573d}
 .ma-landing .ma-projects{background:linear-gradient(180deg,#fbfaf6 0%,#f3f4ef 100%)}
-.ma-landing .ma-section-head{margin-bottom:36px}
-.ma-landing .ma-project-grid.ma-plot-list-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;align-items:stretch}
-.ma-landing .ma-plot-list-card{display:block;min-width:0;overflow:hidden;background:#fff;border:1px solid #e2e8f0;border-radius:17px;color:inherit;text-decoration:none;box-shadow:0 8px 28px rgba(28,52,82,.055);transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;cursor:pointer}
-.ma-landing .ma-plot-list-card:hover{transform:translateY(-4px);border-color:#c7d6e8;box-shadow:0 18px 38px rgba(28,52,82,.13)}
-.ma-landing .ma-plot-list-card:focus-visible{outline:3px solid #91b4de;outline-offset:3px}
-.ma-landing .ma-plot-card-visual{height:220px;min-height:220px;position:relative;overflow:hidden;background:#edf2f7}
-.ma-landing .ma-plot-map-static{position:absolute;inset:0;display:block;width:100%;height:100%}
-.ma-landing .ma-plot-card-visual .project-map-thumbnail{position:absolute;inset:0;width:100%;height:100%;display:block}
-.ma-landing .ma-plot-card-visual .project-map-pending{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:12px;background:linear-gradient(135deg,#edf3f7,#dce7e9 55%,#e7e2d4)}
-.ma-landing .ma-plot-preview-overlay{position:absolute;top:13px;left:13px;right:13px;display:flex;align-items:center;justify-content:space-between;gap:8px;pointer-events:none}
-.ma-landing .ma-plot-visual-mark{display:grid;place-items:center;width:37px;height:37px;border-radius:11px;background:linear-gradient(135deg,#27456f,#14243d);color:#e7c778;font:800 12px Manrope,sans-serif;box-shadow:0 5px 12px rgba(20,45,77,.18)}
-.ma-landing .ma-plot-visual-tag{padding:7px 10px;border:1px solid rgba(39,69,111,.15);border-radius:99px;background:rgba(255,255,255,.86);color:#355674;font-size:9px;font-weight:800;letter-spacing:.12em;box-shadow:0 2px 10px rgba(25,45,65,.1)}
-.ma-landing .ma-plot-card-content{padding:18px}
-.ma-landing .ma-plot-card-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-.ma-landing .ma-plot-card-kicker{display:block;margin-bottom:8px;color:#9a7a3d;font-size:9px;font-weight:800;letter-spacing:.13em}
-.ma-landing .ma-plot-card-heading h3{margin:0;color:#20344b;font:800 17px/1.35 Manrope,"Instrument Sans",sans-serif;letter-spacing:-.025em}
-.ma-landing .ma-plot-card-arrow{display:grid;place-items:center;flex:none;width:35px;height:35px;border:1px solid #e3eaf1;border-radius:10px;background:#f7f9fc;color:#315a84;font-size:20px;transition:background .2s,color .2s}
-.ma-landing .ma-plot-list-card:hover .ma-plot-card-arrow{background:#203e63;color:#fff}
-.ma-landing .ma-plot-card-location{display:flex;align-items:center;gap:7px;margin:13px 0 0;color:#65758a;font-size:12px}
-.ma-landing .ma-plot-card-location span{font-size:17px;color:#547a9d}
-.ma-landing .ma-plot-card-description{min-height:40px;margin:12px 0 18px;color:#718095;font-size:12px;line-height:1.65}
-.ma-landing .ma-plot-card-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:15px;border-top:1px solid #edf0f4}
-.ma-landing .ma-plot-type{display:inline-flex;align-items:center;gap:7px;color:#536981;font-size:10px;font-weight:700}
-.ma-landing .ma-plot-type>span{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:#edf3f8;color:#315a84;font-size:14px}
-.ma-landing .ma-plot-view-link{display:inline-flex;align-items:center;gap:8px;color:#245b86;font-size:11px;font-weight:800;white-space:nowrap}
-.ma-landing .ma-plot-view-link>span{font-size:16px;transition:transform .2s}
-.ma-landing .ma-plot-list-card:hover .ma-plot-view-link>span{transform:translateX(3px)}
-.ma-landing .ma-project-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:180px;padding:28px;border:1px dashed #d6e0eb;border-radius:15px;background:rgba(255,255,255,.72);text-align:center;color:#728195;font-size:13px}
-.ma-landing .ma-project-state strong{color:#344a62}
-.ma-landing .ma-project-state button{border:0;border-radius:8px;padding:10px 16px;background:#203e63;color:#fff;font-weight:700;cursor:pointer}
-.ma-landing .ma-why{background:linear-gradient(125deg,#193b33 0%,#214a3d 100%)}
-.ma-landing .ma-contact{background:linear-gradient(110deg,#eeede3,#e4e6d8)}
-.ma-landing .ma-footer{border-top:1px solid #e9e7de}
-@media(max-width:1100px){.ma-landing .ma-project-grid.ma-plot-list-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:700px){.ma-landing .ma-project-grid.ma-plot-list-cards{grid-template-columns:minmax(0,1fr);gap:16px}.ma-landing .ma-plot-card-visual{height:220px;min-height:220px}.ma-landing .ma-plot-card-content{padding:18px 16px}.ma-landing .ma-plot-card-footer{align-items:flex-start;flex-direction:column}.ma-landing .ma-plot-view-link{align-self:flex-end}.ma-landing .ma-plot-card-description{min-height:0}}
-@media(prefers-reduced-motion:reduce){.ma-landing .ma-plot-list-card,.ma-landing .ma-plot-card-arrow,.ma-landing .ma-plot-view-link>span{transition:none!important}}
+.ma-landing .ma-why{position:relative;overflow:hidden;padding:112px clamp(22px,9vw,144px);background:#29231e;color:#fff}
+.ma-landing .ma-why:after{content:"";position:absolute;width:440px;height:440px;border:1px solid rgba(229,192,159,.14);border-radius:50%;right:-170px;top:-210px;box-shadow:0 0 0 42px rgba(229,192,159,.035),0 0 0 84px rgba(229,192,159,.025);pointer-events:none}
+.ma-landing .ma-why .ma-kicker{color:#d49b7e}
+.ma-landing .ma-why h2{color:#fbf7ef}
+.ma-landing .ma-why h2 em{color:#d49b7e}
+.ma-landing .ma-why-intro>p{color:#c5b9ad;line-height:1.9}
+.ma-landing .ma-benefits{position:relative;z-index:1}
+.ma-landing .ma-benefits>div{grid-template-columns:52px 1fr;gap:20px;padding:25px 0;border-color:rgba(255,255,255,.16)}
+.ma-landing .ma-benefits>div>span{color:#d49b7e;font-size:13px}
+.ma-landing .ma-benefits h3{color:#fff8ef;font-size:19px}
+.ma-landing .ma-benefits p{color:#c5b9ad;line-height:1.8}
+.ma-landing .ma-contact{padding:94px clamp(22px,9vw,144px);background:#e9dfd1;border-top:1px solid #ded2c2}
+.ma-landing .ma-contact h2{color:#29221c}
+.ma-landing .ma-contact h2 em{color:#a9573d}
+.ma-landing .ma-contact>div>p{color:#71665b;line-height:1.85}
+.ma-landing .ma-footer{min-height:104px;padding-inline:clamp(22px,7vw,112px);background:#f9f7f1;border-top:1px solid #e7dfd3;color:#81766b}
+.ma-landing .ma-footer a{color:#a9573d}
+@media(max-width:900px){
+ .ma-landing .ma-hero{min-height:620px;padding-inline:6vw;gap:3%}
+ .ma-landing .ma-hero-art{height:400px}
+ .ma-landing .ma-land-card{height:300px}
+ .ma-landing .ma-why{padding-inline:6vw}
+}
+@media(max-width:650px){
+ .ma-landing .ma-nav{height:72px;padding-inline:18px}
+ .ma-landing .ma-brand img{width:155px}
+ .ma-landing .ma-nav nav{gap:12px}
+ .ma-landing .ma-nav-cta{padding:12px 14px}
+ .ma-landing .ma-hero{padding:60px 23px 82px;background:#eee8dc}
+ .ma-landing .ma-hero h1{font-size:52px}
+ .ma-landing .ma-hero-copy>p{font-size:14px}
+ .ma-landing .ma-proof{gap:14px;margin-top:38px}
+ .ma-landing .ma-proof strong{font-size:22px}
+ .ma-landing .ma-hero-art{height:340px;margin-top:35px}
+ .ma-landing .ma-land-card{height:245px;width:92%}
+ .ma-landing .ma-art-glow{width:290px;height:290px}
+ .ma-landing .ma-art-label b{font-size:17px}
+ .ma-landing .ma-floating-note{right:-4px;bottom:0}
+ .ma-landing .ma-hero-bottom{padding-inline:18px}
+ .ma-landing .ma-why{padding:76px 23px}
+ .ma-landing .ma-benefits{margin-top:38px}
+ .ma-landing .ma-contact{padding:72px 23px}
+ .ma-landing .ma-footer{padding:22px}
+}
+@media(prefers-reduced-motion:reduce){.ma-landing *{scroll-behavior:auto!important;transition:none!important}}

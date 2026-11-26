@@ -106,8 +106,8 @@ function buildPlotRows(geometry) {
   return geometry.P.map(row => {
     if (!Array.isArray(row) || row.length < 4 || !Number.isInteger(Number(row[0])) ||
         !Number.isFinite(Number(row[1])) || !Number.isFinite(Number(row[2])) ||
-        typeof row[3] !== "string" || row[3].trim().split(/\\s+/).length < 3 ||
-        !/^-?\\d+(?:\\.\\d+)?,-?\\d+(?:\\.\\d+)?(?:\\s+-?\\d+(?:\\.\\d+)?,-?\\d+(?:\\.\\d+)?){2,}$/.test(row[3].trim())) {
+        typeof row[3] !== "string" || row[3].trim().split(/\s+/).length < 3 ||
+        !/^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?(?:\s+-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?){2,}$/.test(row[3].trim())) {
       throw new Error("The extracted plot geometry is invalid. Please analyse the source plan again.");
     }
     const label = String(geometry.plotLabels?.[row[0]] ?? row[0]).trim();
@@ -186,9 +186,9 @@ export default async function handler(request) {
   if (request.method === "POST" && action === "create") {
     let form; try { form = await request.formData(); } catch { return json({ ok: false, error: "Invalid project data." }, 400); }
     const name = String(form.get("name") || "").trim(), description = String(form.get("description") || "").trim(), location = String(form.get("location") || "").trim();
-    const route = String(form.get("route") || "").trim(), slug = cleanSlug(route.replace(/^\\/+/, "").split("/")[0]);
+    const route = String(form.get("route") || "").trim(), slug = cleanSlug(route.replace(/^\/+/, "").split("/")[0]);
     let geometry; try { geometry = JSON.parse(String(form.get("geometry") || "{}")); } catch { geometry = null; }
-    if (!name || name.length > 120 || !route || !/^\\/[a-z0-9_-]{2,55}$/.test(route) || !slug ||
+    if (!name || name.length > 120 || !route || !/^\/[a-z0-9_-]{2,55}$/.test(route) || !slug ||
         ["velavan_nagar","saraswathi_garden","shanmuga_avenue","meenakshi_garden_phase1","meenakshi_garden_phase2","dashboard","bookings","plot_lists","create_plots","users","layout_landing"].includes(slug)) {
       return json({ ok: false, error: "Enter a project name and a valid, unused route such as /new_project." }, 422);
     }
@@ -252,7 +252,7 @@ export default async function handler(request) {
   if (request.method === "DELETE" && action === "delete") {
     let body; try { body = await request.json(); } catch { return json({ ok: false, error: "Invalid request." }, 400); }
     const id = String(body?.id || "");
-    if (!/^\\d+$/.test(id)) return json({ ok: false, error: "Invalid project." }, 422);
+    if (!/^\d+$/.test(id)) return json({ ok: false, error: "Invalid project." }, 422);
     const removed = await rpc(c, "delete_custom_project", { p_custom_project_id: Number(id) });
     if (!removed.ok) {
       const notFound = removed.status === 404 || /not found/i.test(removed.error || "");

@@ -172,7 +172,17 @@ export default function ProjectLandingPage({ projectSlug }) {
     }
   };
 
-  if (loading) return <main className="lp-page"><div className="lp-state">Loading project information…</div></main>;
+  if (loading) return (
+    <main className="lp-loading-screen" role="status" aria-live="polite" aria-label="Loading project">
+      <div className="lp-loader-content">
+        <img className="lp-loader-logo" src="/mary-ann-plotmap-logo.png" alt="Mary Ann Elite Properties" />
+        <div className="lp-loader-orbit" aria-hidden="true"><span /><span /><span /></div>
+        <p className="lp-loader-title">Preparing your project</p>
+        <p className="lp-loader-caption">A better way to explore your next plot.</p>
+        <div className="lp-loader-track" aria-hidden="true"><span /></div>
+      </div>
+    </main>
+  );
   if (error) return <main className="lp-page"><div className="lp-state"><h1>Unable to load this project</h1><p>{error}</p></div></main>;
   if (!content) return <LegacyProjectLandingPage projectSlug={projectSlug} />;
 

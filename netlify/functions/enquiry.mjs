@@ -1,6 +1,6 @@
 const hits = new Map();
 const WINDOW_MS = 10 * 60 * 1000;
-const MAX_HITS = 5;
+const MAX_HITS = 30;
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
 });
@@ -11,6 +11,15 @@ function limited(ip) {
   if (hits.size > 5000) hits.clear();
   return recent.length >= MAX_HITS;
 }
+function normalizeIndianMobile(value) {
+  const input = String(value ?? "").trim();
+  if (!input || !/^\+?[\d\s()-]+$/.test(input)) return "";
+  let digits = input.replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith("91")) digits = digits.slice(2);
+  else if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1);
+  return /^[6-9]\d{9}$/.test(digits) ? digits : "";
+}
+
 async function db(url, key, method, table, query = "", body) {
   const headers = { apikey: key, Authorization: "Bearer " + key, Accept: "application/json" };
   if (body !== undefined) {
@@ -51,18 +60,24 @@ export default async function handler(request) {
   const requestedProjectId = String(input.project_id ?? defaultProjectId).trim();
   if (!/^\d+$/.test(requestedProjectId)) return json({ ok: false, error: "Invalid project." }, 422);
   const projectId = requestedProjectId;
-  const ip = (request.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "unknown";
-  if (limited(ip)) return json({ ok: false, error: "Too many enquiries. Please try again in a few minutes." }, 429);
+  // Netlify provides the actual client IP in this header. Do not put all
+  // visitors without an IP header into one shared "unknown" rate-limit bucket.
+  const ipHeader = request.headers.get("x-nf-client-connection-ip")
+    || request.headers.get("x-forwarded-for")
+    || request.headers.get("x-real-ip")
+    || "";
+  const ip = ipHeader.split(",")[0].trim();
+  if (ip && limited(ip)) return json({ ok: false, error: "Too many enquiries from this network. Please try again in a few minutes." }, 429);
 
   const name = String(input.name ?? "").trim();
   const email = String(input.email ?? "").trim();
-  const phone = String(input.phone ?? "").trim();
+  const phone = normalizeIndianMobile(input.phone);
   const plotNumber = String(input.plot_number ?? "").trim();
   let message = String(input.message ?? "").trim();
-  const digits = phone.replace(/\D/g, "");
+
   if (!name || name.length > 80) return json({ ok: false, error: "Please enter your name." }, 422);
-  if (!/^[+()\d\s-]{10,20}$/.test(phone) || digits.length < 10 || digits.length > 13)
-    return json({ ok: false, error: "Please enter a valid mobile number." }, 422);
+  if (!phone)
+    return json({ ok: false, error: "Please enter a valid 10-digit Indian mobile number starting with 6–9." }, 422);
   if (email && (email.length > 120 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)))
     return json({ ok: false, error: "Please enter a valid email." }, 422);
   if (!/^[A-Za-z0-9-]{1,20}$/.test(plotNumber)) return json({ ok: false, error: "Invalid unit number." }, 422);
@@ -88,6 +103,6 @@ export default async function handler(request) {
     console.error("[enquiry] Booking insert failed:", inserted.status, inserted.error);
     return json({ ok: false, error: "Could not save your enquiry. Please try again or call our team." }, 502);
   }
-  hits.set(ip, [...(hits.get(ip) || []), Date.now()]);
+  if (ip) hits.set(ip, [...(hits.get(ip) || []), Date.now()]);
   return json({ ok: true });
 }

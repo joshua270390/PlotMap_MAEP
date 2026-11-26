@@ -580,3 +580,38 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 .booking-project-tab:hover{color:#172033;background:#e2e8f0}
 .booking-project-tab.active{background:#fff;color:#166534;box-shadow:0 1px 3px rgba(15,23,42,.12)}
 @media(max-width:600px){.booking-project-tabs{width:100%;gap:4px}.booking-project-tab{flex:1;padding:10px 8px;font-size:12px}}
+
+
+/* Password visibility control */
+.password-field{position:relative;display:flex;align-items:center;width:100%;margin-top:7px}
+.edit-modal .password-field input,.login-card .password-field input{width:100%;padding-right:48px;margin-top:0;box-sizing:border-box}
+.password-toggle{position:absolute;right:7px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;border-radius:7px;background:transparent;color:#718198;cursor:pointer}
+.password-toggle:hover{background:#edf2f8;color:#244f7d}
+.password-toggle:focus-visible{outline:2px solid #6d91bb;outline-offset:1px}
+.password-toggle svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.login-password-field{margin-top:7px}
+
+.login-app-dl{display:flex;align-items:center;justify-content:center;gap:8px;margin:16px auto 0;padding:12px 20px;max-width:420px;width:100%;box-sizing:border-box;border:1.5px solid #07533e;border-radius:12px;color:#07533e;background:#fff;font-weight:600;text-decoration:none}
+.login-app-dl:hover{background:#eef6f1}
+.nav-app-dl{margin-top:auto;text-decoration:none}
+
+/* Installed APK only: remove the two stacked separator lines below the logo.
+   Keep all normal website/sidebar typography, colours and spacing unchanged. */
+.dashboard-shell[data-native-app="true"] .dashboard-sidebar-header,
+.dashboard-shell[data-native-app="true"] .dashboard-sidebar .dashboard-brand{
+  border-bottom:0;
+}
+
+/* Bookings table pagination and bulk actions */
+.booking-bulk-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 20px;background:#fbfcfe;border-bottom:1px solid #edf0f5;color:#64748b;font-size:12px;font-weight:600}
+.booking-pagination{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:13px 20px;border-top:1px solid #edf0f5;background:#fcfdff;color:#718096;font-size:11px}
+.booking-pagination-controls{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+.booking-pagination-controls label{display:flex;align-items:center;gap:7px;margin-right:5px;white-space:nowrap}
+.booking-pagination-controls select{height:32px;padding:0 8px;border:1px solid var(--dash-line);border-radius:7px;background:#fff;color:var(--dash-ink);font:inherit}
+.page-btn{height:32px;padding:0 10px;border:1px solid var(--dash-line);border-radius:7px;background:#fff;color:#475569;font:600 11px 'DM Sans',sans-serif;cursor:pointer}
+.page-btn:hover:not(:disabled){background:#f1f5f9;border-color:#cbd5e1}
+.page-btn:disabled{opacity:.4;cursor:not-allowed}
+.page-indicator{padding:0 4px;color:#334155;font-weight:700;white-space:nowrap}
+.booking-bulk-toolbar .delete-btn:disabled{opacity:.45;cursor:not-allowed}
+.data-table input[type=checkbox]{width:16px;height:16px;accent-color:#2563eb;cursor:pointer;vertical-align:middle}
+@media(max-width:640px){.booking-bulk-toolbar{padding:10px 13px}.booking-pagination{align-items:flex-start;padding:12px 13px}.booking-pagination-controls{justify-content:flex-start;width:100%;gap:6px}.booking-pagination-controls label{width:100%;margin:0 0 3px}.booking-pagination-controls select{flex:1}.page-btn{padding:0 8px}.page-indicator{font-size:10px}}

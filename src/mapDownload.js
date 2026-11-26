@@ -41,7 +41,7 @@ export async function downloadMap(svg, { plain = false, name = 'plotmap', title 
       el.style.fill = styles[i].find(([p]) => p === 'fill')[1];
     }
   });
-  clone.querySelectorAll('[data-enquiry-pin], title, '.trees').forEach((n) => n.remove());
+  clone.querySelectorAll('[data-enquiry-pin], title, .trees').forEach((n) => n.remove());
   if (plain) {
     clone.querySelectorAll('path.p').forEach((plot) => {
       plot.style.setProperty('fill', '#ffffff', 'important');

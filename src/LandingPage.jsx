@@ -1,15 +1,34 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import './LandingPage.css';
-
-const projects = [
-  { name: 'Velavan Nagar', place: 'Kurayur, Madurai', slug: 'velavan_nagar', tag: 'Madurai' },
-  { name: 'Saraswathi Garden', place: 'Madurai, Tamil Nadu', slug: 'saraswathi_garden', tag: 'Madurai' },
-  { name: 'Shanmuga Avenue', place: 'Arasanur, Sivagangai', slug: 'shanmuga_avenue', tag: 'Sivagangai' },
-  { name: 'Sri Meenakshi Garden – Phase 1', place: 'Poonchuthi, Melur, Madurai', slug: 'meenakshi_garden_phase1', tag: 'Melur' },
-  { name: 'Sri Meenakshi Garden – Phase 2', place: 'Poonchuthi, Melur, Madurai', slug: 'meenakshi_garden_phase2', tag: 'Melur' },
-];
+import { P, G } from './data.js';
+import ProjectMapThumbnail from './ProjectMapThumbnail.jsx';
 
 export default function LandingPage() {
+  const [projects, setProjects] = useState([]);
+  const [projectsLoading, setProjectsLoading] = useState(true);
+  const [projectsError, setProjectsError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/projects', { cache: 'no-store' })
+      .then(async response => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok || !Array.isArray(data.projects)) {
+          throw new Error(data.error || 'Project information is temporarily unavailable.');
+        }
+        if (!cancelled) setProjects(data.projects);
+      })
+      .catch(error => {
+        if (!cancelled) setProjectsError(error.message || 'Could not load projects.');
+      })
+      .finally(() => { if (!cancelled) setProjectsLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const openProject = project => {
+    window.location.href = project.route || ('/' + project.slug);
+  };
+
   return (
     <main className="ma-landing">
       <header className="ma-nav">
@@ -57,24 +76,52 @@ export default function LandingPage() {
       <section className="ma-projects" id="projects">
         <div className="ma-section-head">
           <div><span className="ma-kicker">EXPLORE OUR PORTFOLIO</span><h2>Projects made for<br /><em>your next chapter.</em></h2></div>
-          <p>Browse our project locations and open the interactive plot layout to explore individual plots.</p>
+          <p>Explore our communities through detailed plot maps. Choose a project to view its location, layout and plot availability.</p>
         </div>
-        <div className="ma-project-grid">
-          {projects.map((project, index) => (
-            <article className="ma-project-card" key={project.slug}>
-              <div className={'ma-project-visual visual-' + (index + 1)}>
-                <span className="ma-project-number">0{index + 1}</span>
-                <div className="ma-mini-layout"><i /><i /><i /><i /><i /><i /><i /><i /><b>OPEN<br />LAND</b></div>
-                <span className="ma-project-tag">{project.tag}</span>
-              </div>
-              <div className="ma-project-info">
-                <div><h3>{project.name}</h3><p><span>⌖</span> {project.place}</p></div>
-                <a href={'/' + project.slug} aria-label={'Explore ' + project.name}>↗</a>
-              </div>
-              <a className="ma-card-link" href={'/' + project.slug}>Explore project <span>→</span></a>
-            </article>
-          ))}
-        </div>
+        {projectsLoading ? (
+          <div className="ma-project-state" role="status">Loading our projects…</div>
+        ) : projectsError ? (
+          <div className="ma-project-state" role="alert"><strong>Projects are temporarily unavailable.</strong><span>{projectsError}</span><button type="button" onClick={() => window.location.reload()}>Try again</button></div>
+        ) : projects.length ? (
+          <div className="ma-project-grid ma-plot-list-cards">
+            {projects.map(project => (
+              <article className="ma-plot-list-card" key={project.id || project.slug} role="link" tabIndex={0}
+                onClick={() => openProject(project)}
+                onKeyDown={event => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); openProject(project); } }}
+                aria-label={'Open ' + project.name + ' interactive plot map'}>
+                <div className="ma-plot-card-visual">
+                  {project.mapKey === 'velavan_nagar' ? (
+                    <svg className="ma-plot-map-static" viewBox="0 0 4400 3400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Static thumbnail of the Velavan Nagar plot layout">
+                      <rect width="4400" height="3400" fill="#e8e4dc" />
+                      <g fill="#363e4c">{G.base.map((d, i) => <path key={'road-' + i} d={d} />)}</g>
+                      <g fill="#cdd3c3">{G.park.map((d, i) => <path key={'park-' + i} d={d} />)}</g>
+                      <g fill="#ded6c6">{G.misc.map((d, i) => <path key={'misc-' + i} d={d} />)}</g>
+                      <g fill="none" stroke="#e9e4d6" strokeWidth="6" strokeDasharray="34 26">{G.dash.map((d, i) => <path key={'road-mark-' + i} d={d} />)}</g>
+                      <g stroke="#aab0ba" strokeWidth="8" strokeLinejoin="round">{P.map(([id, x, y, points, area, pm]) => <polygon key={id} points={points} fill={pm ? '#dcdfe5' : '#ffffff'} />)}</g>
+                      <g fill="#1b2433" stroke="#ffffff" strokeWidth="10" paintOrder="stroke" fontSize="44" fontWeight="700" textAnchor="middle" dominantBaseline="central">{P.map(([id, x, y]) => <text key={'number-' + id} x={x} y={y}>{id}</text>)}</g>
+                    </svg>
+                  ) : <ProjectMapThumbnail project={project} />}
+                  <div className="ma-plot-preview-overlay" aria-hidden="true">
+                    <span className="ma-plot-visual-mark">MA</span>
+                    <span className="ma-plot-visual-tag">INTERACTIVE PLOT MAP</span>
+                  </div>
+                </div>
+                <div className="ma-plot-card-content">
+                  <div className="ma-plot-card-heading">
+                    <div><span className="ma-plot-card-kicker">MARY ANN ELITE PROPERTIES</span><h3>{project.name}</h3></div>
+                    <span className="ma-plot-card-arrow" aria-hidden="true">↗</span>
+                  </div>
+                  <p className="ma-plot-card-location"><span aria-hidden="true">⌖</span> {project.location}</p>
+                  <p className="ma-plot-card-description">{project.description}</p>
+                  <div className="ma-plot-card-footer">
+                    <span className="ma-plot-type"><span aria-hidden="true">▦</span> Interactive Plot Layout</span>
+                    <span className="ma-plot-view-link">{project.mapReady ? 'View project' : 'Map coming soon'} <span aria-hidden="true">{project.mapReady ? '→' : '…'}</span></span>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : <div className="ma-project-state">New projects will appear here soon.</div>}
       </section>
 
       <section className="ma-why" id="why-us">

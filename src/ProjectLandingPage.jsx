@@ -105,12 +105,8 @@ export default function ProjectLandingPage({ projectSlug }) {
 
   useEffect(() => {
     document.body.classList.add('lp-scroll-enabled');
-    document.body.classList.add('lp-editor-theme');
-    return () => {
-      document.body.classList.remove('lp-scroll-enabled');
-      document.body.classList.remove('lp-editor-theme');
-    };
-  }, [projectSlug]);
+    return () => document.body.classList.remove('lp-scroll-enabled');
+  }, []);
 
   useEffect(() => {
     let active = true;

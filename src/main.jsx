@@ -45,7 +45,7 @@ window.setInterval(async () => {
 
 const dashboardPaths = ['/dashboard', '/bookings', '/plot_lists', '/users', '/layout_landing', '/create_plots'];
 const mapRoutes = new Set(['velavan_nagar', 'saraswathi_garden', 'shanmuga_avenue', 'meenakshi_garden_phase1', 'meenakshi_garden_phase2']);
-const currentPath = window.location.pathname.replace(/\\/+$/, '') || '/';
+const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
 const isDashboard = dashboardPaths.includes(currentPath);
 const routeParts = currentPath.split('/').filter(Boolean);
 const routeId = routeParts[0] || '';

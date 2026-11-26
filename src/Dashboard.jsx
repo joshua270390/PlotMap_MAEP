@@ -117,6 +117,7 @@ export default function Dashboard() {
   const [projectsError, setProjectsError] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [projectTab, setProjectTab] = useState('all');
+  const [dashboardProjectFilter, setDashboardProjectFilter] = useState('all');
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [nativeApp] = useState(() => /MAEPApp/i.test(navigator.userAgent) || window.Capacitor?.isNativePlatform?.() === true);
@@ -206,22 +207,15 @@ export default function Dashboard() {
   async function loadData(view = page, currentPin = pin) {
     setLoading(true); setError('');
     try {
-      const requests = [fetch('/api/admin-data?view=' + encodeURIComponent(view) + (view === 'bookings' ? '&project_id=all' : ''), {
+      const response = await fetch('/api/admin-data?view=' + encodeURIComponent(view) + (view === 'bookings' ? '&project_id=all' : ''), {
         headers: employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': currentPin },
         cache: 'no-store',
-      })];
-      // Dashboard KPIs must use the exact public status feed used by the plot map,
-      // not booking-row statuses that can disagree with manually edited plot states.
-      if (view === 'bookings') requests.push(fetch('/api/plots', { cache: 'no-store' }));
-      const responses = await Promise.all(requests);
-      const response = responses[0];
+      });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load dashboard data.');
       if (view === 'bookings') {
-        const mapResponse = responses[1];
-        const mapData = await mapResponse.json().catch(() => ({}));
-        if (!mapResponse.ok || !mapData.ok) throw new Error('Could not load plot-map availability. Please refresh and try again.');
-        setMapPlotStatuses(mapData.plots || {});
+        // The admin endpoint returns every project's plot inventory and bookings;
+        // plot-table status remains the source of truth for the dashboard KPIs.
         setBookings(data.bookings || []);
         setPlots(data.plots || []);
         if (data.warning) setNotice(data.warning);
@@ -327,14 +321,16 @@ export default function Dashboard() {
     finally { setSaving(false); }
   }
 
+  const dashboardPlots = useMemo(() => plots.filter(plot => dashboardProjectFilter === 'all' || String(plot.project_id) === String(PROJECT_IDS[dashboardProjectFilter])), [plots, dashboardProjectFilter]);
   const plotCounts = useMemo(() => {
     const counts = { Available: 0, Reserved: 0, Booked: 0, Sold: 0 };
-    P.forEach(([id]) => {
-      const value = normalizedStatus(mapPlotStatuses[String(id)]);
+    dashboardPlots.forEach(plot => {
+      const value = normalizedStatus(plot.status);
       counts[value] = (counts[value] || 0) + 1;
     });
     return counts;
-  }, [mapPlotStatuses]);
+  }, [dashboardPlots]);
+  const showProjectColumn = page === 'bookings' ? projectTab === 'all' : page === 'dashboard' && dashboardProjectFilter === 'all';
 
   const selectedProjectBookings = useMemo(() => page !== 'bookings' || projectTab === 'all' ? bookings : bookings.filter(row => String(row.project_id) === String(PROJECT_IDS[projectTab])), [bookings, projectTab, page]);
 
@@ -344,9 +340,11 @@ export default function Dashboard() {
     const text = [row.id, row.customer_name, row.phone, row.plot_id, unit].map(v => String(v ?? '')).join(' ').toLowerCase();
     const matchesSearch = text.includes(search.toLowerCase().trim());
     const matchesStatus = statusFilter === 'All' || normalizedStatus(row.status) === statusFilter;
-    const matchesProject = page !== 'bookings' || projectTab === 'all' || String(row.project_id) === String(PROJECT_IDS[projectTab]);
+    const matchesBookingProject = page !== 'bookings' || projectTab === 'all' || String(row.project_id) === String(PROJECT_IDS[projectTab]);
+    const matchesDashboardProject = page !== 'dashboard' || dashboardProjectFilter === 'all' || String(row.project_id) === String(PROJECT_IDS[dashboardProjectFilter]);
+    const matchesProject = matchesBookingProject && matchesDashboardProject;
     return matchesSearch && matchesStatus && matchesProject;
-  }), [bookings, plotById, search, statusFilter, projectTab, page]);
+  }), [bookings, plotById, search, statusFilter, projectTab, dashboardProjectFilter, page]);
 
   useEffect(() => { setBookingPage(1); setSelectedBookingKeys([]); }, [search, statusFilter, projectTab, bookingPageSize]);
   const bookingPageCount = Math.max(1, Math.ceil(visibleBookings.length / bookingPageSize));
@@ -460,14 +458,14 @@ export default function Dashboard() {
             <>
               {page === 'users' ? <EmployeeUsersPage pin={pin} employees={employees} setEmployees={setEmployees} employeeForm={employeeForm} setEmployeeForm={setEmployeeForm} employeeDelete={employeeDelete} setEmployeeDelete={setEmployeeDelete} setError={setError} setNotice={setNotice} /> : page === 'dashboard' ? (
                 <>
-                  <div className="dashboard-welcome"><div><span className="dashboard-kicker">MARY ANN ELITE PROPERTIES</span><h2>Property inventory overview</h2><p>Live unit availability and sales progress at a glance.</p></div><div className="inventory-total"><span>Total units</span><strong>{P.length}</strong><small>Across this layout</small></div></div>
+                  <div className="dashboard-welcome"><div><span className="dashboard-kicker">MARY ANN ELITE PROPERTIES</span><h2>Property inventory overview</h2><p>Live unit availability and sales progress at a glance.</p></div><div className="dashboard-welcome-actions"><label className="dashboard-project-filter"><span>Project</span><select value={dashboardProjectFilter} onChange={e => setDashboardProjectFilter(e.target.value)} aria-label="Filter dashboard by project"><option value="all">All Projects</option><option value="velavan_nagar">Velavan Nagar</option><option value="saraswathi_garden">Saraswathi Garden</option><option value="shanmuga_avenue">Shanmuga Avenue</option><option value="meenakshi_garden_phase1">Meenakshi Garden Phase 1</option><option value="meenakshi_garden_phase2">Meenakshi Garden Phase 2</option></select></label><div className="inventory-total"><span>Total units</span><strong>{dashboardPlots.length}</strong><small>{dashboardProjectFilter === 'all' ? 'Across all projects' : 'Selected project'}</small></div></div></div>
                   <div className="kpi-grid">
                     <article className="kpi-card kpi-available"><div className="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12.5 9.2 17 20 6" /></svg></div><div className="kpi-content"><span className="kpi-label">Available Plot</span><strong>{plotCounts.Available || 0}</strong><small>Ready for enquiry</small></div></article>
                     <article className="kpi-card kpi-reserved"><div className="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5 14.6 8.8 20.5 9.6 16.2 13.7 17.2 19.5 12 16.7 6.8 19.5 7.8 13.7 3.5 9.6 9.4 8.8Z" /></svg></div><div className="kpi-content"><span className="kpi-label">Reserved Plot</span><strong>{plotCounts.Reserved || 0}</strong><small>Temporarily held</small></div></article>
                     <article className="kpi-card kpi-booked"><div className="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M8 14l2.5 2.5L16 12" /></svg></div><div className="kpi-content"><span className="kpi-label">Booked Plot</span><strong>{plotCounts.Booked || 0}</strong><small>Booking in progress</small></div></article>
                     <article className="kpi-card kpi-sold"><div className="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12 12 4h7l1 7-8 9Z"/><circle cx="16" cy="8" r="1"/><path d="m8.5 13.5 2 2 4-4" /></svg></div><div className="kpi-content"><span className="kpi-label">Sold Plot</span><strong>{plotCounts.Sold || 0}</strong><small>Successfully sold</small></div></article>
                   </div>
-                  <div className="inventory-progress"><div><span>Inventory movement</span><strong>{P.length ? Math.round(((plotCounts.Reserved + plotCounts.Booked + plotCounts.Sold) / P.length) * 100) : 0}% committed</strong></div><div className="inventory-track"><i style={{ width: (P.length ? Math.min(100, ((plotCounts.Reserved + plotCounts.Booked + plotCounts.Sold) / P.length) * 100) : 0) + '%' }} /></div></div>
+                  <div className="inventory-progress"><div><span>Inventory movement</span><strong>{dashboardPlots.length ? Math.round(((plotCounts.Reserved + plotCounts.Booked + plotCounts.Sold) / dashboardPlots.length) * 100) : 0}% committed</strong></div><div className="inventory-track"><i style={{ width: (dashboardPlots.length ? Math.min(100, ((plotCounts.Reserved + plotCounts.Booked + plotCounts.Sold) / dashboardPlots.length) * 100) : 0) + '%' }} /></div></div>
 
                 </>
               ) : null}
@@ -490,14 +488,14 @@ export default function Dashboard() {
                 {page === 'bookings' && <div className="booking-bulk-toolbar"><span>{selectedBookingKeys.length} selected</span><button type="button" className="delete-btn" onClick={() => setBulkDeleteConfirm(true)} disabled={!selectedBookingRows.length || saving}>Delete selected</button></div>}
                 {loading ? <div className="table-state">Loading bookings from Supabase…</div> : (
                   <div className="table-scroll"><table className="data-table">
-                    <thead><tr>{page === 'bookings' && <th><input type="checkbox" aria-label="Select all bookings on this page" checked={allCurrentPageSelected} onChange={e => togglePageSelection(e.target.checked)} /></th>}<th>ID</th>{projectTab === 'all' && <th>Project</th>}<th>Customer Name</th><th>Phone Number</th><th>Plot Id</th><th>Unit Number</th><th>Status</th><th>Action</th></tr></thead>
+                    <thead><tr>{page === 'bookings' && <th><input type="checkbox" aria-label="Select all bookings on this page" checked={allCurrentPageSelected} onChange={e => togglePageSelection(e.target.checked)} /></th>}<th>ID</th>{showProjectColumn && <th>Project</th>}<th>Customer Name</th><th>Phone Number</th><th>Plot Id</th><th>Unit Number</th><th>Status</th><th>Action</th></tr></thead>
                     <tbody>
                       {(page === 'bookings' ? paginatedBookings : visibleBookings.slice(0, 5)).map(row => {
                         const plot = plotById.get(String(row.project_id) + ':' + String(row.plot_id)) || plotById.get(String(row.plot_id));
                         return <tr key={String(row.project_id) + ':' + row.id}>
                           {page === 'bookings' && <td><input type="checkbox" aria-label={'Select booking ' + row.id} checked={selectedBookingKeys.includes(bookingKey(row))} onChange={e => toggleBookingSelection(row, e.target.checked)} /></td>}
                           <td className="id-cell">#{row.id}</td>
-                          {projectTab === 'all' && <td><span className="unit-pill">{PROJECT_NAMES[row.project_id] || projects.find(project => Number(project.project_id) === Number(row.project_id))?.name || ('Project ' + row.project_id)}</span></td>}
+                          {showProjectColumn && <td><span className="unit-pill">{PROJECT_NAMES[row.project_id] || projects.find(project => Number(project.project_id) === Number(row.project_id))?.name || ('Project ' + row.project_id)}</span></td>}
                           <td><strong>{field(row, 'customer_name', 'name') || '—'}</strong></td>
                           <td>{field(row, 'phone', 'phone_number') || '—'}</td>
                           <td>{row.plot_id ?? '—'}</td>
@@ -517,7 +515,7 @@ export default function Dashboard() {
                           }); }} disabled={saving}>Edit</button><button className="delete-btn" type="button" onClick={() => setDeleteTarget(row)} disabled={saving}>Delete</button></div></td>
                         </tr>;
                       })}
-                      {!(page === 'bookings' ? paginatedBookings : visibleBookings.slice(0, 5)).length && <tr><td colSpan={(projectTab === 'all' ? 8 : 7) + (page === 'bookings' ? 1 : 0)} className="empty-cell">{selectedProjectBookings.length ? 'No bookings match your search.' : 'No bookings found in Supabase.'}</td></tr>}
+                      {!(page === 'bookings' ? paginatedBookings : visibleBookings.slice(0, 5)).length && <tr><td colSpan={(showProjectColumn ? 8 : 7) + (page === 'bookings' ? 1 : 0)} className="empty-cell">{selectedProjectBookings.length ? 'No bookings match your search.' : 'No bookings found in Supabase.'}</td></tr>}
                     </tbody>
                   </table></div>
                 )}
@@ -541,8 +539,8 @@ export default function Dashboard() {
                     </div>
                     <article className="chart-panel chart-panel-donut">
                       <div className="donut-layout">
-                        <div className="inventory-donut" style={{ background: P.length ? `conic-gradient(#18a779 0% ${plotCounts.Available / P.length * 100}%, #e8b34e ${plotCounts.Available / P.length * 100}% ${(plotCounts.Available + plotCounts.Reserved) / P.length * 100}%, #4e82d5 ${(plotCounts.Available + plotCounts.Reserved) / P.length * 100}% ${(plotCounts.Available + plotCounts.Reserved + plotCounts.Booked) / P.length * 100}%, #dd6572 ${(plotCounts.Available + plotCounts.Reserved + plotCounts.Booked) / P.length * 100}% 100%)` : 'conic-gradient(#e5eaf1 0% 100%)' }}>
-                          <div className="donut-hole"><strong>{P.length}</strong><span>Total plots</span></div>
+                        <div className="inventory-donut" style={{ background: dashboardPlots.length ? `conic-gradient(#18a779 0% ${plotCounts.Available / dashboardPlots.length * 100}%, #e8b34e ${plotCounts.Available / dashboardPlots.length * 100}% ${(plotCounts.Available + plotCounts.Reserved) / dashboardPlots.length * 100}%, #4e82d5 ${(plotCounts.Available + plotCounts.Reserved) / dashboardPlots.length * 100}% ${(plotCounts.Available + plotCounts.Reserved + plotCounts.Booked) / dashboardPlots.length * 100}%, #dd6572 ${(plotCounts.Available + plotCounts.Reserved + plotCounts.Booked) / dashboardPlots.length * 100}% 100%)` : 'conic-gradient(#e5eaf1 0% 100%)' }}>
+                          <div className="donut-hole"><strong>{dashboardPlots.length}</strong><span>Total plots</span></div>
                         </div>
                         <div className="chart-legend">
                           <div><i className="legend-available" /><span>Available</span><strong>{plotCounts.Available}</strong></div>

@@ -5,7 +5,7 @@
 1. Open the Supabase project connected to the Netlify site.
 2. Open **SQL Editor**.
 3. Run the complete `supabase/create-plots.sql` script from this repository.
-4. Confirm that `public.custom_projects` exists and that the private Storage bucket `plot-project-files` exists.
+4. Confirm that `public.custom_projects` and `public.project_analysis_jobs` exist and that the private Storage bucket `plot-project-files` exists.
 
 The script creates the custom-project metadata table, a private source-file bucket, the AI-analysis job table, and restricted SQL functions for atomic project creation and deletion. It does not alter the five existing project geometries or their inventory rows. The SQL functions use the existing `public.plots`, `public.bookings`, and `public.map_edits` tables.
 

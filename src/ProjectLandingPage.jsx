@@ -18,6 +18,82 @@ function SectionHeading({ eyebrow, title, tamil, language }) {
   return <div className="lp-section-heading"><span className="lp-eyebrow">{eyebrow}</span><h2><LanguageText english={title} tamil={tamil} language={language}/></h2></div>;
 }
 
+
+const LEGACY_PROJECTS = {
+  velavan_nagar: { name: 'Velavan Nagar', location: 'Kallikudi – Kurayur, Madurai', layout: 'Kurayur layout', price: '₹299 / sq.ft.', plots: '180 plots', intro: 'Explore Velavan Nagar, a plotted land opportunity at Kallikudi–Kurayur.', tamil: 'கள்ளிக்குடி–குராயூர் பகுதியில் அமைந்துள்ள வேலவன் நகர் மனைப்பிரிவை அறிந்துகொள்ளுங்கள்.' },
+  shanmuga_avenue: { name: 'Shanmuga Avenue', location: 'Arasanur, Sivagangai', layout: 'Arasanur layout', intro: 'Discover Shanmuga Avenue and explore its interactive plot layout online.', tamil: 'சிவகங்கை மாவட்டம் அரசனூர் பகுதியில் உள்ள சண்முகா அவென்யூ மனைப்பிரிவை அறிந்துகொள்ளுங்கள்.' },
+  saraswathi_garden: { name: 'Saraswathi Garden', location: 'Madurai, Tamil Nadu', layout: 'Saraswathi Garden layout', intro: 'Discover Saraswathi Garden and explore its project layout online.', tamil: 'மதுரையில் உள்ள சரஸ்வதி கார்டன் மனைப்பிரிவை அறிந்துகொள்ளுங்கள்.' },
+  meenakshi_garden_phase1: { name: 'Sri Meenakshi Garden – Phase 1', location: 'Poonchuthi, Melur, Madurai', layout: 'Poonchuthi layout', intro: 'Explore Sri Meenakshi Garden Phase 1 and view its plot layout.', tamil: 'பூஞ்சுத்தி, மேலூர் பகுதியில் உள்ள ஸ்ரீ மீனாட்சி கார்டன் முதல் கட்ட மனைப்பிரிவை பார்வையிடுங்கள்.' },
+  meenakshi_garden_phase2: { name: 'Sri Meenakshi Garden – Phase 2', location: 'Poonchuthi, Melur, Madurai', layout: 'Poonchuthi layout', intro: 'Explore Sri Meenakshi Garden Phase 2 and view its plot layout.', tamil: 'பூஞ்சுத்தி, மேலூர் பகுதியில் உள்ள ஸ்ரீ மீனாட்சி கார்டன் இரண்டாம் கட்ட மனைப்பிரிவை பார்வையிடுங்கள்.' },
+};
+
+function LegacyProjectLandingPage({ projectSlug }) {
+  const project = LEGACY_PROJECTS[projectSlug] || {
+    name: projectSlug.replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase()),
+    location: 'Madurai, Tamil Nadu',
+    layout: 'Project layout',
+    intro: 'Discover this project and explore its interactive plot layout online.',
+    tamil: 'இந்த மனைப்பிரிவை அறிந்துகொண்டு அதன் வரைபடத்தை ஆன்லைனில் பார்வையிடுங்கள்.',
+  };
+  const layoutUrl = '/' + projectSlug + '/layout';
+  return (
+    <main className="lp-legacy-page">
+      <header className="lp-legacy-header">
+        <a href="/" aria-label="Mary Ann Elite Properties home">
+          <img src="/mary-ann-plotmap-logo.png" alt="Mary Ann Elite Properties" />
+        </a>
+      </header>
+      <section className="lp-legacy-hero">
+        <div className="lp-legacy-copy">
+          <span className="lp-legacy-kicker">MARY ANN ELITE PROPERTIES · {project.layout.toUpperCase()}</span>
+          <h1>{project.name}</h1>
+          <p>{project.intro}</p>
+          <p className="lp-legacy-tamil">{project.tamil}</p>
+          <a className="lp-legacy-button" href={layoutUrl}>View Layout <span>↗</span></a>
+          <div className="lp-legacy-facts">
+            <div><small>LOCATION</small><strong>{project.location}</strong></div>
+            {project.price && <div><small>INDICATIVE PRICE</small><strong>{project.price}</strong></div>}
+            {project.plots && <div><small>PROJECT SIZE</small><strong>{project.plots}</strong></div>}
+          </div>
+        </div>
+        <div className="lp-legacy-art" aria-label={project.name + ' layout illustration'}>
+          <div className="lp-legacy-road" />
+          <div className="lp-legacy-road lp-legacy-road-vertical" />
+          {Array.from({ length: 12 }, (_, index) => <i key={index}>{String(index + 1).padStart(2, '0')}</i>)}
+          <b>GREEN<br />SPACE</b>
+        </div>
+      </section>
+      <section className="lp-legacy-highlights">
+        <span className="lp-legacy-kicker">DISCOVER THE PROJECT</span>
+        <h2>A closer look at <em>{project.name}.</em></h2>
+        <div className="lp-legacy-cards">
+          <article><b>01</b><h3>Explore the layout</h3><p>View the interactive plot map and check individual plot details online.</p></article>
+          <article><b>02</b><h3>Check plot availability</h3><p>See the latest plot status displayed on the interactive layout.</p></article>
+          <article><b>03</b><h3>Plan your next step</h3><p>Contact our team for verified pricing, approvals and site-visit details.</p></article>
+        </div>
+      </section>
+      <section className="lp-legacy-location">
+        <div><span className="lp-legacy-kicker">PROJECT LOCATION</span><h2>{project.location}</h2><p>Confirm current pricing, directions and approval documents with our team.</p></div>
+        <a className="lp-legacy-button" href={layoutUrl}>View Layout <span>↗</span></a>
+      </section>
+      <section className="lp-legacy-steps">
+        <span className="lp-legacy-kicker">HOW TO GET STARTED</span>
+        <h2>Your plot search starts with a closer look.</h2>
+        <div className="lp-legacy-cards">
+          <article><b>01</b><h3>Open the layout</h3><p>Explore the interactive project map.</p></article>
+          <article><b>02</b><h3>Select a plot</h3><p>Tap a plot to see its current details and status.</p></article>
+          <article><b>03</b><h3>Make an enquiry</h3><p>Use the enquiry option on the map to request information.</p></article>
+        </div>
+      </section>
+      <footer className="lp-legacy-footer">
+        <img src="/mary-ann-plotmap-logo.png" alt="Mary Ann Elite Properties" />
+        <span>© {new Date().getFullYear()} Mary Ann Elite Properties.</span>
+        <a href={layoutUrl}>View Layout ↗</a>
+      </footer>
+    </main>
+  );
+}
+
 export default function ProjectLandingPage({ projectSlug }) {
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -98,7 +174,7 @@ export default function ProjectLandingPage({ projectSlug }) {
 
   if (loading) return <main className="lp-page"><div className="lp-state">Loading project information…</div></main>;
   if (error) return <main className="lp-page"><div className="lp-state"><h1>Unable to load this project</h1><p>{error}</p></div></main>;
-  if (!content) return <main className="lp-page"><header className="lp-topbar"><img src="/mary-ann-plotmap-logo.png" alt="Mary Ann Elite Properties"/></header><div className="lp-state"><h1>Project page coming soon</h1><p>Landing page content has not been published for this project yet.</p></div></main>;
+  if (!content) return <LegacyProjectLandingPage projectSlug={projectSlug} />;
 
   return (
     <main className="lp-page">

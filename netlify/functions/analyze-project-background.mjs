@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { analyse } from "./create-project.mjs";
 
 const cfg = () => ({
-  url: (process.env.SUPABASE_URL || "").replace(/\\/+$/, ""),
+  url: (process.env.SUPABASE_URL || "").replace(/\/+$/, ""),
   key: (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || "").trim(),
   jobs: process.env.PROJECT_ANALYSIS_JOBS_TABLE || "project_analysis_jobs",
   bucket: process.env.PROJECT_FILES_BUCKET || "plot-project-files",

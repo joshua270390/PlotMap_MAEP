@@ -290,3 +290,22 @@ body.lp-scroll-enabled{display:block!important;height:auto!important;min-height:
   }
   .lp-legacy-steps .lp-legacy-cards article>b {margin-bottom:18px}
 }
+
+
+/* Branded full-page loader while project information is fetched */
+.lp-loading-screen{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;min-height:100vh;min-height:100dvh;padding:28px;background:#f7f4ed;color:#29221c;font-family:"Inter",system-ui,sans-serif}
+.lp-loader-content{display:flex;flex-direction:column;align-items:center;width:min(100%,360px);text-align:center}
+.lp-loader-logo{display:block;width:min(230px,72vw);max-height:76px;object-fit:contain;margin:0 0 42px}
+.lp-loader-orbit{position:relative;display:flex;align-items:center;justify-content:center;gap:9px;width:62px;height:62px;margin-bottom:24px}
+.lp-loader-orbit:before{content:"";position:absolute;inset:0;border:2px solid #e7dfd3;border-top-color:#a9573d;border-right-color:#a9573d;border-radius:50%;animation:lp-loader-spin .9s linear infinite}
+.lp-loader-orbit span{width:6px;height:6px;border-radius:50%;background:#a9573d;animation:lp-loader-pulse 1s ease-in-out infinite}
+.lp-loader-orbit span:nth-child(2){animation-delay:.15s}
+.lp-loader-orbit span:nth-child(3){animation-delay:.3s}
+.lp-loader-title{margin:0;color:#29221c;font-size:19px;font-weight:700;letter-spacing:-.02em}
+.lp-loader-caption{margin:7px 0 25px;color:#71675d;font-size:13px;line-height:1.6}
+.lp-loader-track{width:170px;height:3px;overflow:hidden;border-radius:99px;background:#e7dfd3}
+.lp-loader-track span{display:block;width:42%;height:100%;border-radius:99px;background:#a9573d;animation:lp-loader-progress 1.4s ease-in-out infinite}
+@keyframes lp-loader-spin{to{transform:rotate(360deg)}}
+@keyframes lp-loader-pulse{0%,80%,100%{opacity:.35;transform:scale(.75)}40%{opacity:1;transform:scale(1)}}
+@keyframes lp-loader-progress{0%{transform:translateX(-110%)}100%{transform:translateX(350%)}}
+@media(prefers-reduced-motion:reduce){.lp-loader-orbit:before,.lp-loader-orbit span,.lp-loader-track span{animation:none}}

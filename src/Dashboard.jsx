@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import './Dashboard.css';
 import { P, G } from './data.js';
+import { P as SARASWATHI_P } from './saraswathiGeometry.js';
+import { P as SHANMUGA_P } from './shanmugaGeometry.js';
+import { P as MEENAKSHI_PHASE1_P } from './meenakshiPhase1Geometry.js';
+import { P as MEENAKSHI_PHASE2_P } from './meenakshiPhase2Geometry.js';
 import ProjectMapThumbnail from './ProjectMapThumbnail.jsx';
 import LayoutLandingEditor from './LayoutLandingEditor.jsx';
 import CreatePlotsPage from './CreatePlotsPage.jsx';
@@ -8,6 +12,13 @@ import { normalizeIndianMobile, INDIAN_MOBILE_ERROR } from './validation.js';
 
 const PROJECT_IDS = { velavan_nagar: 1, saraswathi_garden: 3, shanmuga_avenue: 2, meenakshi_garden_phase1: 4, meenakshi_garden_phase2: 5 };
 const PROJECT_NAMES = { 1: 'Velavan Nagar', 3: 'Saraswathi Garden', 2: 'Shanmuga Avenue', 4: 'Meenakshi Garden Phase 1', 5: 'Meenakshi Garden Phase 2' };
+const DASHBOARD_GEOMETRY_PLOTS = {
+  velavan_nagar: P,
+  saraswathi_garden: SARASWATHI_P,
+  shanmuga_avenue: SHANMUGA_P,
+  meenakshi_garden_phase1: MEENAKSHI_PHASE1_P,
+  meenakshi_garden_phase2: MEENAKSHI_PHASE2_P,
+};
 const STATUSES = [
   { value: 'Available', label: 'Availability' },
   { value: 'Reserved', label: 'Reserved' },
@@ -320,13 +331,36 @@ export default function Dashboard() {
     finally { setSaving(false); }
   }
 
-  const dashboardPlots = useMemo(() => plots.filter(plot => dashboardProjectFilter === 'all' || String(plot.project_id) === String(PROJECT_IDS[dashboardProjectFilter])), [plots, dashboardProjectFilter]);
-  const plotCounts = useMemo(() => {
-    const counts = { Available: 0, Reserved: 0, Booked: 0, Sold: 0 };
-    dashboardPlots.forEach(plot => {
-      const value = normalizedStatus(plot.status);
-      counts[value] = (counts[value] || 0) + 1;
+  // The map renders the static geometry inventory and overlays database statuses.
+  // Build dashboard inventory from those same geometry plot numbers so extra DB
+  // rows are ignored and missing DB rows use the map's Available fallback.
+  const dashboardPlots = useMemo(() => {
+    const selectedProjects = dashboardProjectFilter === 'all'
+      ? Object.keys(PROJECT_IDS)
+      : [dashboardProjectFilter];
+    const databasePlotsByKey = new Map();
+    plots.forEach(plot => {
+      const plotNumber = String(plot.plot_number ?? plot.unit_number ?? plot.plot_no ?? plot.unit_no ?? plot.id).trim();
+      databasePlotsByKey.set(String(plot.project_id) + ':' + plotNumber, plot);
     });
+    return selectedProjects.flatMap(projectKey => {
+      const projectId = PROJECT_IDS[projectKey];
+      return (DASHBOARD_GEOMETRY_PLOTS[projectKey] || []).map(([plotNumber]) => {
+        const number = String(plotNumber);
+        const databasePlot = databasePlotsByKey.get(String(projectId) + ':' + number);
+        return {
+          project_id: projectId,
+          plot_number: number,
+          status: databasePlot
+            ? (STATUSES.find(item => item.value.toLowerCase() === String(databasePlot.status ?? '').trim().toLowerCase())?.value || 'Unclassified')
+            : 'Available',
+        };
+      });
+    });
+  }, [plots, dashboardProjectFilter]);
+  const plotCounts = useMemo(() => {
+    const counts = { Available: 0, Reserved: 0, Booked: 0, Sold: 0, Unclassified: 0 };
+    dashboardPlots.forEach(plot => { counts[plot.status] = (counts[plot.status] || 0) + 1; });
     return counts;
   }, [dashboardPlots]);
   const showProjectColumn = page === 'bookings' ? projectTab === 'all' : page === 'dashboard' && dashboardProjectFilter === 'all';
@@ -457,13 +491,14 @@ export default function Dashboard() {
             <>
               {page === 'users' ? <EmployeeUsersPage pin={pin} employees={employees} setEmployees={setEmployees} employeeForm={employeeForm} setEmployeeForm={setEmployeeForm} employeeDelete={employeeDelete} setEmployeeDelete={setEmployeeDelete} setError={setError} setNotice={setNotice} /> : page === 'dashboard' ? (
                 <>
-                  <div className="dashboard-welcome"><div><span className="dashboard-kicker">MARY ANN ELITE PROPERTIES</span><h2>Property inventory overview</h2><p>Live unit availability and sales progress at a glance.</p></div><div className="dashboard-welcome-actions"><label className="dashboard-project-filter"><span>Project</span><select value={dashboardProjectFilter} onChange={e => setDashboardProjectFilter(e.target.value)} aria-label="Filter dashboard by project"><option value="all">All Projects</option><option value="velavan_nagar">Velavan Nagar</option><option value="saraswathi_garden">Saraswathi Garden</option><option value="shanmuga_avenue">Shanmuga Avenue</option><option value="meenakshi_garden_phase1">Meenakshi Garden Phase 1</option><option value="meenakshi_garden_phase2">Meenakshi Garden Phase 2</option></select></label><div className="inventory-total"><span>Total units</span><strong>{dashboardPlots.length}</strong><small>{dashboardProjectFilter === 'all' ? 'Across all projects' : 'Selected project'}</small></div></div></div>
+                  <div className="dashboard-welcome"><div><h2>{dashboardProjectFilter === 'all' ? 'All Projects' : (PROJECT_NAMES[PROJECT_IDS[dashboardProjectFilter]] || 'Selected Project')}</h2></div><div className="dashboard-welcome-actions"><label className="dashboard-project-filter"><span>Project</span><select value={dashboardProjectFilter} onChange={e => setDashboardProjectFilter(e.target.value)} aria-label="Filter dashboard by project"><option value="all">All Projects</option><option value="velavan_nagar">Velavan Nagar</option><option value="saraswathi_garden">Saraswathi Garden</option><option value="shanmuga_avenue">Shanmuga Avenue</option><option value="meenakshi_garden_phase1">Meenakshi Garden Phase 1</option><option value="meenakshi_garden_phase2">Meenakshi Garden Phase 2</option></select></label><div className="inventory-total"><span>Total units</span><strong>{dashboardPlots.length}</strong><small>{dashboardProjectFilter === 'all' ? 'Across all projects' : 'Selected project'}</small></div></div></div>
                   <div className="kpi-grid">
-                    <article className="kpi-card kpi-available"><div className="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12.5 9.2 17 20 6" /></svg></div><div className="kpi-content"><span className="kpi-label">Available Plot</span><strong>{plotCounts.Available || 0}</strong><small>Ready for enquiry</small></div></article>
-                    <article className="kpi-card kpi-reserved"><div className="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5 14.6 8.8 20.5 9.6 16.2 13.7 17.2 19.5 12 16.7 6.8 19.5 7.8 13.7 3.5 9.6 9.4 8.8Z" /></svg></div><div className="kpi-content"><span className="kpi-label">Reserved Plot</span><strong>{plotCounts.Reserved || 0}</strong><small>Temporarily held</small></div></article>
-                    <article className="kpi-card kpi-booked"><div className="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M8 14l2.5 2.5L16 12" /></svg></div><div className="kpi-content"><span className="kpi-label">Booked Plot</span><strong>{plotCounts.Booked || 0}</strong><small>Booking in progress</small></div></article>
-                    <article className="kpi-card kpi-sold"><div className="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12 12 4h7l1 7-8 9Z"/><circle cx="16" cy="8" r="1"/><path d="m8.5 13.5 2 2 4-4" /></svg></div><div className="kpi-content"><span className="kpi-label">Sold Plot</span><strong>{plotCounts.Sold || 0}</strong><small>Successfully sold</small></div></article>
+                    <article className="kpi-card kpi-available"><div className="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12.5 9.2 17 20 6" /></svg></div><div className="kpi-content"><span className="kpi-label">Available plots</span><strong>{plotCounts.Available || 0}</strong><small>Ready for enquiry</small></div></article>
+                    <article className="kpi-card kpi-reserved"><div className="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5 14.6 8.8 20.5 9.6 16.2 13.7 17.2 19.5 12 16.7 6.8 19.5 7.8 13.7 3.5 9.6 9.4 8.8Z" /></svg></div><div className="kpi-content"><span className="kpi-label">Reserved plots</span><strong>{plotCounts.Reserved || 0}</strong><small>Temporarily held</small></div></article>
+                    <article className="kpi-card kpi-booked"><div className="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M8 14l2.5 2.5L16 12" /></svg></div><div className="kpi-content"><span className="kpi-label">Booked plots</span><strong>{plotCounts.Booked || 0}</strong><small>Booking in progress</small></div></article>
+                    <article className="kpi-card kpi-sold"><div className="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12 12 4h7l1 7-8 9Z"/><circle cx="16" cy="8" r="1"/><path d="m8.5 13.5 2 2 4-4" /></svg></div><div className="kpi-content"><span className="kpi-label">Sold plots</span><strong>{plotCounts.Sold || 0}</strong><small>Successfully sold</small></div></article>
                   </div>
+                  {plotCounts.Unclassified > 0 && <p className="dashboard-inventory-warning" role="status">{plotCounts.Unclassified} unit(s) have an empty or unrecognized status. Please review these plot records.</p>}
                   <div className="inventory-progress"><div><span>Inventory movement</span><strong>{dashboardPlots.length ? Math.round(((plotCounts.Reserved + plotCounts.Booked + plotCounts.Sold) / dashboardPlots.length) * 100) : 0}% committed</strong></div><div className="inventory-track"><i style={{ width: (dashboardPlots.length ? Math.min(100, ((plotCounts.Reserved + plotCounts.Booked + plotCounts.Sold) / dashboardPlots.length) * 100) : 0) + '%' }} /></div></div>
 
                 </>

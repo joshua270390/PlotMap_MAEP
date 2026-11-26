@@ -47,5 +47,3 @@ Two projects share the same workflow and design as Velavan Nagar, Saraswathi Gar
 | --- | --- | --- | --- | --- |
 | Sri Meenakshi Garden - Phase 1 | `/meenakshi_garden_phase1` | 4 | `src/meenakshiPhase1Geometry.js` | 42 |
 | Sri Meenakshi Garden - Phase 2 | `/meenakshi_garden_phase2` | 5 | `src/meenakshiPhase2Geometry.js` | 49 |
-
-Run `supabase/seeds/meenakshi_garden_plots.sql` once in the Supabase SQL Editor so the plots exist for status, bookings and enquiries.

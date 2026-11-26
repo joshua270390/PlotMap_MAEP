@@ -162,3 +162,12 @@
  .ma-landing .ma-footer{padding:22px}
 }
 @media(prefers-reduced-motion:reduce){.ma-landing *{scroll-behavior:auto!important;transition:none!important}}
+
+
+/* Requested typography and hero refinements */
+.ma-landing,
+.ma-landing *{font-family:"Inter",system-ui,sans-serif!important}
+.ma-landing .ma-hero h1{font-size:clamp(48px,5.2vw,70px);line-height:1}
+@media(max-width:650px){
+ .ma-landing .ma-hero h1{font-size:46px}
+}

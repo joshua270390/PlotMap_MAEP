@@ -19,8 +19,7 @@ const GEOMETRIES = {
   meenakshi_garden_phase2: { key: 'meenakshi_garden_phase2', compact: true, projectId: 5, P: M2_P, G: M2_G, LB: M2_LB, DM: M2_DM, bounds: M2_BOUNDS, plotAreaLabels: M2_PLOT_AREA_LABELS, roadLabels: M2_ROAD_LABELS, dimensionLabels: M2_DIMENSION_LABELS, projectName: 'Sri Meenakshi Garden - Phase 2', layoutName: 'Poonchuthi layout' },
 };
 
-export default function App({ projectSlug = 'velavan_nagar' }) {
-  const geometry = GEOMETRIES[projectSlug] || GEOMETRIES.velavan_nagar;
+function PlotMapApp({ geometry, backToProject = null }) {
   // Keep the browser/APK page title aligned with the selected map, not index.html's default.
   useEffect(() => {
     document.title = geometry.projectName + ' plot map';
@@ -184,7 +183,7 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
         const j = await r.json();
         if (stop || !j.ok) return;
         const m = {};
-        P.forEach(([id]) => { const v = j.plots[String(id)]; if (v) m[id] = toStatus(v); });
+        P.forEach(([id]) => { const plotLabel = String(geometry.plotLabels?.[id] ?? id); const v = j.plots[plotLabel] || j.plots[String(id)]; if (v) m[id] = toStatus(v); });
         const key = JSON.stringify([m, j.details || {}]);
         if (key === plotsJson.current) return;      // nothing changed: skip re-render
         plotsJson.current = key;
@@ -320,7 +319,7 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
 
   return (
     <>
-      <PlotMap ref={mapRef} backToProject={'/' + projectSlug} geometry={geometry} projectName={geometry.projectName} layoutName={geometry.layoutName} ax={ax} status={status} details={plotDetails} filt={filt} setFilt={setFilt} sel={sel} selD={selD} setSel={setSel}
+      <PlotMap ref={mapRef} backToProject={backToProject} geometry={geometry} projectName={geometry.projectName} layoutName={geometry.layoutName} ax={ax} status={status} details={plotDetails} filt={filt} setFilt={setFilt} sel={sel} selD={selD} setSel={setSel}
         onTap={onTap} admin={admin} addMode={addMode} adminEnquiries={adminEnquiries} cv={cv} setCv={setCv} setAd={setAdH}
         history={{ undo, redo, canUndo: past.current.length > 0, canRedo: future.current.length > 0 }}>
         {syncNote ? <div className="sync-note" role="alert">{syncNote}</div> : savedAt ? <div className="sync-note ok" role="status">✓ Saved — everyone can see this change</div> : null}
@@ -338,4 +337,36 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
       {form && unit != null && <EnquiryModal id={unit} ax={ax} onClose={() => setForm(false)} />}
     </>
   );
+}
+
+
+export default function App({ projectSlug = 'velavan_nagar' }) {
+  const staticGeometry = GEOMETRIES[projectSlug];
+  const [dynamicGeometry, setDynamicGeometry] = useState(null);
+  const [loadError, setLoadError] = useState('');
+  useEffect(() => {
+    if (staticGeometry) { setDynamicGeometry(null); setLoadError(''); return; }
+    let cancelled = false;
+    fetch('/api/projects', { cache: 'no-store' })
+      .then(async response => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load this project.');
+        const project = (data.projects || []).find(item => item.slug === projectSlug || item.route === '/' + projectSlug);
+        if (!project?.geometry?.P?.length) throw new Error('Project map was not found.');
+        if (!cancelled) setDynamicGeometry({
+          ...project.geometry,
+          key: project.geometry.key || project.slug,
+          projectId: project.project_id,
+          projectName: project.name,
+          layoutName: project.layout || (project.name + ' layout'),
+          compact: true,
+        });
+      })
+      .catch(error => { if (!cancelled) setLoadError(error.message || 'Could not load project map.'); });
+    return () => { cancelled = true; };
+  }, [projectSlug, staticGeometry]);
+
+  const geometry = staticGeometry || dynamicGeometry;
+  if (!geometry) return <main className="project-load-state"><div><strong>{loadError ? 'Project unavailable' : 'Loading plot map…'}</strong><p>{loadError || 'Please wait while we load the interactive layout.'}</p><a href="/plot_lists">Back to Plot Lists</a></div></main>;
+  return <PlotMapApp geometry={geometry} backToProject={staticGeometry ? '/' + projectSlug : '/plot_lists'} />;
 }

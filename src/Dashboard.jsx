@@ -249,7 +249,7 @@ export default function Dashboard() {
         if (!response.ok || !data.ok) throw new Error(data.error || 'Employee login failed.');
         window.sessionStorage.setItem('maep_employee_token', data.token); window.sessionStorage.setItem('maep_employee_username', data.username);
         window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_mode');
-        setEmployeeToken(data.token); setUserName(data.username); setLoggedIn(true); setAuthChecking(false); setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return;
+        setEmployeeToken(data.token); setUserName(data.username); setLoggedIn(true); setAuthChecking(false); setPage('plots'); setShowCreatePage(false); setEditingProject(null); window.history.replaceState({}, '', '/plot_lists'); return;
       }
       const response = await fetch('/api/admin-auth', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -412,7 +412,7 @@ export default function Dashboard() {
         {role !== 'user' && <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); setShowCreatePage(false); setEditingProject(null); setSidebarOpen(false); }}>
           <span className="nav-icon">▤</span> Bookings
         </button>}
-        {role !== 'user' && <button className={'nav-item' + (page === 'layout-landing' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/layout_landing'); setPage('layout-landing'); setSidebarOpen(false); }}><span className="nav-icon">✎</span> Layout Landing</button>}
+        {role !== 'user' && <button className={'nav-item' + (page === 'layout-landing' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/layout_landing'); setPage('layout-landing'); setShowCreatePage(false); setEditingProject(null); setSidebarOpen(false); }}><span className="nav-icon">✎</span> Layout Landing</button>}
         {role === 'admin' && <button className={'nav-item' + (page === 'users' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/users'); setPage('users'); setShowCreatePage(false); setEditingProject(null); setSidebarOpen(false); }}><span className="nav-icon">♙</span> Users</button>}
         <button className={'nav-item' + (page === 'plots' && !showCreatePage ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/plot_lists'); setPage('plots'); setShowCreatePage(false); setEditingProject(null); setSidebarOpen(false); }}>
           <span className="nav-icon">▦</span> Plot lists
@@ -430,7 +430,7 @@ export default function Dashboard() {
               <strong className="profile-role">{role === 'admin' ? 'Administrator' : role === 'employee' ? userName || 'Employee' : userName || 'User'}</strong>
               {role === 'admin' && <span className="profile-company">Mary Ann Elite Properties</span>}
               <span className="profile-session"><i />{role === 'admin' ? 'Connected to admin session' : role === 'employee' ? 'Employee session' : 'Approved user session'}</span>
-              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); if (window.sessionStorage.getItem('maep_admin_session')) fetch('/api/admin-auth?action=logout', { method: 'POST', keepalive: true }).catch(() => {}).finally(() => window.sessionStorage.removeItem('maep_admin_session')); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_mode'); window.sessionStorage.removeItem('maep_employee_token'); window.sessionStorage.removeItem('maep_employee_username'); setEmployeeToken(''); setLoggedIn(false); setPin(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); }}>Sign out</button>
+              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); if (window.sessionStorage.getItem('maep_admin_session')) fetch('/api/admin-auth?action=logout', { method: 'POST', keepalive: true }).catch(() => {}).finally(() => window.sessionStorage.removeItem('maep_admin_session')); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_mode'); window.sessionStorage.removeItem('maep_employee_token'); window.sessionStorage.removeItem('maep_employee_username'); setEmployeeToken(''); setLoggedIn(false); setPin(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); setShowCreatePage(false); setEditingProject(null); setProjectDelete(null); }}>Sign out</button>
             </div>}
           </div>
         </header>
@@ -488,7 +488,7 @@ export default function Dashboard() {
                         return <tr key={String(row.project_id) + ':' + row.id}>
                           {page === 'bookings' && <td><input type="checkbox" aria-label={'Select booking ' + row.id} checked={selectedBookingKeys.includes(bookingKey(row))} onChange={e => toggleBookingSelection(row, e.target.checked)} /></td>}
                           <td className="id-cell">#{row.id}</td>
-                          {projectTab === 'all' && <td><span className="unit-pill">{PROJECT_NAMES[row.project_id] || ('Project ' + row.project_id)}</span></td>}
+                          {projectTab === 'all' && <td><span className="unit-pill">{PROJECT_NAMES[row.project_id] || projects.find(project => Number(project.project_id) === Number(row.project_id))?.name || ('Project ' + row.project_id)}</span></td>}
                           <td><strong>{field(row, 'customer_name', 'name') || '—'}</strong></td>
                           <td>{field(row, 'phone', 'phone_number') || '—'}</td>
                           <td>{row.plot_id ?? '—'}</td>
@@ -549,6 +549,8 @@ export default function Dashboard() {
             </>
           ) : (
             <section className="project-list-view" aria-label="Project list">
+              {error && <div className="alert alert-error" role="alert">{error}</div>}
+              {notice && <div className="alert alert-success" role="status">{notice}</div>}
               {projectsError && projects.length > 0 && <div className="alert alert-error" role="status">{projectsError}</div>}
               <label className="project-filter-box">
                 <span aria-hidden="true">⌕</span>

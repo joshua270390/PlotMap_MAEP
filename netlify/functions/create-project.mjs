@@ -231,7 +231,7 @@ export default async function handler(request) {
     const existing = await db(c, c.projects, "GET", new URLSearchParams({ select: "id,slug,source_file_path", id: "eq." + id, limit: "1" }).toString());
     if (!existing.ok || !existing.data?.[0]) return json({ ok: false, error: "Project not found." }, 404);
     const slug = cleanSlug(route.replace(/^\/+/, "").split("/")[0]);
-    if (!slug || ['velavan_nagar','saraswathi_garden','shanmuga_avenue','meenakshi_garden_phase1','meenakshi_garden_phase2','dashboard','bookings','plot_lists','create_plots','users'].includes(slug))
+    if (!slug || ['velavan_nagar','saraswathi_garden','shanmuga_avenue','meenakshi_garden_phase1','meenakshi_garden_phase2','dashboard','bookings','plot_lists','create_plots','users','layout_landing'].includes(slug))
       return json({ ok: false, error: "That route is reserved. Choose a different project route." }, 422);
     const duplicate = await db(c, c.projects, "GET", new URLSearchParams({ select: "id", or: "(slug.eq." + slug + ",route.eq." + route + ")", id: "neq." + id, limit: "1" }).toString());
     if (!duplicate.ok) return json({ ok: false, error: "Could not validate the project route." }, 502);
@@ -239,7 +239,7 @@ export default async function handler(request) {
     const patch = { name, description, location, route, slug, updated_at: new Date().toISOString() };
     let newPath = null;
     if (file && file.size) {
-      if (!validFile(file)) return json({ ok: false, error: "Upload a PDF, PNG, JPG or WEBP file up to 15 MB." }, 422);
+      if (!validFile(file)) return json({ ok: false, error: "Upload a PDF, PNG, JPG or WEBP file up to 4 MB." }, 422);
       newPath = "projects/" + existing.data[0].slug + "/" + randomUUID() + "-" + String(file.name || "layout").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 90);
       try { await upload(c, newPath, file); } catch (e) { return json({ ok: false, error: e.message }, 502); }
       patch.source_file_path = newPath; patch.source_file_name = file.name || "layout";

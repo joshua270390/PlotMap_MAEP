@@ -351,14 +351,16 @@ export default function Dashboard() {
         return {
           project_id: projectId,
           plot_number: number,
-          status: databasePlot ? normalizedStatus(databasePlot.status) : 'Available',
+          status: databasePlot
+            ? (STATUSES.find(item => item.value.toLowerCase() === String(databasePlot.status ?? '').trim().toLowerCase())?.value || 'Unclassified')
+            : 'Available',
         };
       });
     });
   }, [plots, dashboardProjectFilter]);
   const plotCounts = useMemo(() => {
-    const counts = { Available: 0, Reserved: 0, Booked: 0, Sold: 0 };
-    dashboardPlots.forEach(plot => { counts[normalizedStatus(plot.status)] += 1; });
+    const counts = { Available: 0, Reserved: 0, Booked: 0, Sold: 0, Unclassified: 0 };
+    dashboardPlots.forEach(plot => { counts[plot.status] = (counts[plot.status] || 0) + 1; });
     return counts;
   }, [dashboardPlots]);
   const showProjectColumn = page === 'bookings' ? projectTab === 'all' : page === 'dashboard' && dashboardProjectFilter === 'all';

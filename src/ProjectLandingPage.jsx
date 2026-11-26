@@ -105,10 +105,10 @@ export default function ProjectLandingPage({ projectSlug }) {
 
   useEffect(() => {
     document.body.classList.add('lp-scroll-enabled');
-    if (projectSlug === 'saraswathi_garden') document.body.classList.add('lp-saraswathi-theme');
+    document.body.classList.add('lp-editor-theme');
     return () => {
       document.body.classList.remove('lp-scroll-enabled');
-      document.body.classList.remove('lp-saraswathi-theme');
+      document.body.classList.remove('lp-editor-theme');
     };
   }, [projectSlug]);
 

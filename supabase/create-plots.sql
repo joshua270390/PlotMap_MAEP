@@ -72,7 +72,7 @@ begin
 
   insert into public.plots (project_id, plot_number, status)
   select v_project_id, item->>'plot_number', 'Available'
-    from jsonb_array_elements(p_plot_rows) item
+    from jsonb_array_elements(p_plot_rows) as rows(item)
    where nullif(trim(item->>'plot_number'), '') is not null;
 
   get diagnostics v_plot_count = row_count;

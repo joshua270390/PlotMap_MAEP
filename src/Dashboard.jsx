@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import './Dashboard.css';
 import { P, G } from './data.js';
+import { P as SARASWATHI_P } from './saraswathiGeometry.js';
+import { P as SHANMUGA_P } from './shanmugaGeometry.js';
+import { P as MEENAKSHI_PHASE1_P } from './meenakshiPhase1Geometry.js';
+import { P as MEENAKSHI_PHASE2_P } from './meenakshiPhase2Geometry.js';
 import ProjectMapThumbnail from './ProjectMapThumbnail.jsx';
 import LayoutLandingEditor from './LayoutLandingEditor.jsx';
 import CreatePlotsPage from './CreatePlotsPage.jsx';
@@ -8,16 +12,19 @@ import { normalizeIndianMobile, INDIAN_MOBILE_ERROR } from './validation.js';
 
 const PROJECT_IDS = { velavan_nagar: 1, saraswathi_garden: 3, shanmuga_avenue: 2, meenakshi_garden_phase1: 4, meenakshi_garden_phase2: 5 };
 const PROJECT_NAMES = { 1: 'Velavan Nagar', 3: 'Saraswathi Garden', 2: 'Shanmuga Avenue', 4: 'Meenakshi Garden Phase 1', 5: 'Meenakshi Garden Phase 2' };
+const DASHBOARD_GEOMETRY_PLOTS = {
+  velavan_nagar: P,
+  saraswathi_garden: SARASWATHI_P,
+  shanmuga_avenue: SHANMUGA_P,
+  meenakshi_garden_phase1: MEENAKSHI_PHASE1_P,
+  meenakshi_garden_phase2: MEENAKSHI_PHASE2_P,
+};
 const STATUSES = [
   { value: 'Available', label: 'Availability' },
   { value: 'Reserved', label: 'Reserved' },
   { value: 'Booked', label: 'Booked' },
   { value: 'Sold', label: 'Sold' },
 ];
-const dashboardInventoryStatus = value => {
-  const normalized = String(value ?? '').trim().toLowerCase();
-  return STATUSES.find(item => item.value.toLowerCase() === normalized)?.value || 'Unclassified';
-};
 const normalizedStatus = value => {
   const normalized = String(value ?? '').trim().toLowerCase();
   return STATUSES.find(item => item.value.toLowerCase() === normalized)?.value || 'Available';
@@ -324,23 +331,34 @@ export default function Dashboard() {
     finally { setSaving(false); }
   }
 
-  // Count each inventory row once per project. Do not silently classify an
-  // empty or unexpected database status as Available; surface it for review.
+  // The map renders the static geometry inventory and overlays database statuses.
+  // Build dashboard inventory from those same geometry plot numbers so extra DB
+  // rows are ignored and missing DB rows use the map's Available fallback.
   const dashboardPlots = useMemo(() => {
-    const selected = plots.filter(plot => dashboardProjectFilter === 'all' || String(plot.project_id) === String(PROJECT_IDS[dashboardProjectFilter]));
-    const unique = new Map();
-    selected.forEach(plot => {
+    const selectedProjects = dashboardProjectFilter === 'all'
+      ? Object.keys(PROJECT_IDS)
+      : [dashboardProjectFilter];
+    const databasePlotsByKey = new Map();
+    plots.forEach(plot => {
       const plotNumber = String(plot.plot_number ?? plot.unit_number ?? plot.plot_no ?? plot.unit_no ?? plot.id).trim();
-      unique.set(String(plot.project_id) + ':' + plotNumber, plot);
+      databasePlotsByKey.set(String(plot.project_id) + ':' + plotNumber, plot);
     });
-    return Array.from(unique.values());
+    return selectedProjects.flatMap(projectKey => {
+      const projectId = PROJECT_IDS[projectKey];
+      return (DASHBOARD_GEOMETRY_PLOTS[projectKey] || []).map(([plotNumber]) => {
+        const number = String(plotNumber);
+        const databasePlot = databasePlotsByKey.get(String(projectId) + ':' + number);
+        return {
+          project_id: projectId,
+          plot_number: number,
+          status: databasePlot ? normalizedStatus(databasePlot.status) : 'Available',
+        };
+      });
+    });
   }, [plots, dashboardProjectFilter]);
   const plotCounts = useMemo(() => {
-    const counts = { Available: 0, Reserved: 0, Booked: 0, Sold: 0, Unclassified: 0 };
-    dashboardPlots.forEach(plot => {
-      const value = dashboardInventoryStatus(plot.status);
-      counts[value] += 1;
-    });
+    const counts = { Available: 0, Reserved: 0, Booked: 0, Sold: 0 };
+    dashboardPlots.forEach(plot => { counts[normalizedStatus(plot.status)] += 1; });
     return counts;
   }, [dashboardPlots]);
   const showProjectColumn = page === 'bookings' ? projectTab === 'all' : page === 'dashboard' && dashboardProjectFilter === 'all';

@@ -15,6 +15,22 @@ create table if not exists public.custom_projects (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.project_analysis_jobs (
+  job_id uuid primary key,
+  source_file_path text not null,
+  file_name text not null,
+  file_type text not null,
+  status text not null default 'pending' check (status in ('pending','processing','completed','failed')),
+  result jsonb,
+  error text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists project_analysis_jobs_status_updated_idx
+  on public.project_analysis_jobs(status, updated_at);
+alter table public.project_analysis_jobs enable row level security;
+grant all on table public.project_analysis_jobs to service_role;
+
 create index if not exists custom_projects_project_id_idx on public.custom_projects(project_id);
 alter table public.custom_projects enable row level security;
 grant all on table public.custom_projects to service_role;

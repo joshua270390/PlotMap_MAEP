@@ -41,7 +41,14 @@ export async function downloadMap(svg, { plain = false, name = 'plotmap', title 
       el.style.fill = styles[i].find(([p]) => p === 'fill')[1];
     }
   });
-  clone.querySelectorAll('[data-enquiry-pin], title').forEach((n) => n.remove());
+  clone.querySelectorAll('[data-enquiry-pin], title, .trees').forEach((n) => n.remove());
+  if (plain) {
+    clone.querySelectorAll('path.p').forEach((plot) => {
+      plot.style.setProperty('fill', '#ffffff', 'important');
+      plot.style.setProperty('fill-opacity', '1', 'important');
+      plot.style.removeProperty('--custom-fill');
+    });
+  }
   await Promise.all([...clone.querySelectorAll('image')].map(async (im) => {
     const h = im.getAttribute('href') || im.getAttribute('xlink:href');
     if (h && !h.startsWith('data:')) im.setAttribute('href', await toDataUrl(h));

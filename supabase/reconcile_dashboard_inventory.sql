@@ -61,7 +61,12 @@ from public.plots
 where project_id = 3
   and (
     nullif(trim(plot_number::text), '') is null
-    or trim(plot_number::text) !~ '^[0-9]+$'
-    or trim(plot_number::text)::integer not between 1 and 32
+    or case
+      when trim(plot_number::text) ~ '^[0-9]+  )
+order by id;
+
+        then trim(plot_number::text)::integer not between 1 and 32
+      else true
+    end
   )
 order by id;

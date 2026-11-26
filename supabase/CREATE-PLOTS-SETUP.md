@@ -24,7 +24,7 @@ After changing environment variables, trigger a new Netlify deploy so Functions 
 
 ## 3. Upload limits and review
 
-PDF, PNG, JPG and WEBP source files are limited to 4 MB. The original source file is stored in a private Supabase bucket. Database project creation and deletion run through SQL transactions: if any inventory or booking operation fails, the database changes roll back together. Source-file cleanup happens after the database transaction; a failed storage cleanup is reported as pending and does not roll back the database transaction.
+PDF, PNG, JPG and WEBP source files are limited to 4 MB. The original source file is temporarily stored in a private Supabase bucket, then processed by a Netlify Background Function. The browser checks the saved job status until the extracted geometry is ready. Netlify Background Functions must be available for the site's plan. Database project creation and deletion run through SQL transactions: if any inventory or booking operation fails, the database changes roll back together. Source-file cleanup happens after the database transaction; a failed storage cleanup is reported as pending and does not roll back the database transaction.
 
 AI extraction creates a draft from the first PDF page or the uploaded image. Check the plot count, plot labels and boundaries against the original source before creating the project. AI-generated boundaries can be inaccurate and are not a legal survey.
 

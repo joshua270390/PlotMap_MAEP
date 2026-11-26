@@ -103,20 +103,22 @@ function buildPlotRows(geometry) {
   if (!geometry || !Array.isArray(geometry.P) || geometry.P.length < 1 || geometry.P.length > 1000) {
     throw new Error("The extracted layout must contain between 1 and 1000 plots.");
   }
-  const seen = new Set();
+  const seenLabels = new Set(), seenIds = new Set();
   return geometry.P.map(row => {
-    if (!Array.isArray(row) || row.length < 4 || !Number.isInteger(Number(row[0])) ||
-        !Number.isFinite(Number(row[1])) || !Number.isFinite(Number(row[2])) ||
+    const id = Number(row?.[0]);
+    if (!Array.isArray(row) || row.length < 4 || !Number.isInteger(id) || id < 1 || id > 10000 ||
+        seenIds.has(id) || !Number.isFinite(Number(row[1])) || !Number.isFinite(Number(row[2])) ||
         typeof row[3] !== "string" || row[3].trim().split(/\s+/).length < 3 ||
         !/^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?(?:\s+-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?){2,}$/.test(row[3].trim())) {
       throw new Error("The extracted plot geometry is invalid. Please analyse the source plan again.");
     }
-    const label = String(geometry.plotLabels?.[row[0]] ?? row[0]).trim();
-    if (!/^[A-Za-z0-9-]{1,20}$/.test(label) || seen.has(label)) {
-      throw new Error("Plot numbers must be unique and use letters, numbers or hyphens only.");
+    const label = String(geometry.plotLabels?.[id] ?? id).trim();
+    if (!/^[A-Za-z0-9-]{1,20}$/.test(label) || seenLabels.has(label)) {
+      throw new Error("Plot labels must be unique and use letters, numbers or hyphens only.");
     }
-    seen.add(label);
-    return { plot_number: label };
+    seenIds.add(id); seenLabels.add(label);
+    // The inventory table stores the stable geometry ID. plotLabels are display-only.
+    return { plot_number: String(id) };
   });
 }
 

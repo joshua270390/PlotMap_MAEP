@@ -70,7 +70,8 @@ export default async function handler(request) {
   const claimed = await db(c, c.jobs, "PATCH",
     new URLSearchParams({ job_id: "eq." + payload.job_id, status: "eq.pending" }).toString(),
     { status: "processing", updated_at: new Date().toISOString() });
-  if (!claimed.ok || !claimed.data?.length) return json({ ok: true, skipped: true });
+  if (!claimed.ok) return json({ ok: false, error: "Could not claim the analysis job." }, 503);
+  if (!claimed.data?.length) return json({ ok: true, skipped: true });
 
   try {
     const objectPath = job.source_file_path.split("/").map(encodeURIComponent).join("/");

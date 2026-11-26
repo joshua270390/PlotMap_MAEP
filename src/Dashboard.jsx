@@ -441,10 +441,15 @@ export default function Dashboard() {
 
           {page === 'layout-landing' ? <LayoutLandingEditor pin={pin} employeeToken={employeeToken} setError={setError} setNotice={setNotice} /> : showCreatePage ? (
             <CreatePlotsPage editingProject={editingProject} authHeaders={employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': pin }} onCancel={() => { setShowCreatePage(false); setEditingProject(null); window.history.pushState({}, '', '/plot_lists'); }} onSaved={async () => {
-              const response = await fetch('/api/projects', { cache: 'no-store' });
-              const data = await response.json().catch(() => ({}));
-              if (!response.ok || !data.ok) throw new Error(data.error || 'Project saved, but the list could not refresh.');
-              setProjects(data.projects || []); setProjectsError(data.warning || ''); setShowCreatePage(false); setEditingProject(null);
+              try {
+                const response = await fetch('/api/projects', { cache: 'no-store' });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.ok) throw new Error(data.error || 'Project saved, but the list could not refresh.');
+                setProjects(data.projects || []); setProjectsError(data.warning || '');
+              } catch (refreshError) {
+                setProjectsError(refreshError.message || 'Project saved, but the project list could not refresh.');
+              }
+              setShowCreatePage(false); setEditingProject(null);
               window.history.pushState({}, '', '/plot_lists'); setNotice('Project saved successfully.');
             }} />
           ) : page !== 'plots' ? (

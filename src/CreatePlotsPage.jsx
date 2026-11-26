@@ -31,6 +31,7 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
   const set = key => event => setForm(value => ({ ...value, [key]: event.target.value }));
   const chooseFile = event => {
     const file = event.target.files?.[0] || null;
+    event.target.value = "";
     setForm(value => ({ ...value, file, ...(editingProject ? {} : { geometry: null }) }));
     setAnalysed(false); setAnalysisJobId(""); setError(""); setNotice("");
   };

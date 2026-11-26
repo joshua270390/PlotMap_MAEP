@@ -99,7 +99,6 @@ export default function Dashboard() {
   const [projectDelete, setProjectDelete] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [plots, setPlots] = useState([]);
-  const [mapPlotStatuses, setMapPlotStatuses] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');

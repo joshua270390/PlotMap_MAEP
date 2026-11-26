@@ -1,0 +1,35 @@
+name: Verify PlotMap build
+on:
+  pull_request:
+    branches:
+      - main
+      - feature/layout-landing-content-manager
+    paths:
+      - 'src/**'
+      - 'netlify/**'
+      - 'public/_redirects'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.js'
+  push:
+    branches:
+      - main
+      - feature/integrate-create-plots-safe
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Check Netlify Function syntax
+        run: |
+          find netlify/functions -type f -name '*.mjs' -print0 | while IFS= read -r -d '' file; do
+            node --check "$file"
+          done
+      - name: Build web application
+        run: npm run build

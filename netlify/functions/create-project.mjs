@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHmac } from "node:crypto";
 import { verifyAdmin } from "../lib/admin-session.mjs";
 import { verifyEmployeeToken } from "./employee-auth.mjs";
 
@@ -13,6 +13,7 @@ const cfg = () => ({
   bookings: process.env.BOOKINGS_TABLE || "bookings",
   edits: process.env.MAP_EDITS_TABLE || "map_edits",
   bucket: process.env.PROJECT_FILES_BUCKET || "plot-project-files",
+  jobs: process.env.PROJECT_ANALYSIS_JOBS_TABLE || "project_analysis_jobs",
 });
 const headers = c => ({ apikey: c.key, Authorization: "Bearer " + c.key, Accept: "application/json" });
 async function db(c, table, method, query = "", body) {
@@ -174,14 +175,55 @@ export default async function handler(request) {
   if (!c.url || !c.key) return json({ ok: false, error: "Supabase is not configured." }, 500);
   if (!(await canManageProjects(request, c))) return json({ ok: false, error: "Sign in with an authorized Admin or Employee account to manage projects." }, 401);
   const action = new URL(request.url).searchParams.get("action") || "";
+  if (request.method === "GET" && action === "analysis-status") {
+    const jobId = String(new URL(request.url).searchParams.get("job_id") || "");
+    if (!/^[0-9a-f-]{36}$/i.test(jobId)) return json({ ok: false, error: "Invalid analysis job." }, 422);
+    const found = await db(c, c.jobs, "GET", new URLSearchParams({
+      select: "status,result,error,updated_at", job_id: "eq." + jobId, limit: "1",
+    }).toString());
+    if (!found.ok) return json({ ok: false, error: "Could not check AI analysis status." }, 502);
+    const job = found.data?.[0];
+    if (!job) return json({ ok: false, error: "Analysis job not found." }, 404);
+    if (job.status === "processing" && Date.now() - new Date(job.updated_at).getTime() > 14 * 60 * 1000) {
+      return json({ ok: true, status: "failed", error: "AI analysis exceeded the processing limit. Please upload the plan and try again." });
+    }
+    return json({ ok: true, status: job.status, result: job.result || null, error: job.error || "" });
+  }
   if (request.method === "POST" && action === "analyze") {
     let form; try { form = await request.formData(); } catch { return json({ ok: false, error: "Upload a PDF or image file." }, 400); }
     const file = form.get("file");
     if (!validFile(file)) return json({ ok: false, error: "Upload a PDF, PNG, JPG or WEBP file up to 4 MB." }, 422);
+    const jobId = randomUUID();
+    const sourcePath = "analysis/" + jobId + "/" + String(file.name || "layout").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 90);
+    const payload = { job_id: jobId, source_file_path: sourcePath, file_name: file.name || "layout", file_type: file.type };
     try {
-      const result = await analyse(c, file);
-      return json({ ok: true, ...result });
-    } catch (e) { return json({ ok: false, error: e.message || "Could not analyse the uploaded plan." }, 422); }
+      await upload(c, sourcePath, file);
+      const queued = await db(c, c.jobs, "POST", "", {
+        job_id: jobId, source_file_path: sourcePath, file_name: payload.file_name,
+        file_type: payload.file_type, status: "pending", updated_at: new Date().toISOString(),
+      });
+      if (!queued.ok) throw new Error("Could not queue the AI analysis job. Run the Create Plots SQL setup.");
+      const signature = createHmac("sha256", c.key).update(JSON.stringify(payload)).digest("hex");
+      const backgroundUrl = new URL("/.netlify/functions/analyze-project-background", request.url);
+      const started = await fetch(backgroundUrl, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, signature }), signal: AbortSignal.timeout(12000),
+      });
+      if (!started.ok) {
+        await db(c, c.jobs, "PATCH", new URLSearchParams({ job_id: "eq." + jobId }).toString(), {
+          status: "failed", error: "Netlify Background Functions could not start this analysis.", updated_at: new Date().toISOString(),
+        });
+        await removeObject(c, sourcePath);
+        return json({ ok: false, error: "Could not start AI analysis. Check that Netlify Background Functions are enabled for this site." }, 502);
+      }
+      return json({ ok: true, job_id: jobId, status: "pending" }, 202);
+    } catch (e) {
+      await db(c, c.jobs, "PATCH", new URLSearchParams({ job_id: "eq." + jobId }).toString(), {
+        status: "failed", error: e.message || "Could not start AI analysis.", updated_at: new Date().toISOString(),
+      });
+      await removeObject(c, sourcePath);
+      return json({ ok: false, error: e.message || "Could not start AI analysis." }, 502);
+    }
   }
   if (request.method === "POST" && action === "create") {
     let form; try { form = await request.formData(); } catch { return json({ ok: false, error: "Invalid project data." }, 400); }
@@ -265,3 +307,5 @@ export default async function handler(request) {
   }
   return json({ ok: false, error: "Unsupported project action." }, 405);
 }
+
+export { analyse, normalizeGeometry };

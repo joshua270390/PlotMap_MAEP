@@ -329,7 +329,10 @@ export default function Dashboard() {
   const dashboardPlots = useMemo(() => {
     const selected = plots.filter(plot => dashboardProjectFilter === 'all' || String(plot.project_id) === String(PROJECT_IDS[dashboardProjectFilter]));
     const unique = new Map();
-    selected.forEach(plot => unique.set(String(plot.project_id) + ':' + String(plot.id), plot));
+    selected.forEach(plot => {
+      const plotNumber = String(plot.plot_number ?? plot.unit_number ?? plot.plot_no ?? plot.unit_no ?? plot.id).trim();
+      unique.set(String(plot.project_id) + ':' + plotNumber, plot);
+    });
     return Array.from(unique.values());
   }, [plots, dashboardProjectFilter]);
   const plotCounts = useMemo(() => {

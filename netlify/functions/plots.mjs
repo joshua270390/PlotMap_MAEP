@@ -1,9 +1,12 @@
+import { verifyAdmin } from "../lib/admin-session.mjs";
+import { verifyEmployeeToken } from "./employee-auth.mjs";
+
 const allowedStatuses = new Set(["Available", "Reserved", "Booked", "Sold"]);
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
 });
 
-function customerDetails(row = {}) {
+function customerDetails(row = {}, revealMobile = false) {
   const fields = {};
   for (const [key, value] of Object.entries(row)) {
     const normalized = String(key).toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -17,6 +20,7 @@ function customerDetails(row = {}) {
   const rawPhone = pick("mobilenumber", "mobileno", "customermobile", "customerphone", "phonenumber", "phone", "mobile", "contactnumber", "contact", "telephone");
   let mobile = "";
   if (/[x*]/i.test(rawPhone)) mobile = rawPhone;
+  else if (revealMobile) mobile = rawPhone;
   else {
     const digits = rawPhone.replace(/\D/g, "");
     if (digits.length >= 12) mobile = digits.slice(0, 3) + "xxxxxx" + digits.slice(-3);
@@ -34,6 +38,7 @@ export default async function handler(request) {
   const projectId = /^\d+$/.test(requestedProjectId) ? requestedProjectId : String(parseInt(process.env.PROJECT_ID || "1", 10));
   const plotsTable = process.env.PLOTS_TABLE || "plots";
   const bookingsTable = process.env.BOOKINGS_TABLE || "bookings";
+  const employeesTable = process.env.EMPLOYEES_TABLE || "employees";
   if (!url || !key) return json({ ok: false, error: "Plot map database access is not configured." }, 500);
 
   const headers = { apikey: key, Authorization: "Bearer " + key, Accept: "application/json" };
@@ -47,6 +52,19 @@ export default async function handler(request) {
       return response.ok ? { ok: true, data } : { ok: false, status: response.status, error: data?.message || "Database request failed" };
     } catch (error) { return { ok: false, status: 0, error: error.message || "Network error" }; }
   };
+
+
+  // Reveal complete reservation phone numbers only to an authenticated Admin or active Employee.
+  const adminPin = process.env.ADMIN_PIN || "";
+  const adminAuthorized = Boolean(adminPin) && request.headers.get("x-admin-pin") === adminPin && await verifyAdmin(request);
+  const employeeClaims = verifyEmployeeToken(request.headers.get("x-employee-token"), process.env.EMPLOYEE_SESSION_SECRET || "");
+  let employeeAuthorized = false;
+  if (employeeClaims) {
+    const employeeCheck = await get(employeesTable,
+      new URLSearchParams({ select: "id,active", id: "eq." + employeeClaims.sub, limit: "1" }).toString());
+    employeeAuthorized = Boolean(employeeCheck.ok && employeeCheck.data?.length && employeeCheck.data[0].active !== false);
+  }
+  const revealReservedMobile = adminAuthorized || employeeAuthorized;
 
   const pq = new URLSearchParams({ select: "*", project_id: "eq." + projectId, limit: "2000" });
   const bq = new URLSearchParams({ select: "*", project_id: "eq." + projectId, order: "id.desc", limit: "2000" });
@@ -77,15 +95,14 @@ export default async function handler(request) {
     }
   }
 
-  // Keep a list of all Reserved customers for each unit. Public map data masks
-  // phone numbers; the popup only needs names to identify existing reservations.
+  // Keep all Reserved customers for each unit. Full phone numbers are returned only to authenticated Admins/Employees.
   const reservedByPlot = new Map();
   for (const booking of bookingResult.data || []) {
     if (String(booking.status || "").trim().toLowerCase() !== "reserved") continue;
     const rawPlotKey = String(booking.plot_id ?? booking.plot_number ?? booking.unit_number ?? booking.plot_no ?? "");
     const plotNumber = plotNumberById.get(rawPlotKey) || plotNumberByAnyKey.get(rawPlotKey);
     if (!plotNumber) continue;
-    const detail = customerDetails(booking);
+    const detail = customerDetails(booking, revealReservedMobile);
     if (!detail.name) continue;
     if (!reservedByPlot.has(plotNumber)) reservedByPlot.set(plotNumber, []);
     reservedByPlot.get(plotNumber).push({ name: detail.name, mobile: detail.mobile });
@@ -102,7 +119,7 @@ export default async function handler(request) {
     // For Booked/Sold inventory, show the customer whose booking has that
     // exact closing status, not an earlier Reserved customer for the same unit.
     if (["booked", "sold"].includes(status.toLowerCase()) && bookingStatus !== status.toLowerCase()) continue;
-    const detail = customerDetails(booking);
+    const detail = customerDetails(booking, revealReservedMobile);
     if (!detail.name && !detail.mobile) continue;
     const merged = { ...detail, status, reservedCustomers: reservedByPlot.get(plotNumber) || [] };
     details[plotNumber] = merged;

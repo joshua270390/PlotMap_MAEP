@@ -1,4 +1,16 @@
+import { verifyAdmin } from "../lib/admin-session.mjs";
+import { verifyEmployeeToken } from "./employee-auth.mjs";
 const allowedStatuses = new Set(["Available", "Reserved", "Booked", "Sold"]);
+function normalizeIndianMobile(value) {
+  const input = String(value ?? "").trim();
+  if (!input || !/^\+?[\d\s()-]+$/.test(input)) return "";
+  let digits = input.replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith("91")) digits = digits.slice(2);
+  else if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1);
+  return /^[6-9]\d{9}$/.test(digits) ? digits : "";
+}
+
+
 const json = (body, status = 200, extraHeaders = {}) =>
   new Response(JSON.stringify(body), {
     status,
@@ -13,6 +25,7 @@ function config() {
     projectId: String(parseInt(process.env.PROJECT_ID || "1", 10)),
     bookingsTable: process.env.BOOKINGS_TABLE || "bookings",
     plotsTable: process.env.PLOTS_TABLE || "plots",
+    employeesTable: process.env.EMPLOYEES_TABLE || "employees",
   };
 }
 
@@ -66,8 +79,15 @@ export default async function handler(request) {
   if (!["GET", "POST", "PATCH", "DELETE"].includes(method))
     return json({ ok: false, error: "Method not allowed" }, 405, { Allow: "GET, POST, PATCH, DELETE" });
 
-  if (!cfg.pin || request.headers.get("x-admin-pin") !== cfg.pin)
-    return json({ ok: false, error: "Admin authentication failed. Please log in again." }, 401);
+  const adminAuthorized = Boolean(cfg.pin) && request.headers.get("x-admin-pin") === cfg.pin && await verifyAdmin(request);
+  const employeeClaims = verifyEmployeeToken(request.headers.get("x-employee-token"), process.env.EMPLOYEE_SESSION_SECRET || "");
+  let employeeAuthorized = false;
+  if (employeeClaims) {
+    const employeeCheck = await db(cfg, "GET", cfg.employeesTable, new URLSearchParams({ select: "id,active", id: "eq." + employeeClaims.sub, limit: "1" }).toString());
+    employeeAuthorized = Boolean(employeeCheck.ok && employeeCheck.data?.length && employeeCheck.data[0].active !== false);
+  }
+  if (!adminAuthorized && !employeeAuthorized) return json({ ok: false, error: "Sign in with an authorized Admin or Employee account." }, 401);
+  if (employeeAuthorized && !["GET", "POST", "PATCH", "DELETE"].includes(method)) return json({ ok: false, error: "This action is not available to Employees." }, 403);
   if (!cfg.url || !cfg.key) {
     console.error("[admin-data] Missing Supabase URL/key environment variables.");
     return json({ ok: false, error: "Dashboard database access is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (recommended), or SUPABASE_KEY with suitable RLS permissions." }, 500);
@@ -123,11 +143,11 @@ export default async function handler(request) {
   }
   if (method === "POST") {
     const customerName = String(body.customer_name ?? "").trim();
-    const phone = String(body.phone ?? "").trim();
+    const phone = normalizeIndianMobile(body.phone);
     const plotId = String(body.plot_id ?? "").trim();
     const status = String(body.status ?? "");
     if (!customerName || customerName.length > 120) return json({ ok: false, error: "Enter a valid customer name." }, 422);
-    if (!phone || phone.length > 25) return json({ ok: false, error: "Enter a valid phone number." }, 422);
+    if (!phone) return json({ ok: false, error: "Enter a valid 10-digit Indian mobile number starting with 6–9." }, 422);
     if (!/^\d+$/.test(plotId)) return json({ ok: false, error: "Select a valid plot." }, 422);
     if (!allowedStatuses.has(status)) return json({ ok: false, error: "Select a valid status." }, 422);
 
@@ -138,9 +158,11 @@ export default async function handler(request) {
     const inventoryStatus = String(lookup.data[0].status || "Available");
     if (["Booked", "Sold"].includes(inventoryStatus))
       return json({ ok: false, error: "This unit is already Booked or Sold and cannot accept another customer." }, 409);
-    if (status === "Booked" || status === "Sold")
-      return json({ ok: false, error: "Add the customer as Reserved first, then change that specific reserved customer's status to Booked or Sold." }, 422);
-    const effectivePlotStatus = inventoryStatus === "Reserved" || status === "Reserved" ? "Reserved" : "Available";
+    // Admins and Employees may add a customer directly with any of the four
+    // statuses. Booked/Sold closes the inventory unit immediately.
+    const effectivePlotStatus = ["Booked", "Sold"].includes(status)
+      ? status
+      : inventoryStatus === "Reserved" || status === "Reserved" ? "Reserved" : "Available";
 
     const inserted = await db(cfg, "POST", cfg.bookingsTable, "", {
       project_id: Number(cfg.projectId), customer_name: customerName, phone, plot_id: Number(plotId), status,
@@ -173,11 +195,11 @@ export default async function handler(request) {
   }
 
   const customerName = String(body.customer_name ?? "").trim();
-  const phone = String(body.phone ?? "").trim();
+  const phone = normalizeIndianMobile(body.phone);
   const plotId = String(body.plot_id ?? "").trim();
   const status = String(body.status ?? "");
   if (!customerName || customerName.length > 120) return json({ ok: false, error: "Enter a valid customer name." }, 422);
-  if (!phone || phone.length > 25) return json({ ok: false, error: "Enter a valid phone number." }, 422);
+  if (!phone) return json({ ok: false, error: "Enter a valid 10-digit Indian mobile number starting with 6–9." }, 422);
   if (!/^\d+$/.test(plotId)) return json({ ok: false, error: "Select a valid plot." }, 422);
   if (!allowedStatuses.has(status)) return json({ ok: false, error: "Select a valid status." }, 422);
 

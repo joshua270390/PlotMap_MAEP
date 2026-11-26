@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import './Dashboard.css';
 import { P, G } from './data.js';
+import ProjectMapThumbnail from './ProjectMapThumbnail.jsx';
+import { normalizeIndianMobile, INDIAN_MOBILE_ERROR } from './validation.js';
 
-const PROJECT_IDS = { velavan_nagar: 1, saraswathi_garden: 3, shanmuga_avenue: 2 };
-const PROJECT_NAMES = { 1: 'Velavan Nagar', 3: 'Saraswathi Garden', 2: 'Shanmuga Avenue' };
+const PROJECT_IDS = { velavan_nagar: 1, saraswathi_garden: 3, shanmuga_avenue: 2, meenakshi_garden_phase1: 4, meenakshi_garden_phase2: 5 };
+const PROJECT_NAMES = { 1: 'Velavan Nagar', 3: 'Saraswathi Garden', 2: 'Shanmuga Avenue', 4: 'Meenakshi Garden Phase 1', 5: 'Meenakshi Garden Phase 2' };
 const STATUSES = [
   { value: 'Available', label: 'Availability' },
   { value: 'Reserved', label: 'Reserved' },
@@ -20,17 +22,76 @@ const field = (row, ...keys) => {
   return '';
 };
 
+
+function EmployeeUsersPage({ pin, employees, setEmployees, employeeForm, setEmployeeForm, employeeDelete, setEmployeeDelete, setError, setNotice }) {
+  const [busy, setBusy] = useState(false);
+  const [showFormPassword, setShowFormPassword] = useState(false);
+  const load = async () => {
+    const response = await fetch('/api/employee-auth?action=list', { headers: { 'x-admin-pin': pin }, cache: 'no-store' });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load employees.');
+    setEmployees(data.employees || []);
+  };
+  useEffect(() => { load().catch(error => setError(error.message)); }, [pin]);
+  const save = async event => {
+    event.preventDefault(); if (busy) return; setBusy(true); setError(''); setNotice('');
+    try {
+      const editing = employeeForm.id != null;
+      const response = await fetch('/api/employee-auth?action=' + (editing ? 'update' : 'create'), {
+        method: editing ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
+        body: JSON.stringify(employeeForm),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not save employee.');
+      setEmployeeForm(null); setNotice(editing ? 'Employee updated.' : 'Employee created.'); await load();
+    } catch (error) { setError(error.message); } finally { setBusy(false); }
+  };
+  const remove = async () => {
+    if (!employeeDelete || busy) return; setBusy(true); setError('');
+    try {
+      const response = await fetch('/api/employee-auth?action=delete', { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin }, body: JSON.stringify({ id: employeeDelete.id }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Could not delete employee.');
+      setEmployeeDelete(null); setNotice('Employee deleted.'); await load();
+    } catch (error) { setError(error.message); } finally { setBusy(false); }
+  };
+  return <>
+    <div className="page-intro"><div><h2>Employee accounts</h2><p>Create and manage employee access to plot map editing.</p></div><button type="button" className="add-customer-btn" onClick={() => setEmployeeForm({ username: '', email: '', password: '' })}>Add Employee +</button></div>
+    <section className="table-card"><div className="table-scroll"><table className="data-table">
+      <thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Action</th></tr></thead>
+      <tbody>{employees.map(row => <tr key={row.id}><td><strong>{row.username}</strong></td><td>{row.username}</td><td>{row.email}</td><td><div className="row-actions"><button className="edit-btn" type="button" onClick={() => setEmployeeForm({ id: row.id, username: row.username, email: row.email, password: '' })}>Edit</button><button className="delete-btn" type="button" onClick={() => setEmployeeDelete(row)}>Delete</button></div></td></tr>)}
+      {!employees.length && <tr><td colSpan="4" className="empty-cell">No employee accounts created yet.</td></tr>}</tbody>
+    </table></div><div className="table-footer">Total employees: {employees.length}</div></section>
+    {employeeForm && <div className="edit-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !busy) setEmployeeForm(null); }}><form className="edit-modal" onSubmit={save}>
+      <button type="button" className="modal-close" onClick={() => setEmployeeForm(null)}>×</button><p className="eyebrow">EMPLOYEE ACCOUNT</p><h2>{employeeForm.id ? 'Edit employee' : 'Create employee'}</h2>
+      <label>Username<input value={employeeForm.username} onChange={e => setEmployeeForm(s => ({ ...s, username: e.target.value }))} required minLength="3" maxLength="40" /></label>
+      <label>Email<input type="email" value={employeeForm.email} onChange={e => setEmployeeForm(s => ({ ...s, email: e.target.value }))} required /></label>
+      <label>Password<div className="password-field"><input type={showFormPassword ? 'text' : 'password'} value={employeeForm.password} onChange={e => setEmployeeForm(s => ({ ...s, password: e.target.value }))} required={!employeeForm.id} minLength="8" placeholder={employeeForm.id ? 'Leave blank to keep current password' : 'At least 8 characters'} /><button type="button" className="password-toggle" aria-label={showFormPassword ? 'Hide password' : 'Show password'} aria-pressed={showFormPassword} onClick={() => setShowFormPassword(value => !value)}>{showFormPassword ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.9 5.2A10.8 10.8 0 0112 5c5.2 0 9 4.6 10 7-.4 1-1.4 2.4-3 3.7M6.2 6.2C3.9 7.6 2.5 9.6 2 12c1 2.4 4.8 7 10 7 1 0 2-.2 2.9-.5" /></svg> : <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>}</button></div></label>
+      <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setEmployeeForm(null)}>Cancel</button><button className="primary-btn" disabled={busy}>{busy ? 'Saving…' : 'Save employee'}</button></div>
+    </form></div>}
+    {employeeDelete && <div className="edit-overlay confirm-overlay" role="presentation"><section className="confirm-modal" role="alertdialog" aria-modal="true"><div className="confirm-icon">!</div><p className="eyebrow">CONFIRM ACTION</p><h2>Delete employee?</h2><p>Are you sure you want to delete <strong>{employeeDelete.username}</strong>? This action cannot be undone.</p><div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setEmployeeDelete(null)} disabled={busy}>Cancel</button><button type="button" className="confirm-delete-btn" onClick={remove} disabled={busy}>{busy ? 'Deleting…' : 'Yes, delete'}</button></div></section></div>}
+  </>;
+}
+
 export default function Dashboard() {
   useEffect(() => {
     document.body.classList.add('dashboard-mode');
     return () => document.body.classList.remove('dashboard-mode');
   }, []);
   const [pin, setPin] = useState('');
+  const [employeeUsername, setEmployeeUsername] = useState('');
+  const [employeePassword, setEmployeePassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [employeeToken, setEmployeeToken] = useState(() => window.sessionStorage.getItem('maep_employee_token') || '');
+  const [employees, setEmployees] = useState([]);
+  const [employeeForm, setEmployeeForm] = useState(null);
+  const [employeeDelete, setEmployeeDelete] = useState(null);
   const [role, setRole] = useState('admin');
   const [userName, setUserName] = useState('');
   const [loggedIn, setLoggedIn] = useState(false);
-  const [authChecking, setAuthChecking] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_mode') || window.sessionStorage.getItem('maep_admin_pin')));
-  const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : 'dashboard'; });
+  const [authChecking, setAuthChecking] = useState(() => Boolean(window.sessionStorage.getItem('maep_user_mode') || window.sessionStorage.getItem('maep_admin_pin') || window.sessionStorage.getItem('maep_employee_token')));
+  const [page, setPage] = useState(() => { const path = window.location.pathname.replace(/\/+$/, ''); return path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard'; });
   const [bookings, setBookings] = useState([]);
   const [plots, setPlots] = useState([]);
   const [mapPlotStatuses, setMapPlotStatuses] = useState({});
@@ -39,6 +100,10 @@ export default function Dashboard() {
   const [notice, setNotice] = useState('');
   const [edit, setEdit] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [selectedBookingKeys, setSelectedBookingKeys] = useState([]);
+  const [bookingPage, setBookingPage] = useState(1);
+  const [bookingPageSize, setBookingPageSize] = useState(10);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [plotSearch, setPlotSearch] = useState('');
@@ -49,6 +114,12 @@ export default function Dashboard() {
   const [projectTab, setProjectTab] = useState('all');
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [nativeApp] = useState(() => /MAEPApp/i.test(navigator.userAgent) || window.Capacitor?.isNativePlatform?.() === true);
+
+  useEffect(() => {
+    const title = page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : page === 'users' ? 'Users' : 'Plot lists';
+    document.title = (loggedIn ? title : 'Sign in') + ' | Mary Ann Elite Properties';
+  }, [page, loggedIn]);
 
   // Keep the rendered dashboard page aligned with browser Back/Forward navigation.
   // Returning from a dashboard route to '/' must remount the PlotMap app, not leave stale dashboard UI.
@@ -56,16 +127,18 @@ export default function Dashboard() {
     const syncRoute = () => {
       const path = window.location.pathname.replace(/\/+$/, '') || '/';
       if (role === 'user') {
-        if (path !== '/plot_lists') window.history.replaceState({}, '', '/plot_lists');
-        setPage('plots');
+        if (path !== '/') window.location.replace('/');
         return;
       }
-      const routes = ['/dashboard', '/bookings', '/plot_lists'];
+      if (role === 'employee' && !['/bookings', '/plot_lists'].includes(path)) {
+        window.history.replaceState({}, '', '/plot_lists'); setPage('plots'); return;
+      }
+      const routes = role === 'employee' ? ['/bookings', '/plot_lists'] : ['/', '/dashboard', '/bookings', '/plot_lists', '/users'];
       if (!routes.includes(path)) {
         window.location.reload();
         return;
       }
-      setPage(path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : 'dashboard');
+      setPage(path === '/plot_lists' ? 'plots' : path === '/bookings' ? 'bookings' : path === '/users' ? 'users' : 'dashboard');
     };
     window.addEventListener('popstate', syncRoute);
     return () => window.removeEventListener('popstate', syncRoute);
@@ -75,11 +148,11 @@ export default function Dashboard() {
   useEffect(() => {
     const savedUserMode = window.sessionStorage.getItem('maep_user_mode');
     if (savedUserMode === 'true') {
-      setRole('user'); setUserName('User'); setLoggedIn(true); setPage('plots');
-      if (window.location.pathname !== '/plot_lists') window.history.replaceState({}, '', '/plot_lists');
-      setAuthChecking(false);
+      window.location.replace('/');
       return;
     }
+    const savedEmployeeToken = window.sessionStorage.getItem('maep_employee_token');
+    if (savedEmployeeToken) { const savedPath = window.location.pathname; const employeePage = savedPath === '/bookings' ? 'bookings' : 'plots'; setRole('employee'); setEmployeeToken(savedEmployeeToken); setUserName(window.sessionStorage.getItem('maep_employee_username') || 'Employee'); setLoggedIn(true); setPage(employeePage); if (!['/bookings', '/plot_lists'].includes(savedPath)) window.history.replaceState({}, '', '/plot_lists'); setAuthChecking(false); return; }
     const savedPin = window.sessionStorage.getItem('maep_admin_pin');
     if (!savedPin) { setAuthChecking(false); return; }
     let cancelled = false;
@@ -128,7 +201,7 @@ export default function Dashboard() {
     setLoading(true); setError('');
     try {
       const requests = [fetch('/api/admin-data?view=' + encodeURIComponent(view) + (view === 'bookings' ? '&project_id=all' : ''), {
-        headers: { 'x-admin-pin': currentPin },
+        headers: employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': currentPin },
         cache: 'no-store',
       })];
       // Dashboard KPIs must use the exact public status feed used by the plot map,
@@ -162,10 +235,16 @@ export default function Dashboard() {
         window.sessionStorage.setItem('maep_user_mode', 'true');
         
         window.sessionStorage.removeItem('maep_admin_pin');
-        setUserName('User'); setLoggedIn(true); setAuthChecking(false); setPage('plots');
-        window.history.replaceState({}, '', '/plot_lists');
-        setNotice('Welcome. You can view plot lists and submit enquiries.');
+        window.location.assign('/');
         return;
+      }
+      if (role === 'employee') {
+        const response = await fetch('/api/employee-auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: employeeUsername, password: employeePassword }) });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) throw new Error(data.error || 'Employee login failed.');
+        window.sessionStorage.setItem('maep_employee_token', data.token); window.sessionStorage.setItem('maep_employee_username', data.username);
+        window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_mode');
+        setEmployeeToken(data.token); setUserName(data.username); setLoggedIn(true); setAuthChecking(false); setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return;
       }
       const response = await fetch('/api/admin-auth', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -184,18 +263,23 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    if (loggedIn && role === 'user' && page !== 'plots') { setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return; }
-    if (loggedIn && role === 'admin' && page !== 'plots') loadData('bookings', pin);
+    if (loggedIn && role === 'user') { window.location.replace('/'); return; }
+    if (loggedIn && role === 'employee' && !['plots', 'bookings'].includes(page)) { setPage('plots'); window.history.replaceState({}, '', '/plot_lists'); return; }
+    if (loggedIn && role !== 'user' && page !== 'plots' && page !== 'users') loadData('bookings', pin);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, loggedIn, role]);
 
   async function saveBooking(values, rowId, statusOnly = false) {
+    if (saving) return;
+    const normalizedPhone = statusOnly ? values.phone : normalizeIndianMobile(values.phone);
+    if (!statusOnly && !normalizedPhone) { setError(INDIAN_MOBILE_ERROR); setNotice(''); return; }
+    const payloadValues = statusOnly ? values : { ...values, phone: normalizedPhone };
     setSaving(true); setError(''); setNotice('');
     try {
       const response = await fetch('/api/admin-data', {
         method: rowId == null ? 'POST' : 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
-        body: JSON.stringify({ ...(rowId == null ? {} : { id: rowId }), ...values, project_id: Number(values.project_id || (PROJECT_IDS[projectTab] || PROJECT_IDS.velavan_nagar)) }),
+        headers: { 'Content-Type': 'application/json', ...(employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': pin }) },
+        body: JSON.stringify({ ...(rowId == null ? {} : { id: rowId }), ...payloadValues, project_id: Number(values.project_id || (PROJECT_IDS[projectTab] || PROJECT_IDS.velavan_nagar)) }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not save booking.');
@@ -225,8 +309,8 @@ export default function Dashboard() {
     try {
       const response = await fetch('/api/admin-data', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
-        body: JSON.stringify({ id: row.id }),
+        headers: { 'Content-Type': 'application/json', ...(employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': pin }) },
+        body: JSON.stringify({ id: row.id, project_id: row.project_id }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok) throw new Error(data.error || 'Could not delete booking.');
@@ -258,6 +342,37 @@ export default function Dashboard() {
     return matchesSearch && matchesStatus && matchesProject;
   }), [bookings, plotById, search, statusFilter, projectTab, page]);
 
+  useEffect(() => { setBookingPage(1); setSelectedBookingKeys([]); }, [search, statusFilter, projectTab, bookingPageSize]);
+  const bookingPageCount = Math.max(1, Math.ceil(visibleBookings.length / bookingPageSize));
+  useEffect(() => { if (bookingPage > bookingPageCount) setBookingPage(bookingPageCount); }, [bookingPage, bookingPageCount]);
+  const paginatedBookings = useMemo(() => visibleBookings.slice((bookingPage - 1) * bookingPageSize, bookingPage * bookingPageSize), [visibleBookings, bookingPage, bookingPageSize]);
+  const bookingKey = row => String(row.project_id) + ':' + String(row.id);
+  const currentPageKeys = paginatedBookings.map(bookingKey);
+  const allCurrentPageSelected = currentPageKeys.length > 0 && currentPageKeys.every(key => selectedBookingKeys.includes(key));
+  const togglePageSelection = checked => setSelectedBookingKeys(current => checked ? Array.from(new Set([...current, ...currentPageKeys])) : current.filter(key => !currentPageKeys.includes(key)));
+  const toggleBookingSelection = (row, checked) => setSelectedBookingKeys(current => checked ? Array.from(new Set([...current, bookingKey(row)])) : current.filter(key => key !== bookingKey(row)));
+  const selectedBookingRows = visibleBookings.filter(row => selectedBookingKeys.includes(bookingKey(row)));
+
+  async function bulkDeleteBookings() {
+    if (!selectedBookingRows.length || saving) return;
+    setSaving(true); setError(''); setNotice('');
+    let deleted = 0; const failures = [];
+    try {
+      for (const row of selectedBookingRows) {
+        try {
+          const response = await fetch('/api/admin-data', { method: 'DELETE', headers: { 'Content-Type': 'application/json', ...(employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': pin }) }, body: JSON.stringify({ id: row.id, project_id: row.project_id }) });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || !data.ok) throw new Error(data.error || 'Delete failed');
+          deleted++;
+        } catch (err) { failures.push(field(row, 'customer_name', 'name') || ('Booking #' + row.id)); }
+      }
+      setBulkDeleteConfirm(false); setSelectedBookingKeys([]);
+      if (deleted) setNotice(deleted + ' booking' + (deleted === 1 ? '' : 's') + ' deleted successfully.');
+      if (failures.length) setError('Could not delete: ' + failures.join(', '));
+      await loadData('bookings', pin);
+    } finally { setSaving(false); }
+  }
+
   if (authChecking) {
     return <main className="dash-login"><div className="login-card" role="status"><p className="login-copy">Checking your session…</p></div></main>;
   }
@@ -268,19 +383,21 @@ export default function Dashboard() {
         <form className="login-card" onSubmit={e => { e.preventDefault(); login(); }}>
           <img className="login-logo" src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" />
           <h1>Sign in</h1>
-          <p className="login-copy">{role === 'admin' ? 'Sign in with your Admin PIN.' : 'Select User and sign in to view plot lists and submit enquiries.'}</p>
+          <p className="login-copy">{role === 'admin' ? 'Sign in with your Admin PIN.' : role === 'employee' ? 'Sign in with your employee username and password.' : 'Continue to explore our projects and interactive plot layouts.'}</p>
           <label htmlFor="login-role">Role</label>
-          <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setError(''); setNotice(''); setPin(''); }}><option value="admin">Admin</option><option value="user">User</option></select>
+          <select id="login-role" value={role} onChange={e => { setRole(e.target.value); setError(''); setNotice(''); setPin(''); setEmployeeUsername(''); setEmployeePassword(''); }}><option value="admin">Admin</option><option value="employee">Employee</option><option value="user">User</option></select>
           {role === 'admin' && <><label htmlFor="admin-pin">Admin PIN</label><input id="admin-pin" type="password" inputMode="text" autoComplete="current-password" value={pin} onChange={e => setPin(e.target.value)} placeholder="Enter your Admin PIN" required maxLength={32} /></>}
+          {role === 'employee' && <><label htmlFor="employee-username">Username</label><input id="employee-username" autoComplete="username" value={employeeUsername} onChange={e => setEmployeeUsername(e.target.value)} required /><label htmlFor="employee-password">Password</label><div className="password-field login-password-field"><input id="employee-password" type={showLoginPassword ? 'text' : 'password'} autoComplete="current-password" value={employeePassword} onChange={e => setEmployeePassword(e.target.value)} required /><button type="button" className="password-toggle" aria-label={showLoginPassword ? 'Hide password' : 'Show password'} aria-pressed={showLoginPassword} onClick={() => setShowLoginPassword(value => !value)}>{showLoginPassword ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.9 5.2A10.8 10.8 0 0112 5c5.2 0 9 4.6 10 7-.4 1-1.4 2.4-3 3.7M6.2 6.2C3.9 7.6 2.5 9.6 2 12c1 2.4 4.8 7 10 7 1 0 2-.2 2.9-.5" /></svg> : <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>}</button></div></>}
           {error && !(role === 'user' && error.includes('User access is not configured')) && <p className="dash-error" role="alert">{error}</p>}{notice && <p className="dash-notice" role="status">{notice}</p>}
-          <button className="primary-btn login-submit" disabled={saving || (role === 'admin' && !pin)}>{saving ? 'Please wait…' : 'Sign in'} <span>→</span></button>
+          <button className="primary-btn login-submit" disabled={saving || (role === 'admin' && !pin) || (role === 'employee' && (!employeeUsername || !employeePassword))}>{saving ? 'Please wait…' : 'Sign in'} <span>→</span></button>
         </form>
+        <AppDownload className="login-app-dl" />
       </main>
     );
   }
 
   return (
-    <div className={"dashboard-shell" + (sidebarOpen ? " mobile-sidebar-open" : "")}>
+    <div className={"dashboard-shell" + (sidebarOpen ? " mobile-sidebar-open" : "")} data-native-app={String(nativeApp)}>
       {sidebarOpen && <button type="button" className="dashboard-sidebar-backdrop" aria-label="Close navigation menu" onClick={() => setSidebarOpen(false)} />}
       <aside className="dashboard-sidebar">
         <div className="dashboard-sidebar-header">
@@ -290,9 +407,10 @@ export default function Dashboard() {
           <button type="button" className="dashboard-sidebar-close" aria-label="Close navigation menu" onClick={() => setSidebarOpen(false)}>×</button>
         </div>
         {role === 'admin' && <button className={'nav-item' + (page === 'dashboard' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/dashboard'); setPage('dashboard'); setSidebarOpen(false); }}><span className="nav-icon">▦</span> Dashboard</button>}
-        {role === 'admin' && <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); setSidebarOpen(false); }}>
+        {role !== 'user' && <button className={'nav-item' + (page === 'bookings' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/bookings'); setPage('bookings'); setSidebarOpen(false); }}>
           <span className="nav-icon">▤</span> Bookings
         </button>}
+        {role === 'admin' && <button className={'nav-item' + (page === 'users' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/users'); setPage('users'); setSidebarOpen(false); }}><span className="nav-icon">♙</span> Users</button>}
         <button className={'nav-item' + (page === 'plots' ? ' active' : '')} onClick={() => { window.history.pushState({}, '', '/plot_lists'); setPage('plots'); setSidebarOpen(false); }}>
           <span className="nav-icon">▦</span> Plot lists
         </button>
@@ -301,14 +419,14 @@ export default function Dashboard() {
       <main className="dashboard-main">
         <header className="dashboard-topbar">
           <div className="dashboard-mobile-brand-row"><a className="dashboard-mobile-brand" href="/dashboard" aria-label="Mary Ann dashboard home"><img src="/mary-ann-logo.svg" alt="Mary Ann Elite Properties" /></a><button type="button" className="dashboard-menu-toggle" aria-label="Open navigation menu" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(true)}><span></span><span></span><span></span></button></div>
-          <div className="dashboard-heading-group"><h1>{page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : 'Plot lists'}</h1></div>
+          <div className="dashboard-heading-group"><h1>{page === 'dashboard' ? 'Dashboard' : page === 'bookings' ? 'Bookings' : page === 'users' ? 'Users' : 'Plot lists'}</h1></div>
           <div className="topbar-actions profile-wrap">
             <button type="button" className="topbar-avatar profile-trigger" aria-label={role === 'admin' ? 'Open administrator menu' : 'Open user menu'} aria-expanded={profileOpen} onClick={() => setProfileOpen(open => !open)}><img className="topbar-avatar-image" src="/user-avatar.svg" alt="" /></button>
             {profileOpen && <div className="profile-menu" role="menu">
-              <strong className="profile-role">{role === 'admin' ? 'Administrator' : userName || 'User'}</strong>
+              <strong className="profile-role">{role === 'admin' ? 'Administrator' : role === 'employee' ? userName || 'Employee' : userName || 'User'}</strong>
               {role === 'admin' && <span className="profile-company">Mary Ann Elite Properties</span>}
-              <span className="profile-session"><i />{role === 'admin' ? 'Connected to admin session' : 'Approved user session'}</span>
-              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_mode'); setLoggedIn(false); setPin(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); setAuthMode('login'); }}>Sign out</button>
+              <span className="profile-session"><i />{role === 'admin' ? 'Connected to admin session' : role === 'employee' ? 'Employee session' : 'Approved user session'}</span>
+              <button className="profile-signout" role="menuitem" onClick={() => { setProfileOpen(false); if (window.sessionStorage.getItem('maep_admin_session')) fetch('/api/admin-auth?action=logout', { method: 'POST', keepalive: true }).catch(() => {}).finally(() => window.sessionStorage.removeItem('maep_admin_session')); window.sessionStorage.removeItem('maep_admin_pin'); window.sessionStorage.removeItem('maep_user_mode'); window.sessionStorage.removeItem('maep_employee_token'); window.sessionStorage.removeItem('maep_employee_username'); setEmployeeToken(''); setLoggedIn(false); setPin(''); setUserName(''); setBookings([]); setPlots([]); setError(''); setNotice(''); setRole('admin'); }}>Sign out</button>
             </div>}
           </div>
         </header>
@@ -319,7 +437,7 @@ export default function Dashboard() {
 
           {page !== 'plots' ? (
             <>
-              {page === 'dashboard' ? (
+              {page === 'users' ? <EmployeeUsersPage pin={pin} employees={employees} setEmployees={setEmployees} employeeForm={employeeForm} setEmployeeForm={setEmployeeForm} employeeDelete={employeeDelete} setEmployeeDelete={setEmployeeDelete} setError={setError} setNotice={setNotice} /> : page === 'dashboard' ? (
                 <>
                   <div className="dashboard-welcome"><div><span className="dashboard-kicker">MARY ANN ELITE PROPERTIES</span><h2>Property inventory overview</h2><p>Live unit availability and sales progress at a glance.</p></div><div className="inventory-total"><span>Total units</span><strong>{P.length}</strong><small>Across this layout</small></div></div>
                   <div className="kpi-grid">
@@ -332,11 +450,11 @@ export default function Dashboard() {
 
                 </>
               ) : null}
-              <div className={page === 'dashboard' ? "dashboard-recent-layout" : "dashboard-recent-layout dashboard-recent-layout-single"}>
+              {page !== 'users' && <div className={page === 'dashboard' ? "dashboard-recent-layout" : "dashboard-recent-layout dashboard-recent-layout-single"}>
                 <div className="dashboard-recent-main">
               <div className="page-intro"><div><h2>{page === 'dashboard' ? 'Recent enquiries & bookings' : 'Bookings overview'}</h2><p>Review customer enquiries and manage unit availability.</p></div>{page !== 'dashboard' && <div className="record-count"><strong>{selectedProjectBookings.length}</strong><span>Total bookings</span></div>}</div>
               {page === 'bookings' && <div className="booking-project-tabs" role="tablist" aria-label="Filter bookings by project">
-                {[['all', 'All'], ['velavan_nagar', 'Velavan Nagar'], ['saraswathi_garden', 'Saraswathi Garden'], ['shanmuga_avenue', 'Shanmuga Avenue']].map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={projectTab === key} className={'booking-project-tab' + (projectTab === key ? ' active' : '')} onClick={() => setProjectTab(key)}>{label}</button>)}
+                {[['all', 'All'], ['velavan_nagar', 'Velavan Nagar'], ['saraswathi_garden', 'Saraswathi Garden'], ['shanmuga_avenue', 'Shanmuga Avenue'], ['meenakshi_garden_phase1', 'Meenakshi Phase 1'], ['meenakshi_garden_phase2', 'Meenakshi Phase 2']].map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={projectTab === key} className={'booking-project-tab' + (projectTab === key ? ' active' : '')} onClick={() => setProjectTab(key)}>{label}</button>)}
               </div>}
               <section className="table-card">
                 <div className="table-toolbar">
@@ -348,20 +466,22 @@ export default function Dashboard() {
                     </select>
                   </div>
                 </div>
+                {page === 'bookings' && <div className="booking-bulk-toolbar"><span>{selectedBookingKeys.length} selected</span><button type="button" className="delete-btn" onClick={() => setBulkDeleteConfirm(true)} disabled={!selectedBookingRows.length || saving}>Delete selected</button></div>}
                 {loading ? <div className="table-state">Loading bookings from Supabase…</div> : (
                   <div className="table-scroll"><table className="data-table">
-                    <thead><tr><th>ID</th>{projectTab === 'all' && <th>Project</th>}<th>Customer Name</th><th>Phone Number</th><th>Plot Id</th><th>Unit Number</th><th>Status</th><th>Action</th></tr></thead>
+                    <thead><tr>{page === 'bookings' && <th><input type="checkbox" aria-label="Select all bookings on this page" checked={allCurrentPageSelected} onChange={e => togglePageSelection(e.target.checked)} /></th>}<th>ID</th>{projectTab === 'all' && <th>Project</th>}<th>Customer Name</th><th>Phone Number</th><th>Plot Id</th><th>Unit Number</th><th>Status</th><th>Action</th></tr></thead>
                     <tbody>
-                      {visibleBookings.map(row => {
+                      {(page === 'bookings' ? paginatedBookings : visibleBookings.slice(0, 5)).map(row => {
                         const plot = plotById.get(String(row.project_id) + ':' + String(row.plot_id)) || plotById.get(String(row.plot_id));
                         return <tr key={String(row.project_id) + ':' + row.id}>
+                          {page === 'bookings' && <td><input type="checkbox" aria-label={'Select booking ' + row.id} checked={selectedBookingKeys.includes(bookingKey(row))} onChange={e => toggleBookingSelection(row, e.target.checked)} /></td>}
                           <td className="id-cell">#{row.id}</td>
                           {projectTab === 'all' && <td><span className="unit-pill">{PROJECT_NAMES[row.project_id] || ('Project ' + row.project_id)}</span></td>}
                           <td><strong>{field(row, 'customer_name', 'name') || '—'}</strong></td>
                           <td>{field(row, 'phone', 'phone_number') || '—'}</td>
                           <td>{row.plot_id ?? '—'}</td>
                           <td><span className="unit-pill">{field(plot, 'plot_number', 'unit_number') || '—'}</span></td>
-                          <td><select className={'status-select status-' + normalizedStatus(row.status).toLowerCase()} value={normalizedStatus(row.status)} onChange={e => saveBooking({
+                          <td>{role === 'employee' ? <span className={'status-select status-' + normalizedStatus(row.status).toLowerCase()}>{statusLabel(row.status)}</span> : <select className={'status-select status-' + normalizedStatus(row.status).toLowerCase()} value={normalizedStatus(row.status)} onChange={e => saveBooking({
                             customer_name: field(row, 'customer_name', 'name'),
                             phone: field(row, 'phone', 'phone_number'),
                             plot_id: row.plot_id,
@@ -369,18 +489,28 @@ export default function Dashboard() {
                             status: e.target.value,
                           }, row.id, true)} disabled={saving} aria-label={'Status for booking ' + row.id}>
                             {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                          </select></td>
-                          <td><div className="row-actions"><button className="edit-btn" onClick={() => { setError(''); setEdit({
+                          </select>}</td>
+                          <td><div className="row-actions"><button className="edit-btn" type="button" onClick={() => { setError(''); setEdit({
                             id: row.id, customer_name: field(row, 'customer_name', 'name'), phone: field(row, 'phone', 'phone_number'),
                             plot_id: String(row.plot_id ?? ''), project_id: Number(row.project_id || 1), status: normalizedStatus(row.status),
-                          }); }}>Edit</button><button className="delete-btn" onClick={() => setDeleteTarget(row)} disabled={saving}>Delete</button></div></td>
+                          }); }} disabled={saving}>Edit</button><button className="delete-btn" type="button" onClick={() => setDeleteTarget(row)} disabled={saving}>Delete</button></div></td>
                         </tr>;
                       })}
-                      {!visibleBookings.length && <tr><td colSpan={projectTab === 'all' ? 8 : 7} className="empty-cell">{selectedProjectBookings.length ? 'No bookings match your search.' : 'No bookings found in Supabase.'}</td></tr>}
+                      {!(page === 'bookings' ? paginatedBookings : visibleBookings.slice(0, 5)).length && <tr><td colSpan={(projectTab === 'all' ? 8 : 7) + (page === 'bookings' ? 1 : 0)} className="empty-cell">{selectedProjectBookings.length ? 'No bookings match your search.' : 'No bookings found in Supabase.'}</td></tr>}
                     </tbody>
                   </table></div>
                 )}
-                <div className="table-footer">Showing {visibleBookings.length} of {selectedProjectBookings.length} bookings</div>
+                {page === 'bookings' ? <div className="booking-pagination">
+                  <div className="booking-pagination-summary">Showing {visibleBookings.length ? ((bookingPage - 1) * bookingPageSize + 1) : 0}–{Math.min(bookingPage * bookingPageSize, visibleBookings.length)} of {visibleBookings.length} filtered bookings</div>
+                  <div className="booking-pagination-controls">
+                    <label>Items per page <select value={bookingPageSize} onChange={e => setBookingPageSize(Number(e.target.value))}><option value={5}>5</option><option value={10}>10</option><option value={20}>20</option><option value={50}>50</option><option value={100}>100</option></select></label>
+                    <button type="button" className="page-btn" onClick={() => setBookingPage(1)} disabled={bookingPage <= 1}>First</button>
+                    <button type="button" className="page-btn" onClick={() => setBookingPage(value => Math.max(1, value - 1))} disabled={bookingPage <= 1}>Previous</button>
+                    <span className="page-indicator">Page {bookingPage} of {bookingPageCount}</span>
+                    <button type="button" className="page-btn" onClick={() => setBookingPage(value => Math.min(bookingPageCount, value + 1))} disabled={bookingPage >= bookingPageCount}>Next</button>
+                    <button type="button" className="page-btn" onClick={() => setBookingPage(bookingPageCount)} disabled={bookingPage >= bookingPageCount}>Last</button>
+                  </div>
+                </div> : <div className="table-footer">Showing {visibleBookings.length} of {selectedProjectBookings.length} bookings</div>}
               </section>
                 </div>
                 {page === 'dashboard' && (
@@ -403,7 +533,7 @@ export default function Dashboard() {
                     </article>
                   </div>
                 )}
-              </div>
+              </div>}
             </>
           ) : (
             <section className="project-list-view" aria-label="Project list">
@@ -432,7 +562,7 @@ export default function Dashboard() {
                             <g fill="#1b2433" stroke="#ffffff" strokeWidth="10" paintOrder="stroke" fontSize="44" fontWeight="700" textAnchor="middle" dominantBaseline="central">{P.map(([id, x, y]) => <text key={'number-' + id} x={x} y={y}>{id}</text>)}</g>
                           </svg>
                         ) : (
-                          <div className="project-map-pending" role="img" aria-label="Saraswathi Garden map preview will be added from its layout PDF"><span className="project-visual-mark">MA</span><span className="project-visual-tag">LAYOUT MAP</span></div>
+                          <ProjectMapThumbnail project={project} />
                         )}
                         <div className="project-preview-overlay" aria-hidden="true"><span className="project-visual-mark">MA</span><span className="project-visual-tag">INTERACTIVE PLOT MAP</span></div>
                       </div>
@@ -458,7 +588,7 @@ export default function Dashboard() {
           <button type="button" className="modal-close" onClick={() => setEdit(null)} aria-label="Close">×</button>
           <p className="eyebrow">{edit.id == null ? 'MANUAL CUSTOMER ENTRY' : 'BOOKING #' + edit.id}</p><h2>{edit.id == null ? 'Add customer' : 'Edit booking'}</h2><p className="modal-copy">{edit.id == null ? 'Enter customer details and add them to the bookings table.' : 'Update customer details, unit and availability status.'}</p>
           <label>Customer Name<input value={edit.customer_name} onChange={e => setEdit(s => ({ ...s, customer_name: e.target.value }))} required maxLength={120} /></label>
-          <label>Phone Number<input value={edit.phone} onChange={e => setEdit(s => ({ ...s, phone: e.target.value }))} required maxLength={25} /></label>
+          <label>Phone Number<input type="tel" inputMode="numeric" autoComplete="tel-national" placeholder="98765 43210 or +91 98765 43210" value={edit.phone} onChange={e => setEdit(s => ({ ...s, phone: e.target.value }))} onBlur={() => setEdit(s => ({ ...s, phone: normalizeIndianMobile(s.phone) || s.phone }))} required maxLength={16} /></label>
           <label>Unit Number<select value={edit.plot_id} onChange={e => {
             const selected = plots.find(plot => String(plot.id) === e.target.value);
             setEdit(s => ({ ...s, plot_id: e.target.value, status: normalizedStatus(selected?.status) === 'Reserved' ? 'Reserved' : s.status }));
@@ -466,13 +596,22 @@ export default function Dashboard() {
             <option value="" disabled>Select a unit</option>
             {plots.filter(plot => {
               const plotStatus = normalizedStatus(plot.status);
-              return (edit?.id != null && String(plot.id) === String(edit.plot_id)) || !['Booked', 'Sold'].includes(plotStatus);
+              const sameProject = String(plot.project_id) === String(edit.project_id);
+              return sameProject && ((edit?.id != null && String(plot.id) === String(edit.plot_id)) || !['Booked', 'Sold'].includes(plotStatus));
             }).map(plot => <option key={plot.id} value={String(plot.id)}>{field(plot, 'plot_number', 'unit_number')} (Plot ID: {plot.id})</option>)}
           </select></label>
           <label>Status<select value={edit.status} onChange={e => setEdit(s => ({ ...s, status: e.target.value }))}>{STATUSES.filter(s => edit.id != null || ['Available', 'Reserved'].includes(s.value)).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></label>
           {error && <p className="dash-error">{error}</p>}
           <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setEdit(null)}>Cancel</button><button className="primary-btn" disabled={saving}>{saving ? 'Saving…' : edit.id == null ? 'Add customer' : 'Save changes'}</button></div>
         </form>
+      </div>}
+      {bulkDeleteConfirm && <div className="edit-overlay confirm-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) setBulkDeleteConfirm(false); }}>
+        <section className="confirm-modal" role="alertdialog" aria-modal="true">
+          <div className="confirm-icon" aria-hidden="true">!</div><button type="button" className="modal-close" onClick={() => setBulkDeleteConfirm(false)} aria-label="Close" disabled={saving}>×</button>
+          <p className="eyebrow">CONFIRM BULK ACTION</p><h2>Delete selected bookings?</h2>
+          <p>Are you sure you want to permanently delete <strong>{selectedBookingRows.length}</strong> selected booking{selectedBookingRows.length === 1 ? '' : 's'}? This action cannot be undone.</p>
+          <div className="modal-actions"><button type="button" className="cancel-btn" onClick={() => setBulkDeleteConfirm(false)} disabled={saving}>Cancel</button><button type="button" className="confirm-delete-btn" onClick={bulkDeleteBookings} disabled={saving}>{saving ? 'Deleting…' : 'Yes, delete selected'}</button></div>
+        </section>
       </div>}
       {deleteTarget && <div className="edit-overlay confirm-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !saving) setDeleteTarget(null); }}>
         <section className="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="delete-confirm-title" aria-describedby="delete-confirm-copy">
@@ -486,4 +625,10 @@ export default function Dashboard() {
       </div>}
     </div>
   );
+}
+
+const APK_URL = 'https://github.com/joshua270390/PlotMap_MAEP/releases/latest/download/MaryAnn-PlotMap.apk';
+function AppDownload({ className }) {
+  if (typeof navigator !== 'undefined' && /MAEPApp/.test(navigator.userAgent)) return null;
+  return <a className={className} href={APK_URL} rel="noopener"><span className="nav-icon">📱</span> Download the App</a>;
 }

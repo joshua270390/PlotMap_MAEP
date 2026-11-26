@@ -5,17 +5,26 @@ import { EnquiryModal, UnitModal, PlotStatusModal } from './Modals.jsx';
 import { P as V_P, G as V_G, LB as V_LB, DM as V_DM } from './data.js';
 import { P as S_P, G as S_G, LB as S_LB, DM as S_DM, bounds as S_BOUNDS, plotAreaLabels as S_PLOT_AREA_LABELS, roadLabels as S_ROAD_LABELS, dimensionLabels as S_DIMENSION_LABELS } from './saraswathiGeometry.js';
 import { P as SH_P, G as SH_G, LB as SH_LB, DM as SH_DM, bounds as SH_BOUNDS, plotAreaLabels as SH_PLOT_AREA_LABELS, roadLabels as SH_ROAD_LABELS, dimensionLabels as SH_DIMENSION_LABELS } from './shanmugaGeometry.js';
+import { P as M1_P, G as M1_G, LB as M1_LB, DM as M1_DM, bounds as M1_BOUNDS, plotAreaLabels as M1_PLOT_AREA_LABELS, roadLabels as M1_ROAD_LABELS, dimensionLabels as M1_DIMENSION_LABELS } from './meenakshiPhase1Geometry.js';
+import { P as M2_P, G as M2_G, LB as M2_LB, DM as M2_DM, bounds as M2_BOUNDS, plotAreaLabels as M2_PLOT_AREA_LABELS, roadLabels as M2_ROAD_LABELS, dimensionLabels as M2_DIMENSION_LABELS } from './meenakshiPhase2Geometry.js';
 import { toStatus } from './plots.js';
-import { addDm, loadAd, makeApi, saveAd } from './adminData.js';
+import { addDm, loadAd, makeApi, saveAd, fetchServerAd, pushServerAd, reclaimAdmin, loadBase, saveBase, backupLocal, AD0 } from './adminData.js';
+import { diffAd, applyDiff, isEmptyDiff, hasEdits, sameDoc, sameStamp } from './mapSync.js';
 
 const GEOMETRIES = {
   velavan_nagar: { key: 'velavan_nagar', projectId: 1, P: V_P, G: V_G, LB: V_LB, DM: V_DM, bounds: { x: 369, y: 160, width: 2501, height: 3012 }, canvasWidth: 4400, canvasHeight: 3400, projectName: 'Velavan Nagar', layoutName: 'Kurayur layout' },
   saraswathi_garden: { key: 'saraswathi_garden', compact: true, projectId: 3, P: S_P, G: S_G, LB: S_LB, DM: S_DM, bounds: S_BOUNDS, plotAreaLabels: S_PLOT_AREA_LABELS, roadLabels: S_ROAD_LABELS, dimensionLabels: S_DIMENSION_LABELS, canvasWidth: 1760, canvasHeight: 2580, projectName: 'Saraswathi Gardens', layoutName: 'Saraswathi Gardens layout' },
   shanmuga_avenue: { key: 'shanmuga_avenue', compact: true, projectId: 2, P: SH_P, G: SH_G, LB: SH_LB, DM: SH_DM, bounds: SH_BOUNDS, plotAreaLabels: SH_PLOT_AREA_LABELS, roadLabels: SH_ROAD_LABELS, dimensionLabels: SH_DIMENSION_LABELS, projectName: 'Shanmuga Avenue', layoutName: 'Arasanur layout' },
+  meenakshi_garden_phase1: { key: 'meenakshi_garden_phase1', compact: true, projectId: 4, P: M1_P, G: M1_G, LB: M1_LB, DM: M1_DM, bounds: M1_BOUNDS, plotAreaLabels: M1_PLOT_AREA_LABELS, roadLabels: M1_ROAD_LABELS, dimensionLabels: M1_DIMENSION_LABELS, projectName: 'Sri Meenakshi Garden - Phase 1', layoutName: 'Poonchuthi layout' },
+  meenakshi_garden_phase2: { key: 'meenakshi_garden_phase2', compact: true, projectId: 5, P: M2_P, G: M2_G, LB: M2_LB, DM: M2_DM, bounds: M2_BOUNDS, plotAreaLabels: M2_PLOT_AREA_LABELS, roadLabels: M2_ROAD_LABELS, dimensionLabels: M2_DIMENSION_LABELS, projectName: 'Sri Meenakshi Garden - Phase 2', layoutName: 'Poonchuthi layout' },
 };
 
 export default function App({ projectSlug = 'velavan_nagar' }) {
   const geometry = GEOMETRIES[projectSlug] || GEOMETRIES.velavan_nagar;
+  // Keep the browser/APK page title aligned with the selected map, not index.html's default.
+  useEffect(() => {
+    document.title = geometry.projectName + ' plot map';
+  }, [geometry.projectName]);
   const P = geometry.P;
   const [status, setStatus] = useState({});          // a=Available, r=Reserved, b=Booked, s=Sold (from Supabase)
   const [plotDetails, setPlotDetails] = useState({});
@@ -30,20 +39,22 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
   // Undo / redo history for every admin edit.
   const adRef = useRef(ad); adRef.current = ad;
   const past = useRef([]), future = useRef([]);
+  const dirty = useRef(false);
   const [, bump] = useState(0);
   const setAdH = useCallback(fn => {
     const prev = adRef.current, next = typeof fn === 'function' ? fn(prev) : fn;
     if (!next || next === prev) return;
     past.current.push(prev); if (past.current.length > 100) past.current.shift();
-    future.current = []; adRef.current = next; setAd(next); bump(x => x + 1);
+    future.current = []; adRef.current = next; dirty.current = true; setAd(next); bump(x => x + 1);
   }, []);
-  const undo = useCallback(() => { const prev = past.current.pop(); if (!prev) return; future.current.push(adRef.current); adRef.current = prev; setAd(prev); bump(x => x + 1); }, []);
-  const redo = useCallback(() => { const next = future.current.pop(); if (!next) return; past.current.push(adRef.current); adRef.current = next; setAd(next); bump(x => x + 1); }, []);
+  const undo = useCallback(() => { const prev = past.current.pop(); if (!prev) return; future.current.push(adRef.current); adRef.current = prev; dirty.current = true; setAd(prev); bump(x => x + 1); }, []);
+  const redo = useCallback(() => { const next = future.current.pop(); if (!next) return; past.current.push(adRef.current); adRef.current = next; dirty.current = true; setAd(next); bump(x => x + 1); }, []);
   const [adminEnquiries, setAdminEnquiries] = useState([]);
   const [userMode, setUserMode] = useState(false);
-  const [checkingUserSession, setCheckingUserSession] = useState(() => window.sessionStorage.getItem('maep_user_mode') === 'true');
+  const [checkingUserSession, setCheckingUserSession] = useState(() => window.sessionStorage.getItem('maep_user_mode') === 'true' || Boolean(window.sessionStorage.getItem('maep_employee_token')));
   const [panel, setPanel] = useState('off');         // 'off' | 'lock' | 'tools'
   const [adminPin, setAdminPin] = useState('');
+  const [employeeToken, setEmployeeToken] = useState(() => window.sessionStorage.getItem('maep_employee_token') || '');
   const [adminAuthenticated, setAdminAuthenticated] = useState(false);
   const [addMode, setAddMode] = useState(false);
   const mapRef = useRef(null);
@@ -58,19 +69,137 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
       setCheckingUserSession(false);
       return;
     }
+    const employee = window.sessionStorage.getItem('maep_employee_token');
+    if (employee) { setEmployeeToken(employee); setAdminAuthenticated(true); }
     setCheckingUserSession(false);
   }, []);
 
   useEffect(() => { saveAd(ad, geometry); }, [ad, geometry]);
+  const [syncNote, setSyncNote] = useState('');
+  const [savedAt, setSavedAt] = useState(0);         // last time this browser's edits reached the server
+  useEffect(() => { if (!savedAt) return; const t = window.setTimeout(() => setSavedAt(0), 2500); return () => window.clearTimeout(t); }, [savedAt]);
+  // ---- Shared edits: everyone (Admin, Employees, Users) sees the same map ----
+  // sync.base = last server copy this browser saw; our own changes = diff(base, current).
+  // Pull: newest server copy + our unsaved changes replayed on top (nothing is lost).
+  // Push: only if nobody saved in between (server checks `base`), else merge and retry.
+  const authRef = useRef({}); authRef.current = { employeeToken, adminPin: adminPin || window.sessionStorage.getItem('maep_admin_pin') || '' };
+  const syncRef = useRef(null);
+  if (!syncRef.current || syncRef.current.geo !== geometry) {
+    const saved = loadBase(geometry);
+    syncRef.current = { geo: geometry, base: saved ? saved.data : null, stamp: saved ? saved.stamp : null, known: Boolean(saved), busy: false, again: false };
+  }
+  const applyRemote = useCallback(next => {
+    if (sameDoc(next, adRef.current)) return;
+    past.current = []; future.current = [];          // history belonged to the old copy
+    adRef.current = next; setAd(next); bump(x => x + 1);
+  }, []);
+  const sync = useCallback(async () => {
+    const s = syncRef.current;
+    if (s.busy) { s.again = true; return; }
+    s.busy = true;
+    const auth = authRef.current, canEdit = Boolean(auth.employeeToken || auth.adminPin);
+    const pull = async () => {
+      const { data, updatedAt } = await fetchServerAd(geometry);
+      if (s.known && sameStamp(updatedAt, s.stamp)) return;
+      const server = data || AD0(), local = adRef.current;
+      let next;
+      if (!canEdit) next = server;                      // Users only view: always show the shared copy
+      else if (!s.known) {
+        // First time this browser talks to the server for this project.
+        if (data && hasEdits(server)) { if (hasEdits(local) && !sameDoc(local, server)) backupLocal(geometry, local); next = server; }
+        else next = local;                               // server empty: keep (and, for Admin/Employee, upload) this browser's edits
+      } else next = applyDiff(server, diffAd(s.base, local));
+      s.base = server; s.stamp = updatedAt; s.known = true; saveBase(geometry, server, updatedAt);
+      applyRemote(next);
+    };
+    const push = async () => {
+      if (!canEdit) return 'done';
+      const local = adRef.current;
+      if (isEmptyDiff(diffAd(s.base || AD0(), local))) return 'done';
+      dirty.current = false;
+      const r = await pushServerAd(local, geometry, auth, s.stamp);
+      if (r.ok) { s.base = local; s.stamp = r.updatedAt; saveBase(geometry, local, r.updatedAt); s.pushed = true; return 'done'; }
+      if (r.status === 409) return 'conflict';
+      if (r.status === 401 && !auth.employeeToken) {
+        const re = await reclaimAdmin(auth.adminPin);
+        if (re.ok) return 'retry';
+        throw new Error(re.status === 409 ? 'Another device is signed in as Admin, so your map changes cannot be saved. Sign in again after they sign out.' : 'Your Admin session has ended. Please sign in again to save map changes.');
+      }
+      if (r.status === 401) throw new Error('Your Employee session has ended. Please sign in again to save map changes.');
+      throw new Error(r.error);
+    };
+    try {
+      let rounds = 0;
+      do {
+        s.again = false;
+        await pull();
+        for (let i = 0; i < 4; i++) {
+          const res = await push();
+          if (res === 'conflict') { await pull(); continue; }
+          if (res === 'retry') continue;
+          break;
+        }
+      } while (s.again && ++rounds < 3);
+      setSyncNote('');
+      if (s.pushed) { s.pushed = false; setSavedAt(Date.now()); }
+    } catch (e) {
+      console.warn('[map-edits]', e.message);
+      if (canEdit) setSyncNote(e.message || 'Could not save map changes.');
+    } finally { s.busy = false; }
+  }, [geometry, applyRemote]);
+  // Check for changes from other devices every few seconds and whenever the tab is opened again.
   useEffect(() => {
-    // Read each project's authoritative inventory status from the database.
-    fetch('/api/plots?project_id=' + encodeURIComponent(geometry.projectId)).then(r => r.json()).then(j => {
-      if (!j.ok) return;
-      const m = {};
-      P.forEach(([id]) => { const v = j.plots[String(id)]; if (v) m[id] = toStatus(v); });
-      setStatus(m);
-      setPlotDetails(j.details || {});
-    }).catch(() => {});   // no API (plain `vite` dev): every plot shows as Available
+    sync();
+    const t = window.setInterval(() => { if (!document.hidden) sync(); }, 5000);
+    const onShow = () => { if (!document.hidden) sync(); };
+    window.addEventListener('focus', onShow);
+    document.addEventListener('visibilitychange', onShow);
+    window.addEventListener('online', onShow);
+    return () => { window.clearInterval(t); window.removeEventListener('focus', onShow); document.removeEventListener('visibilitychange', onShow); window.removeEventListener('online', onShow); };
+  }, [sync]);
+  // Save this person's edits shortly after they make them (Admin or Employee only).
+  useEffect(() => {
+    if (!dirty.current) return;
+    const t = window.setTimeout(() => sync(), 600);
+    return () => window.clearTimeout(t);
+  }, [ad, sync]);
+  // Signing in (Admin or Employee) uploads any edits this browser still holds.
+  useEffect(() => { if (employeeToken || adminPin) sync(); }, [employeeToken, adminPin, sync]);
+  // Plot status (Available/Reserved/Booked/Sold) + customer details live in the database.
+  // Re-read them every few seconds so a status saved on another system shows up here too.
+  const plotsJson = useRef('');
+  useEffect(() => {
+    let stop = false, busy = false;
+    plotsJson.current = '';
+    const load = async () => {
+      if (busy || stop) return; busy = true;
+      try {
+        const auth = authRef.current;
+        const headers = {};
+        if (auth.employeeToken) headers['x-employee-token'] = auth.employeeToken;
+        else if (auth.adminPin) headers['x-admin-pin'] = auth.adminPin;
+        const r = await fetch('/api/plots?project_id=' + encodeURIComponent(geometry.projectId) + '&_=' + Date.now(), {
+          headers, credentials: 'same-origin', cache: 'no-store',
+        });
+        const j = await r.json();
+        if (stop || !j.ok) return;
+        const m = {};
+        P.forEach(([id]) => { const v = j.plots[String(id)]; if (v) m[id] = toStatus(v); });
+        const key = JSON.stringify([m, j.details || {}]);
+        if (key === plotsJson.current) return;      // nothing changed: skip re-render
+        plotsJson.current = key;
+        setStatus(m);
+        setPlotDetails(j.details || {});
+      } catch { /* no API (plain `vite` dev) or offline: try again next round */ }
+      finally { busy = false; }
+    };
+    load();
+    const t = window.setInterval(() => { if (!document.hidden) load(); }, 5000);
+    const onShow = () => { if (!document.hidden) load(); };
+    window.addEventListener('focus', onShow);
+    document.addEventListener('visibilitychange', onShow);
+    window.addEventListener('maep-plots-changed', load);
+    return () => { stop = true; window.clearInterval(t); window.removeEventListener('focus', onShow); document.removeEventListener('visibilitychange', onShow); window.removeEventListener('maep-plots-changed', load); };
   }, [geometry, P]);
 
   const loadAdminEnquiries = useCallback(async adminPin => {
@@ -96,7 +225,7 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
 
   // Restore the Admin Studio session when an Admin opens the map from the dashboard.
   useEffect(() => {
-    if (window.sessionStorage.getItem('maep_user_mode') === 'true') return;
+    if (window.sessionStorage.getItem('maep_user_mode') === 'true' || window.sessionStorage.getItem('maep_employee_token')) return;
     const savedPin = window.sessionStorage.getItem('maep_admin_pin');
     if (!savedPin) return;
     let cancelled = false;
@@ -191,17 +320,18 @@ export default function App({ projectSlug = 'velavan_nagar' }) {
 
   return (
     <>
-      <PlotMap ref={mapRef} geometry={geometry} projectName={geometry.projectName} layoutName={geometry.layoutName} ax={ax} status={status} details={plotDetails} filt={filt} setFilt={setFilt} sel={sel} selD={selD} setSel={setSel}
+      <PlotMap ref={mapRef} backToProject={'/' + projectSlug} geometry={geometry} projectName={geometry.projectName} layoutName={geometry.layoutName} ax={ax} status={status} details={plotDetails} filt={filt} setFilt={setFilt} sel={sel} selD={selD} setSel={setSel}
         onTap={onTap} admin={admin} addMode={addMode} adminEnquiries={adminEnquiries} cv={cv} setCv={setCv} setAd={setAdH}
         history={{ undo, redo, canUndo: past.current.length > 0, canRedo: future.current.length > 0 }}>
-        {!userMode && !checkingUserSession && <AdminPanel geometry={geometry} panel={panel} setPanel={setPanel} ax={ax} setAd={setAdH} sel={sel} selD={selD} status={status} setStatus={setStatus} initialAdminPin={adminPin}
+        {syncNote ? <div className="sync-note" role="alert">{syncNote}</div> : savedAt ? <div className="sync-note ok" role="status">✓ Saved — everyone can see this change</div> : null}
+        {!userMode && !checkingUserSession && <AdminPanel employeeSession={Boolean(employeeToken)} employeeToken={employeeToken} geometry={geometry} panel={panel} setPanel={setPanel} ax={ax} setAd={setAdH} sel={sel} selD={selD} status={status} setStatus={setStatus} initialAdminPin={adminPin} cv={cv}
           addMode={addMode} setAddMode={setAddMode} clearSel={clearSel} onAdminAuth={handleAdminAuth} onAdminExit={() => { setAdminEnquiries([]); setCv(null); }} />}
       </PlotMap>
       {closedPlot != null && <PlotStatusModal id={closedPlot.id} status={closedPlot.status} ax={ax}
         customer={plotDetails[ax.lbl(closedPlot.id)] || plotDetails[String(closedPlot.id)] || {}}
         onClose={() => setClosedPlot(null)} />}
       {unit != null && !form && (
-        <UnitModal id={unit} ax={ax} status={status[unit]} setAd={setAdH} admin={adminAuthenticated} onClose={closeUnit} onEnquire={() => setForm(true)}
+        <UnitModal id={unit} ax={ax} status={status[unit]} setAd={setAdH} admin={adminAuthenticated && !employeeToken} onClose={closeUnit} onEnquire={() => setForm(true)}
           reservedCustomers={plotDetails[ax.lbl(unit)]?.reservedCustomers || plotDetails[String(unit)]?.reservedCustomers || []}
           onViewMap={() => { const id = unit; setUnit(null); setSel(id); mapRef.current.focusOn(id); }} />
       )}

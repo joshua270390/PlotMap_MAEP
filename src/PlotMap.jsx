@@ -47,7 +47,7 @@ const Trees = memo(({ G }) => {
   return <><defs dangerouslySetInnerHTML={{ __html: TREE }} /><g className="trees">{uses}</g></>;
 });
 const Dims = memo(({ LB, ts = {} }) => LB.map(([s, x, y, r], i) => (
-  <ET key={i} k={'lb' + i} s={ts['lb' + i]} cx={x} cy={y}><text data-tk={'lb' + i} data-saraswathi-dimension={i} className="saraswathi-dimension" style={tStyle(ts['lb' + i])} transform={`translate(${x} ${y}) rotate(${r}) translate(0 0)`}>{s}</text></ET>
+  <ET key={i} k={'lb' + i} s={ts['lb' + i]} cx={x} cy={y}><text data-tk={'lb' + i} data-saraswathi-dimension={i} className={'saraswathi-dimension' + (/ROAD/i.test(s) ? ' road-name' : '')} style={tStyle(ts['lb' + i])} transform={`translate(${x} ${y}) rotate(${r}) translate(0 0)`}>{s}</text></ET>
 )));
 
 const Measures = memo(({ ax, selD, ts = {} }) => ax.dmList().map(d => (
@@ -128,7 +128,7 @@ const Tooltip = forwardRef(({ status, vpRef, ax, details = {} }, ref) => {
   );
 });
 
-const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName, status, details = {}, filt, setFilt, sel, selD, setSel, onTap, ax, admin, addMode, adminEnquiries = [], cv = null, setCv, setAd, history, children }, ref) {
+const PlotMap = forwardRef(function PlotMap({ backToProject, geometry, projectName, layoutName, status, details = {}, filt, setFilt, sel, selD, setSel, onTap, ax, admin, addMode, adminEnquiries = [], cv = null, setCv, setAd, history, children }, ref) {
   const { P, G, LB, bounds, plotAreaLabels = [], roadLabels = [], dimensionLabels = [] } = geometry || { P: V_P, G: V_G, LB: V_LB, bounds: { x: 369, y: 160, width: 2501, height: 3012 } };
   const vpRef = useRef(null), stageRef = useRef(null), ovRef = useRef(null), topRef = useRef(null), tipRef = useRef(null), qRef = useRef(null);
   const view = useRef({}), cb = useRef({});
@@ -141,6 +141,9 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
 
   useEffect(() => {
     const vp = vpRef.current, stage = stageRef.current, ov = ovRef.current, v = view.current;
+    // Keep the installed Android app's toolbar layout separate from the website.
+    const nativeApp = /MAEPApp/i.test(navigator.userAgent) || window.Capacitor?.isNativePlatform?.() === true;
+    vp.dataset.nativeApp = String(nativeApp);
     Object.assign(v, { s: 0.2, tx: 0, ty: 0, fitS: 0.2, z: null });
     const hideTip = () => tipRef.current && tipRef.current.hide();
     const apply = () => {
@@ -228,12 +231,9 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
     };
     const onKey = e => { if (e.key === '/' && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); qRef.current.focus(); } };
     const positionAdminBelowSearch = () => {
-      const isResponsive = window.matchMedia('(max-width: 1199px)').matches;
-      const search = isResponsive
-        ? topRef.current?.querySelector('.sw .search')
-        : topRef.current?.querySelector('.search');
-      if (!search) return;
-      const rect = search.getBoundingClientRect();
+      const header = topRef.current;
+      if (!header) return;
+      const rect = header.getBoundingClientRect();
       document.documentElement.style.setProperty('--admin-search-top', Math.ceil(rect.bottom + 12) + 'px');
     };
     const onResize = () => { v.fit(false); positionAdminBelowSearch(); };
@@ -251,6 +251,14 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
 
   useEffect(() => { ovRef.current.classList.toggle('adm', !!admin); }, [admin]);
   useEffect(() => { vpRef.current.classList.toggle('addm', !!addMode); }, [addMode]);
+  useEffect(() => {
+    if (!searchOpen) return;
+    const close = e => { if (!e.target.closest('.sw') && !e.target.closest('.search-toggle')) setSearchOpen(false); };
+    const esc = e => { if (e.key === 'Escape') setSearchOpen(false); };
+    document.addEventListener('pointerdown', close);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', esc); };
+  }, [searchOpen]);
 
   const n = { a: 0, r: 0, b: 0, s: 0 };
   P.forEach(([id]) => { n[status[id] || 'a']++; });
@@ -263,13 +271,13 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
     setTimeout(() => { const r = vpRef.current.getBoundingClientRect(); tipRef.current.show(id, r.left + r.width / 2, r.top + r.height * 0.4); }, 450);
   };
   const [dlOpen, setDlOpen] = useState(false), [dlBusy, setDlBusy] = useState(false);
-  const doDl = async (plain) => { setDlOpen(false); setDlBusy(true); try { await downloadMap(ovRef.current, { plain, name: (geometry?.key || 'plotmap'), title: (projectName || PROJECT), subtitle: (layoutName || LAYOUT) }); } catch (e) { console.error(e); alert('Download failed. Please try again.'); } setDlBusy(false); };
+  const doDl = async (plain) => { setDlOpen(false); setDlBusy(true); try { await downloadMap(ovRef.current, { plain, name: (geometry?.key || 'plotmap'), title: projectName || PROJECT, subtitle: layoutName || '' }); } catch (e) { console.error(e); alert('Download failed. Please try again.'); } setDlBusy(false); };
   const chips = [['a', 'var(--av)'], ['b', 'var(--bk)'], ['s', 'var(--sd)']];
 
   return (
     <main id="vp" ref={vpRef}>
       <div className="top" ref={topRef}>
-        <button type="button" className="map-back-button" onClick={() => { if (window.sessionStorage.getItem("maep_user_token")) { window.location.assign("/plot_lists"); return; } if (window.history.length > 1 && document.referrer && new URL(document.referrer).origin === window.location.origin) window.history.back(); else window.location.assign("/dashboard"); }} aria-label="Go back to previous page">← Back</button>
+        <button type="button" className="map-back-button" onClick={() => { if (backToProject) { window.location.assign(backToProject); return; } if (window.sessionStorage.getItem("maep_user_token")) { window.location.assign("/plot_lists"); return; } if (window.history.length > 1 && document.referrer && new URL(document.referrer).origin === window.location.origin) window.history.back(); else window.location.assign("/dashboard"); }} aria-label="Go back to previous page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18 9 12l6-6" /></svg><span className="back-label">Back</span></button>
         <div className="brand fl" aria-label={COMPANY}>
           <div className="brand-copy">
             <b>{projectName || PROJECT}</b>
@@ -280,9 +288,9 @@ const PlotMap = forwardRef(function PlotMap({ geometry, projectName, layoutName,
           const next = !searchOpen;
           setSearchOpen(next);
           setTimeout(() => {
-            const anchor = topRef.current?.querySelector('.sw.mobile-search-open .search') || topRef.current?.querySelector('.search-toggle');
-            if (anchor) {
-              const rect = anchor.getBoundingClientRect();
+            const header = topRef.current;
+            if (header) {
+              const rect = header.getBoundingClientRect();
               document.documentElement.style.setProperty('--admin-search-top', Math.ceil(rect.bottom + 12) + 'px');
             }
             if (next) qRef.current?.focus();

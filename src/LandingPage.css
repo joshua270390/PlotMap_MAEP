@@ -76,3 +76,98 @@
 @media(max-width:1100px){.ma-landing .ma-project-grid.ma-plot-list-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.ma-landing .ma-project-grid.ma-plot-list-cards{grid-template-columns:minmax(0,1fr);gap:16px}.ma-landing .ma-plot-card-visual{height:220px;min-height:220px}.ma-landing .ma-plot-card-content{padding:18px 16px}.ma-landing .ma-plot-card-footer{align-items:flex-start;flex-direction:column}.ma-landing .ma-plot-view-link{align-self:flex-end}.ma-landing .ma-plot-card-description{min-height:0}}
 @media(prefers-reduced-motion:reduce){.ma-landing .ma-plot-list-card,.ma-landing .ma-plot-card-arrow,.ma-landing .ma-plot-view-link>span{transition:none!important}}
+
+
+/* Warm editorial redesign overrides: retain original layout and Plot Lists component rules above. */
+.ma-landing{background:#f7f4ed;color:#241f1a;font-family:"Instrument Sans",sans-serif}
+.ma-landing .ma-nav{height:88px;padding-inline:clamp(22px,7vw,112px);background:rgba(249,247,241,.94);border-bottom:1px solid #e7e0d4;box-shadow:0 8px 28px rgba(40,31,22,.035)}
+.ma-landing .ma-brand img{width:200px}
+.ma-landing .ma-nav nav{gap:clamp(18px,3vw,42px);color:#51483f}
+.ma-landing .ma-nav nav>a:not(.ma-nav-cta){font-size:12px;letter-spacing:.025em}
+.ma-landing .ma-nav nav>a:not(.ma-nav-cta):hover{color:#a9573d}
+.ma-landing .ma-nav-cta,.ma-landing .ma-primary{border-radius:3px;background:#28221d;padding:16px 22px;color:#fff!important;letter-spacing:.035em}
+.ma-landing .ma-nav-cta:hover,.ma-landing .ma-primary:hover{background:#a9573d}
+.ma-landing .ma-hero{min-height:690px;padding:92px clamp(22px,9vw,144px) 92px;grid-template-columns:1.02fr .98fr;gap:4%;background:#eee8dc}
+.ma-landing .ma-hero:before{inset:0;background:radial-gradient(ellipse at 78% 48%,rgba(169,87,61,.13),transparent 43%),linear-gradient(115deg,rgba(255,255,255,.18),transparent 58%)}
+.ma-landing .ma-eyebrow,.ma-landing .ma-kicker{color:#a9573d;letter-spacing:.2em}
+.ma-landing .ma-eyebrow i{background:#a9573d}
+.ma-landing .ma-hero h1,.ma-landing .ma-section-head h2,.ma-landing .ma-why h2,.ma-landing .ma-contact h2{font-family:"Bricolage Grotesque",sans-serif;color:#29221c;letter-spacing:-.06em}
+.ma-landing .ma-hero h1{font-size:clamp(52px,6vw,84px);line-height:.96;margin:27px 0 23px}
+.ma-landing .ma-hero h1 em,.ma-landing .ma-section-head h2 em,.ma-landing .ma-why h2 em,.ma-landing .ma-contact h2 em{color:#a9573d}
+.ma-landing .ma-hero-copy>p{max-width:460px;color:#71675d;font-size:15px;line-height:1.85}
+.ma-landing .ma-hero-actions{gap:30px;margin-top:34px}
+.ma-landing .ma-text-link{color:#51483f}
+.ma-landing .ma-text-link:hover{color:#a9573d}
+.ma-landing .ma-proof{gap:25px;margin-top:58px}
+.ma-landing .ma-proof strong{font-size:28px;color:#29221c}
+.ma-landing .ma-proof span{color:#81766a;font-size:10px;letter-spacing:.025em}
+.ma-landing .ma-proof-line{background:#d2c7b8}
+.ma-landing .ma-hero-art{height:470px}
+.ma-landing .ma-art-glow{width:430px;height:430px;background:#e2d7c7}
+.ma-landing .ma-land-card{width:min(100%,470px);height:350px;border:9px solid #fbf8f1;background-color:#d8ddcc;box-shadow:0 32px 70px rgba(52,39,27,.17);transform:rotate(-5deg)}
+.ma-landing .ma-road{background:#bcb8aa;border-color:#fbf8f1}
+.ma-landing .ma-plot{background:#c4cdb5;border-color:#fbf8f1;color:#5d6b50}
+.ma-landing .ma-park{background:#879778;border-color:#fbf8f1}
+.ma-landing .ma-art-label>span{color:#9b6a50}
+.ma-landing .ma-art-label b{color:#302820;font-size:22px}
+.ma-landing .ma-floating-note{right:-5px;bottom:0;border:1px solid #eee5d8;box-shadow:0 18px 42px rgba(45,34,24,.13)}
+.ma-landing .ma-floating-note>span{background:#f0e1d7;color:#a9573d}
+.ma-landing .ma-floating-note b{color:#302820}
+.ma-landing .ma-floating-note small{color:#8b7e70}
+.ma-landing .ma-hero-bottom{padding-inline:clamp(22px,7vw,112px);border-color:#d9cfc1;color:#82786c}
+.ma-landing .ma-hero-bottom span:first-child{color:#a9573d}
+.ma-landing .ma-projects{background:linear-gradient(180deg,#fbfaf6 0%,#f3f4ef 100%)}
+.ma-landing .ma-why{position:relative;overflow:hidden;padding:112px clamp(22px,9vw,144px);background:#29231e;color:#fff}
+.ma-landing .ma-why:after{content:"";position:absolute;width:440px;height:440px;border:1px solid rgba(229,192,159,.14);border-radius:50%;right:-170px;top:-210px;box-shadow:0 0 0 42px rgba(229,192,159,.035),0 0 0 84px rgba(229,192,159,.025);pointer-events:none}
+.ma-landing .ma-why .ma-kicker{color:#d49b7e}
+.ma-landing .ma-why h2{color:#fbf7ef}
+.ma-landing .ma-why h2 em{color:#d49b7e}
+.ma-landing .ma-why-intro>p{color:#c5b9ad;line-height:1.9}
+.ma-landing .ma-benefits{position:relative;z-index:1}
+.ma-landing .ma-benefits>div{grid-template-columns:52px 1fr;gap:20px;padding:25px 0;border-color:rgba(255,255,255,.16)}
+.ma-landing .ma-benefits>div>span{color:#d49b7e;font-size:13px}
+.ma-landing .ma-benefits h3{color:#fff8ef;font-size:19px}
+.ma-landing .ma-benefits p{color:#c5b9ad;line-height:1.8}
+.ma-landing .ma-contact{padding:94px clamp(22px,9vw,144px);background:#e9dfd1;border-top:1px solid #ded2c2}
+.ma-landing .ma-contact h2{color:#29221c}
+.ma-landing .ma-contact h2 em{color:#a9573d}
+.ma-landing .ma-contact>div>p{color:#71665b;line-height:1.85}
+.ma-landing .ma-footer{min-height:104px;padding-inline:clamp(22px,7vw,112px);background:#f9f7f1;border-top:1px solid #e7dfd3;color:#81766b}
+.ma-landing .ma-footer a{color:#a9573d}
+@media(max-width:900px){
+ .ma-landing .ma-hero{min-height:620px;padding-inline:6vw;gap:3%}
+ .ma-landing .ma-hero-art{height:400px}
+ .ma-landing .ma-land-card{height:300px}
+ .ma-landing .ma-why{padding-inline:6vw}
+}
+@media(max-width:650px){
+ .ma-landing .ma-nav{height:72px;padding-inline:18px}
+ .ma-landing .ma-brand img{width:155px}
+ .ma-landing .ma-nav nav{gap:12px}
+ .ma-landing .ma-nav-cta{padding:12px 14px}
+ .ma-landing .ma-hero{padding:60px 23px 82px;background:#eee8dc}
+ .ma-landing .ma-hero h1{font-size:52px}
+ .ma-landing .ma-hero-copy>p{font-size:14px}
+ .ma-landing .ma-proof{gap:14px;margin-top:38px}
+ .ma-landing .ma-proof strong{font-size:22px}
+ .ma-landing .ma-hero-art{height:340px;margin-top:35px}
+ .ma-landing .ma-land-card{height:245px;width:92%}
+ .ma-landing .ma-art-glow{width:290px;height:290px}
+ .ma-landing .ma-art-label b{font-size:17px}
+ .ma-landing .ma-floating-note{right:-4px;bottom:0}
+ .ma-landing .ma-hero-bottom{padding-inline:18px}
+ .ma-landing .ma-why{padding:76px 23px}
+ .ma-landing .ma-benefits{margin-top:38px}
+ .ma-landing .ma-contact{padding:72px 23px}
+ .ma-landing .ma-footer{padding:22px}
+}
+@media(prefers-reduced-motion:reduce){.ma-landing *{scroll-behavior:auto!important;transition:none!important}}
+
+
+/* Requested typography and hero refinements */
+.ma-landing,
+.ma-landing *{font-family:"Inter",system-ui,sans-serif!important}
+.ma-landing .ma-hero h1{font-size:clamp(48px,5.2vw,70px);line-height:1}
+@media(max-width:650px){
+ .ma-landing .ma-hero h1{font-size:46px}
+}

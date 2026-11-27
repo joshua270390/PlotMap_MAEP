@@ -85,8 +85,16 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
       const uploadPlan = await prepare.json().catch(() => ({}));
       if (!prepare.ok || !uploadPlan.ok || !uploadPlan.job_id) throw new Error(uploadPlan.error || "Could not prepare file upload.");
       const putFile = async (url, file) => {
-        const uploaded = await fetch(url, { method: "PUT", headers: { "Content-Type": file.type, "x-upsert": "true" }, body: file });
-        if (!uploaded.ok) throw new Error("Could not upload " + file.name + " to secure storage.");
+        let uploaded;
+        try {
+          uploaded = await fetch(url, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
+        } catch (cause) {
+          throw new Error("Secure storage connection failed while uploading " + file.name + ". Check network/CORS and retry.");
+        }
+        if (!uploaded.ok) {
+          const detail = await uploaded.text().catch(() => "");
+          throw new Error("Secure storage rejected " + file.name + " (" + uploaded.status + "): " + (detail.slice(0, 220) || uploaded.statusText || "Upload failed."));
+        }
       };
       await putFile(uploadPlan.source.signed_url, form.file);
       for (let index = 0; index < form.contextFiles.length; index++) await putFile(uploadPlan.context_files[index].signed_url, form.contextFiles[index]);

@@ -45,11 +45,12 @@ window.setInterval(async () => {
 
 const dashboardPaths = ['/dashboard', '/bookings', '/plot_lists', '/users', '/layout_landing', '/create_plots'];
 const mapRoutes = new Set(['velavan_nagar', 'saraswathi_garden', 'shanmuga_avenue', 'meenakshi_garden_phase1', 'meenakshi_garden_phase2']);
+const landingRoutes = new Set([...mapRoutes, 'grace_city_kalikudi_chennampatti']);
 const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
 const isDashboard = dashboardPaths.includes(currentPath);
 const routeParts = currentPath.split('/').filter(Boolean);
 const routeId = routeParts[0] || '';
-const isProjectRoute = routeParts.length === 1 && mapRoutes.has(routeId);
+const isProjectRoute = routeParts.length === 1 && landingRoutes.has(routeId);
 const isMapRoute = routeParts.length === 2 && mapRoutes.has(routeId) && routeParts[1] === 'layout';
 const isCustomProjectRoute = routeParts.length === 1 && !isDashboard && !isProjectRoute && currentPath !== '/';
 const root = createRoot(document.getElementById('root'));

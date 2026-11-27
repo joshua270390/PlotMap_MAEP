@@ -80,7 +80,7 @@ export default async function handler(request) {
     });
     if (!downloaded.ok) throw new Error("Could not read the uploaded source plan from private storage.");
     const bytes = Buffer.from(await downloaded.arrayBuffer());
-    if (!bytes.length || bytes.length > 4 * 1024 * 1024) throw new Error("The uploaded source plan is empty or exceeds the 4 MB limit.");
+    if (!bytes.length || bytes.length > 20 * 1024 * 1024) throw new Error("The uploaded source plan is empty or exceeds the 20 MB limit.");
     const file = {
       name: job.file_name || "layout",
       type: job.file_type,
@@ -113,7 +113,7 @@ export default async function handler(request) {
       new URLSearchParams({ job_id: "eq." + payload.job_id, status: "eq.processing" }).toString(),
       { status: "completed", result, error: null, updated_at: new Date().toISOString() });
     if (!saved.ok || !saved.data?.length) throw new Error("Could not save the completed AI analysis result.");
-    if (!(await removeObject(c, job.source_file_path))) console.error("[plot-analysis] Temporary source cleanup failed:", job.source_file_path);
+    // Keep the analysed source file in private storage so Create Project can attach it atomically.
     for (const item of Array.isArray(job.context_files) ? job.context_files : []) {
       if (item?.path && !(await removeObject(c, item.path))) console.error("[plot-analysis] Temporary reference cleanup failed:", item.path);
     }

@@ -475,7 +475,7 @@ export default function Dashboard() {
           {page !== 'plots' && notice && <div className="alert alert-success" role="status">{notice}</div>}
 
           {page === 'layout-landing' ? <LayoutLandingEditor pin={pin} employeeToken={employeeToken} setError={setError} setNotice={setNotice} /> : showCreatePage ? (
-            <CreatePlotsPage editingProject={editingProject} authHeaders={employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': pin }} onCancel={() => { setShowCreatePage(false); setEditingProject(null); window.history.pushState({}, '', '/plot_lists'); }} onSaved={async () => {
+            <CreatePlotsPage editingProject={editingProject} sourceAssetUrl={!editingProject && new URLSearchParams(window.location.search).get('source') === 'grace_city' ? '/grace_city_kalikudi_chennampatti.svg' : ''} expectedPlotCount={!editingProject && new URLSearchParams(window.location.search).get('source') === 'grace_city' ? 187 : null} authHeaders={employeeToken ? { 'x-employee-token': employeeToken } : { 'x-admin-pin': pin }} onCancel={() => { setShowCreatePage(false); setEditingProject(null); window.history.pushState({}, '', '/plot_lists'); }} onSaved={async () => {
               try {
                 const response = await fetch('/api/projects', { cache: 'no-store' });
                 const data = await response.json().catch(() => ({}));
@@ -593,6 +593,14 @@ export default function Dashboard() {
               {error && <div className="alert alert-error" role="alert">{error}</div>}
               {notice && <div className="alert alert-success" role="status">{notice}</div>}
               {projectsError && projects.length > 0 && <div className="alert alert-error" role="status">{projectsError}</div>}
+              {role !== 'user' && !projects.some(project => project.slug === 'grace_city_kalikudi_chennampatti') && (
+                <div className="project-list-actions">
+                  <button type="button" className="edit-btn" onClick={() => {
+                    window.history.pushState({}, '', '/create_plots?source=grace_city');
+                    setPage('plots'); setEditingProject(null); setShowCreatePage(true); setSidebarOpen(false);
+                  }}>Set up Grace City · 187 plots</button>
+                </div>
+              )}
               <label className="project-filter-box">
                 <span aria-hidden="true">⌕</span>
                 <input type="search" value={plotSearch} onChange={e => setPlotSearch(e.target.value)} placeholder="Search projects..." aria-label="Filter projects" />

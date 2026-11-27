@@ -61,7 +61,7 @@ export default async function handler(request) {
     return json({ ok: false, error: "Invalid background job signature." }, 401);
   }
 
-  const query = new URLSearchParams({ select: "job_id,source_file_path,file_name,file_type,status", job_id: "eq." + payload.job_id, limit: "1" }).toString();
+  const query = new URLSearchParams({ select: "job_id,source_file_path,file_name,file_type,prompt,context_files,status", job_id: "eq." + payload.job_id, limit: "1" }).toString();
   const found = await db(c, c.jobs, "GET", query);
   if (!found.ok || !found.data?.[0]) return json({ ok: false, error: "Analysis job was not found." }, 404);
   const job = found.data[0];
@@ -87,18 +87,45 @@ export default async function handler(request) {
       size: bytes.length,
       arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
     };
-    const result = await analyse(c, file);
+    const contextFiles = [];
+    for (const item of Array.isArray(job.context_files) ? job.context_files : []) {
+      if (!item || typeof item.path !== "string" ||
+          !item.path.startsWith("analysis/" + payload.job_id + "/reference-") ||
+          !["application/pdf", "image/png", "image/jpeg", "image/webp"].includes(item.file_type)) {
+        throw new Error("Invalid reference attachment metadata in the analysis job.");
+      }
+      const contextObjectPath = item.path.split("/").map(encodeURIComponent).join("/");
+      const contextResponse = await fetch(c.url + "/storage/v1/object/" + c.bucket + "/" + contextObjectPath, {
+        headers: headers(c), signal: AbortSignal.timeout(30000),
+      });
+      if (!contextResponse.ok) throw new Error("Could not read an attached reference file from private storage.");
+      const contextBytes = Buffer.from(await contextResponse.arrayBuffer());
+      if (!contextBytes.length || contextBytes.length > 4 * 1024 * 1024) throw new Error("A reference attachment is empty or exceeds the 4 MB limit.");
+      contextFiles.push({
+        name: item.file_name || "reference",
+        type: item.file_type,
+        size: contextBytes.length,
+        arrayBuffer: async () => contextBytes.buffer.slice(contextBytes.byteOffset, contextBytes.byteOffset + contextBytes.byteLength),
+      });
+    }
+    const result = await analyse(c, file, { prompt: job.prompt || "", contextFiles });
     const saved = await db(c, c.jobs, "PATCH",
       new URLSearchParams({ job_id: "eq." + payload.job_id, status: "eq.processing" }).toString(),
       { status: "completed", result, error: null, updated_at: new Date().toISOString() });
     if (!saved.ok || !saved.data?.length) throw new Error("Could not save the completed AI analysis result.");
     if (!(await removeObject(c, job.source_file_path))) console.error("[plot-analysis] Temporary source cleanup failed:", job.source_file_path);
+    for (const item of Array.isArray(job.context_files) ? job.context_files : []) {
+      if (item?.path && !(await removeObject(c, item.path))) console.error("[plot-analysis] Temporary reference cleanup failed:", item.path);
+    }
   } catch (error) {
     const message = String(error?.message || "AI analysis failed. Please try another source file.").slice(0, 500);
     await db(c, c.jobs, "PATCH",
       new URLSearchParams({ job_id: "eq." + payload.job_id }).toString(),
       { status: "failed", error: message, updated_at: new Date().toISOString() });
     if (!(await removeObject(c, job.source_file_path))) console.error("[plot-analysis] Failed-job source cleanup failed:", job.source_file_path);
+    for (const item of Array.isArray(job.context_files) ? job.context_files : []) {
+      if (item?.path && !(await removeObject(c, item.path))) console.error("[plot-analysis] Failed-job reference cleanup failed:", item.path);
+    }
     console.error("[plot-analysis] Background analysis failed:", message);
   }
   return json({ ok: true });

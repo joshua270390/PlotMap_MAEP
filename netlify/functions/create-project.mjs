@@ -208,8 +208,8 @@ async function analyse(c, file, options = {}) {
   };
   const userPrompt = String(options.prompt || "").trim().slice(0, 6000);
   const completePrompt = prompt + (userPrompt
-    ? "\\n\\nAdditional instructions from the project creator (follow when consistent with the source drawing; never invent unclear geometry):\\n" + userPrompt
-    : "") + "\\n\\nCreate geometry that can be rendered as the project map and project-list thumbnail. Keep plot numbers and visible dimensions faithful to the source.";
+    ? "\n\nAdditional instructions from the project creator (follow when consistent with the source drawing; never invent unclear geometry):\n" + userPrompt
+    : "") + "\n\nCreate geometry that can be rendered as the project map and project-list thumbnail. Keep plot numbers and visible dimensions faithful to the source.";
   let raw = {};
   try {
     const fileContent = [await uploadToClaude(file)];

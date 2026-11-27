@@ -239,6 +239,10 @@ export default async function handler(request) {
     if (contextFiles.length > 5 || contextFiles.some(item => !validFile(item))) {
       return json({ ok: false, error: "Attach up to 5 reference files. Each must be a PDF, PNG, JPG or WEBP file up to 4 MB." }, 422);
     }
+    const totalUploadBytes = file.size + contextFiles.reduce((total, item) => total + item.size, 0);
+    if (totalUploadBytes > 16 * 1024 * 1024) {
+      return json({ ok: false, error: "The main layout and reference attachments must total 16 MB or less." }, 413);
+    }
     const jobId = randomUUID();
     const sourcePath = "analysis/" + jobId + "/source-" + String(file.name || "layout").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 90);
     const payload = { job_id: jobId, source_file_path: sourcePath, file_name: file.name || "layout", file_type: file.type };

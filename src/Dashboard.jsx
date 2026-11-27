@@ -10,8 +10,8 @@ import LayoutLandingEditor from './LayoutLandingEditor.jsx';
 import CreatePlotsPage from './CreatePlotsPage.jsx';
 import { normalizeIndianMobile, INDIAN_MOBILE_ERROR } from './validation.js';
 
-const PROJECT_IDS = { velavan_nagar: 1, saraswathi_garden: 3, shanmuga_avenue: 2, meenakshi_garden_phase1: 4, meenakshi_garden_phase2: 5 };
-const PROJECT_NAMES = { 1: 'Velavan Nagar', 3: 'Saraswathi Garden', 2: 'Shanmuga Avenue', 4: 'Meenakshi Garden Phase 1', 5: 'Meenakshi Garden Phase 2' };
+const PROJECT_IDS = { velavan_nagar: 1, saraswathi_garden: 3, shanmuga_avenue: 2, meenakshi_garden_phase1: 4, meenakshi_garden_phase2: 5, grace_city_kalikudi_chennampatti: 6 };
+const PROJECT_NAMES = { 1: 'Velavan Nagar', 3: 'Saraswathi Garden', 2: 'Shanmuga Avenue', 4: 'Meenakshi Garden Phase 1', 5: 'Meenakshi Garden Phase 2', 6: 'Grace City' };
 const DASHBOARD_GEOMETRY_PLOTS = {
   velavan_nagar: P,
   saraswathi_garden: SARASWATHI_P,

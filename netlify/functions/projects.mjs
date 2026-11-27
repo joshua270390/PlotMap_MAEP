@@ -40,6 +40,16 @@ const PROJECTS = [
     mapReady: true,
   },
   {
+    id: "grace-city-kalikudi-chennampatti",
+    slug: "grace_city_kalikudi_chennampatti",
+    name: "Grace City",
+    layout: "Grace City layout",
+    location: "Kalikudi, Chennampatti, Tamil Nadu",
+    description: "Explore Grace City at Kalikudi, Chennampatti.",
+    mapKey: "grace_city_kalikudi_chennampatti",
+    mapReady: false,
+  },
+  {
     id: "meenakshi-garden-phase2",
     slug: "meenakshi_garden_phase2",
     name: "Sri Meenakshi Garden - Phase 2",

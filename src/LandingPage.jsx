@@ -26,8 +26,7 @@ export default function LandingPage() {
   }, []);
 
   const openProject = project => {
-    const route = project.route || ('/' + project.slug);
-    window.open(route, '_blank', 'noopener,noreferrer');
+    window.location.href = project.route || ('/' + project.slug);
   };
 
   return (

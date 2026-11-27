@@ -122,7 +122,7 @@ function buildPlotRows(geometry) {
     seenIds.add(id); seenLabels.add(label);
     // The inventory table stores the stable geometry ID. plotLabels are display-only.
     const areaSqft = Number(row[4]);
-    return { plot_number: String(id), area_sqft: Number.isFinite(areaSqft) && areaSqft > 0 ? Math.round(areaSqft) : 1200 };
+    return { plot_number: String(id), area_sqft: Number.isFinite(areaSqft) && areaSqft > 0 && areaSqft <= 10000000 ? Math.round(areaSqft) : 1200 };
   });
 }
 

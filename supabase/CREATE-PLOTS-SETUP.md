@@ -7,7 +7,7 @@
 3. Run the complete `supabase/create-plots.sql` script from this repository.
 4. Confirm that `public.custom_projects` and `public.project_analysis_jobs` exist and that the private Storage bucket `plot-project-files` exists.
 
-The script creates the custom-project metadata table, a private source-file bucket, the AI-analysis job table, and restricted SQL functions for atomic project creation and deletion. It does not alter the five existing project geometries or their inventory rows. The SQL functions use the existing `public.plots`, `public.bookings`, and `public.map_edits` tables.
+The script creates the custom-project metadata table, a private source-file bucket, the AI-analysis job table, and restricted SQL functions for atomic project creation and deletion. It adds prompt and reference-file metadata to background analysis jobs. It does not alter the five existing project geometries or their inventory rows. On creation, the transaction inserts the master row into `public.projects`, the custom metadata into `public.custom_projects`, plot inventory into `public.plots`, and an initial editor document into `public.map_edits`. Deletion removes those custom-project records together.
 
 ## 2. Netlify environment
 
@@ -23,7 +23,7 @@ Optional: `CLAUDE_PLOT_MODEL` changes the Claude vision model. The default is `c
 
 ## 3. Upload limits and review
 
-PDF, PNG, JPG and WEBP source files are limited to 4 MB. The source file is temporarily stored in a private Supabase bucket, then processed by a Netlify Background Function. The browser checks the saved job status until the extracted geometry is ready. Netlify Background Functions must be available for the site's plan (current credit-based plans support them; legacy plans may not). Database project creation and deletion run through SQL transactions: if any inventory or booking operation fails, the database changes roll back together. Source-file cleanup happens after the database transaction; a failed storage cleanup is reported as pending and does not roll back the database transaction.
+PDF, PNG, JPG and WEBP source files are limited to 4 MB. The Prompt box accepts up to 6,000 characters and up to five supplemental PDF/image reference files (4 MB each). The source and reference files are temporarily stored in a private Supabase bucket, then processed by a Netlify Background Function. Claude uses the prompt and reference files while extracting geometry. The project-list thumbnail is rendered from the saved plot geometry, so it stays consistent with the interactive map. The browser checks the saved job status until the extracted geometry is ready. Netlify Background Functions must be available for the site's plan (current credit-based plans support them; legacy plans may not). Database project creation and deletion run through SQL transactions: if the master project, custom metadata, plot inventory, initial map-edits document, or booking operation fails, the database changes roll back together. Source-file cleanup happens after the database transaction; a failed storage cleanup is reported as pending and does not roll back the database transaction.
 
 AI extraction creates a draft from the first PDF page or the uploaded image. Check the plot count, plot labels and boundaries against the original source before creating the project. AI-generated boundaries can be inaccurate and are not a legal survey.
 

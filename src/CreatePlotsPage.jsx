@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 
-const blank = { name: "", description: "", location: "", route: "", file: null, geometry: null, notes: "", plots: [] };
+const blank = { name: "", description: "", location: "", route: "", file: null, contextFiles: [], prompt: "", geometry: null, notes: "", plots: [] };
 const routeFromName = name => "/" + String(name || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 55);
 const fileTypes = ".pdf,.png,.jpg,.jpeg,.webp";
 
@@ -35,6 +35,14 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
     setForm(value => ({ ...value, file, ...(editingProject ? {} : { geometry: null }) }));
     setAnalysed(false); setAnalysisJobId(""); setError(""); setNotice("");
   };
+  const chooseContextFiles = event => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+    const allowed = files.filter(file => file.size > 0 && file.size <= 4 * 1024 * 1024 &&
+      (file.type === "application/pdf" || ["image/png", "image/jpeg", "image/webp"].includes(file.type)));
+    if (allowed.length !== files.length) setError("Prompt attachments must be PDF, PNG, JPG or WEBP files up to 4 MB each.");
+    setForm(value => ({ ...value, contextFiles: [...value.contextFiles, ...allowed].slice(0, 5) }));
+  };
   async function waitForAnalysis(jobId, attempts = 180) {
     for (let attempt = 0; attempt < attempts; attempt++) {
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -59,6 +67,8 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
     setBusy(true); setError(""); setNotice("");
     try {
       const data = new FormData(); data.append("file", form.file);
+      data.append("prompt", form.prompt.trim());
+      form.contextFiles.forEach(file => data.append("context_files", file));
       const response = await fetch("/api/create-project?action=analyze", { method: "POST", headers: authHeaders, body: data });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok || !result.job_id) throw new Error(result.error || "Could not start AI analysis.");
@@ -111,10 +121,16 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
         <label>Route<input value={form.route} onChange={set("route")} required pattern="/[a-z0-9_-]{2,55}" placeholder="/green_valley_phase1" /><small>Must start with / and use lowercase letters, numbers, _ or -.</small></label>
       </div>
       <div className="create-upload-panel">
-        <div className="create-upload-icon">⇧</div><div><strong>{editingProject ? "Replace source PDF / Image (optional)" : "Upload source PDF / Image"}</strong><p>{editingProject ? "Replacing this file updates the source only; it will not regenerate plot boundaries." : "Supported: PDF, PNG, JPG, WEBP · Maximum 4 MB"}</p><input type="file" accept={fileTypes} onChange={chooseFile} /></div>
+        <div className="create-upload-icon">⇧</div><div><strong>{editingProject ? "Replace source PDF / Image (optional)" : "Upload source PDF / Image"}</strong><p>{editingProject ? "Replacing this file updates the source only; it will not regenerate plot boundaries." : "Main layout source · PDF, PNG, JPG or WEBP · Maximum 4 MB"}</p><input type="file" accept={fileTypes} onChange={chooseFile} /></div>
         {form.file && <span className="create-file-name">{form.file.name}</span>}
         {!form.file && editingProject?.source_file_name && <span className="create-file-name">Current: {editingProject.source_file_name}</span>}
       </div>
+      {!editingProject && <section className="create-prompt-panel" aria-label="AI plot map prompt">
+        <div className="create-prompt-heading"><div><span className="create-prompt-kicker">CLAUDE AI INSTRUCTIONS</span><label htmlFor="create-project-prompt">Prompt</label><p>Describe exactly how you want the plot geometry, map details and project thumbnail prepared.</p></div><span className="create-prompt-ai">✦ AI</span></div>
+        <textarea id="create-project-prompt" className="create-prompt-input" value={form.prompt} onChange={e => setForm(value => ({ ...value, prompt: e.target.value }))} rows={5} maxLength={6000} placeholder="Example: Extract every clearly visible plot boundary and plot number. Keep roads and parks separate. Preserve the original layout proportions. Read dimensions and area labels where legible. Create a clean plot map geometry and use that geometry for the project-list thumbnail. Do not invent missing details." />
+        <div className="create-prompt-composer"><label className="create-prompt-attach">＋ Attach files / images<input type="file" accept={fileTypes} multiple onChange={chooseContextFiles} /></label><span>{form.prompt.length}/6000 · Up to 5 reference files</span></div>
+        {form.contextFiles.length > 0 && <div className="create-prompt-attachments">{form.contextFiles.map((file,index) => <span className="create-prompt-file" key={file.name + "-" + file.size + "-" + index}>{file.name}<button type="button" aria-label={"Remove " + file.name} onClick={() => setForm(value => ({ ...value, contextFiles: value.contextFiles.filter((_,i) => i !== index) }))}>×</button></span>)}</div>}
+      </section>}
       {!editingProject && <div className="create-analysis-row"><button type="button" className="primary-btn" onClick={analyse} disabled={busy || !form.file || Boolean(analysisJobId)}>{busy ? "Analysing…" : "Analyse layout with AI"}</button>{analysisJobId && !form.geometry && <button type="button" className="cancel-btn" onClick={checkAnalysisStatus} disabled={busy}>{busy ? "Checking…" : "Check Status"}</button>}<span>AI extraction runs in the background. Please verify plot numbers and boundaries against the original plan.</span></div>}
       {!editingProject && form.geometry && <div className="create-analysis-result">
         <div className="create-result-heading"><div><strong>AI layout preview</strong><p>{form.geometry.P.length} plots extracted · {form.plots.filter(p => Number(p.confidence) < 0.75).length} low-confidence plots</p></div><span className="create-result-status">Draft ready</span></div>

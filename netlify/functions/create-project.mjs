@@ -46,8 +46,8 @@ async function rpc(c, name, body) {
 }
 
 const cleanSlug = value => String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 55);
-const validFile = file => file && file.size > 0 && file.size <= 4 * 1024 * 1024 &&
-  (file.type === "application/pdf" || ["image/png", "image/jpeg", "image/webp"].includes(file.type));
+const allowedFileType = type => type === "application/pdf" || ["image/png", "image/jpeg", "image/webp"].includes(type);
+const validFile = (file, maxBytes = 20 * 1024 * 1024) => file && file.size > 0 && file.size <= maxBytes && allowedFileType(file.type);
 async function upload(c, path, file) {
   const r = await fetch(c.url + "/storage/v1/object/" + c.bucket + "/" + path.split("/").map(encodeURIComponent).join("/"), {
     method: "POST", headers: { ...headers(c), "Content-Type": file.type, "x-upsert": "true" },
@@ -55,6 +55,21 @@ async function upload(c, path, file) {
   });
   if (!r.ok) throw new Error("Could not upload source file to Supabase Storage.");
   return path;
+}
+async function createSignedUpload(c, path) {
+  const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+  const response = await fetch(c.url + "/storage/v1/object/upload/sign/" + c.bucket + "/" + encodedPath, {
+    method: "POST",
+    headers: { ...headers(c), "Content-Type": "application/json" },
+    body: JSON.stringify({ upsert: true }),
+    signal: AbortSignal.timeout(20000),
+  });
+  const raw = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(raw?.message || "Could not prepare secure file upload.");
+  const signed = raw.signedURL || raw.signedUrl || raw.url;
+  if (!signed) throw new Error("Supabase did not return a signed upload URL.");
+  const signedUrl = /^https?:\\/\\//i.test(signed) ? signed : c.url + "/storage/v1" + (signed.startsWith("/") ? signed : "/" + signed);
+  return signedUrl;
 }
 async function removeObject(c, path) {
   if (!path) return true;
@@ -231,14 +246,86 @@ export default async function handler(request) {
     }
     return json({ ok: true, status: job.status, result: job.result || null, error: job.error || "" });
   }
+  if (request.method === "POST" && action === "prepare-analysis-upload") {
+    let body; try { body = await request.json(); } catch { return json({ ok: false, error: "Invalid upload details." }, 400); }
+    const file = body?.file || {};
+    const refs = Array.isArray(body?.context_files) ? body.context_files : [];
+    if (!allowedFileType(file.type) || !Number.isInteger(file.size) || file.size < 1 || file.size > 20 * 1024 * 1024)
+      return json({ ok: false, error: "The main PDF/image must be 20 MB or smaller." }, 422);
+    if (refs.length > 5 || refs.some(item => !allowedFileType(item?.type) || !Number.isInteger(item?.size) || item.size < 1 || item.size > 4 * 1024 * 1024))
+      return json({ ok: false, error: "Attach up to 5 reference PDF/images, each 4 MB or smaller." }, 422);
+    if (file.size + refs.reduce((sum,item)=>sum+item.size,0) > 30 * 1024 * 1024)
+      return json({ ok: false, error: "The main layout and references must total 30 MB or less." }, 413);
+    const jobId = randomUUID();
+    const safeName = value => String(value || "layout").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 90) || "layout";
+    const sourcePath = "analysis/" + jobId + "/source-" + safeName(file.name);
+    try {
+      const sourceUrl = await createSignedUpload(c, sourcePath);
+      const contextUploads = [];
+      for (let index=0; index<refs.length; index++) {
+        const item = refs[index];
+        const path = "analysis/" + jobId + "/reference-" + (index+1) + "-" + safeName(item.name || "reference");
+        contextUploads.push({ path, file_name: safeName(item.name), file_type: item.type, size: item.size, signed_url: await createSignedUpload(c,path) });
+      }
+      return json({ ok: true, job_id: jobId, source: { path: sourcePath, file_name: safeName(file.name), file_type: file.type, size: file.size, signed_url: sourceUrl }, context_files: contextUploads });
+    } catch (error) {
+      return json({ ok: false, error: error.message || "Could not prepare secure upload." }, 502);
+    }
+  }
+  if (request.method === "POST" && action === "start-analysis") {
+    let body; try { body = await request.json(); } catch { return json({ ok: false, error: "Invalid analysis request." }, 400); }
+    const jobId = String(body?.job_id || "");
+    const source = body?.source || {};
+    const contextFiles = Array.isArray(body?.context_files) ? body.context_files : [];
+    const prompt = String(body?.prompt || "").trim();
+    if (!/^[0-9a-f-]{36}$/i.test(jobId) || source.path !== "analysis/" + jobId + "/source-" + String(source.file_name || "") ||
+        !allowedFileType(source.file_type) || !Number.isInteger(source.size) || source.size < 1 || source.size > 20 * 1024 * 1024 ||
+        prompt.length > 6000 || contextFiles.length > 5)
+      return json({ ok: false, error: "Invalid analysis upload details." }, 422);
+    if (contextFiles.some((item,index) => !item || item.path !== "analysis/" + jobId + "/reference-" + (index+1) + "-" + String(item.file_name || "") ||
+        !allowedFileType(item.file_type) || !Number.isInteger(item.size) || item.size < 1 || item.size > 4 * 1024 * 1024))
+      return json({ ok: false, error: "Invalid reference upload details." }, 422);
+    if (source.size + contextFiles.reduce((sum,item)=>sum+item.size,0) > 30 * 1024 * 1024)
+      return json({ ok: false, error: "The main layout and references must total 30 MB or less." }, 413);
+    const verifyObject = async path => {
+      const objectPath = path.split("/").map(encodeURIComponent).join("/");
+      const response = await fetch(c.url + "/storage/v1/object/" + c.bucket + "/" + objectPath, { method: "HEAD", headers: headers(c), signal: AbortSignal.timeout(20000) });
+      return response.ok;
+    };
+    try {
+      if (!(await verifyObject(source.path))) throw new Error("The main file upload did not complete. Please retry.");
+      for (const item of contextFiles) if (!(await verifyObject(item.path))) throw new Error("A reference file upload did not complete. Please retry.");
+      const payload = { job_id: jobId, source_file_path: source.path, file_name: source.file_name, file_type: source.file_type };
+      const queued = await db(c, c.jobs, "POST", "", {
+        job_id: jobId, source_file_path: source.path, file_name: source.file_name, file_type: source.file_type,
+        prompt, context_files: contextFiles.map(({path,file_name,file_type})=>({path,file_name,file_type})),
+        status: "pending", updated_at: new Date().toISOString(),
+      });
+      if (!queued.ok) throw new Error("Could not queue the AI analysis job. Run the Create Plots SQL setup.");
+      const signature = createHmac("sha256", c.key).update(JSON.stringify(payload)).digest("hex");
+      const backgroundUrl = new URL("/.netlify/functions/analyze-project-background", request.url);
+      const started = await fetch(backgroundUrl, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, signature }), signal: AbortSignal.timeout(12000) });
+      if (!started.ok) {
+        await db(c, c.jobs, "PATCH", new URLSearchParams({job_id:"eq."+jobId}).toString(), {status:"failed",error:"Netlify Background Functions could not start this analysis.",updated_at:new Date().toISOString()});
+        await removeObject(c, source.path); await Promise.all(contextFiles.map(item=>removeObject(c,item.path)));
+        return json({ ok: false, error: "Could not start AI analysis. Check that Netlify Background Functions are enabled for this site." }, 502);
+      }
+      return json({ ok: true, job_id: jobId, status: "pending" }, 202);
+    } catch (error) {
+      await db(c, c.jobs, "PATCH", new URLSearchParams({job_id:"eq."+jobId}).toString(), {status:"failed",error:String(error.message || "Could not start AI analysis.").slice(0,500),updated_at:new Date().toISOString()});
+      await removeObject(c, source.path); await Promise.all(contextFiles.map(item=>removeObject(c,item.path)));
+      return json({ ok: false, error: error.message || "Could not start AI analysis." }, 502);
+    }
+  }
   if (request.method === "POST" && action === "analyze") {
     let form; try { form = await request.formData(); } catch { return json({ ok: false, error: "Upload a PDF or image file." }, 400); }
     const file = form.get("file");
-    if (!validFile(file)) return json({ ok: false, error: "Upload a PDF, PNG, JPG or WEBP file up to 4 MB." }, 422);
+    if (!validFile(file, 4 * 1024 * 1024)) return json({ ok: false, error: "Upload a PDF, PNG, JPG or WEBP file up to 4 MB." }, 422);
     const prompt = String(form.get("prompt") || "").trim();
     if (prompt.length > 6000) return json({ ok: false, error: "Prompt must be 6,000 characters or fewer." }, 422);
     const contextFiles = form.getAll("context_files").filter(item => item && item.size > 0);
-    if (contextFiles.length > 5 || contextFiles.some(item => !validFile(item))) {
+    if (contextFiles.length > 5 || contextFiles.some(item => !validFile(item, 4 * 1024 * 1024))) {
       return json({ ok: false, error: "Attach up to 5 reference files. Each must be a PDF, PNG, JPG or WEBP file up to 4 MB." }, 422);
     }
     const totalUploadBytes = file.size + contextFiles.reduce((total, item) => total + item.size, 0);
@@ -306,10 +393,14 @@ export default async function handler(request) {
     if (exists.data?.length) return json({ ok: false, error: "That project route already exists. Choose another route." }, 409);
     geometry.key = "custom_project_" + randomUUID().replace(/-/g, "");
     const file = form.get("file");
-    if (!validFile(file)) return json({ ok: false, error: "Please upload a PDF, PNG, JPG or WEBP file up to 4 MB." }, 422);
-    const sourcePath = "projects/" + slug + "/" + randomUUID() + "-" + String(file.name || "layout").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 90);
+    const analysisJobId = String(form.get("analysis_job_id") || "");
+    if (!/^[0-9a-f-]{36}$/i.test(analysisJobId)) return json({ ok: false, error: "Please complete AI analysis before creating the project." }, 422);
+    const jobResult = await db(c, c.jobs, "GET", new URLSearchParams({ select: "job_id,status,source_file_path,file_name", job_id: "eq." + analysisJobId, limit: "1" }).toString());
+    const analysisJob = jobResult.ok ? jobResult.data?.[0] : null;
+    if (!analysisJob || analysisJob.status !== "completed" || !String(analysisJob.source_file_path || "").startsWith("analysis/" + analysisJobId + "/source-"))
+      return json({ ok: false, error: "The completed AI analysis source is unavailable. Please analyse the layout again." }, 422);
+    const sourcePath = analysisJob.source_file_path;
     try {
-      await upload(c, sourcePath, file);
       const created = await rpc(c, "create_custom_project", {
         p_slug: slug, p_name: name, p_description: description, p_location: location,
         p_route: route, p_geometry: geometry, p_source_file_path: sourcePath,
@@ -321,6 +412,7 @@ export default async function handler(request) {
         const duplicate = created.status === 409 || /duplicate|unique/i.test(created.error || "");
         return json({ ok: false, error: duplicate ? "That project route or project ID is already in use. Refresh and try again." : "Could not create the project safely. No project or plot records were committed. " + (created.error || "") }, duplicate ? 409 : 502);
       }
+      await db(c, c.jobs, "DELETE", new URLSearchParams({ job_id: "eq." + analysisJobId }).toString());
       return json({ ok: true, project: created.data?.project || created.data, project_id: created.data?.project_id }, 201);
     } catch (e) {
       const cleaned = await removeObject(c, sourcePath);

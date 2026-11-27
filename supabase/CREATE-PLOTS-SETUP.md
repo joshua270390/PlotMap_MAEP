@@ -16,10 +16,10 @@ The Netlify site needs these server-side variables:
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY` (or the existing `SUPABASE_KEY`)
 - `ADMIN_PIN`
-- `OPENAI_API_KEY`
+- `ANTHROPIC_API_KEY`
 - `EMPLOYEE_SESSION_SECRET` (required only if Employees will use Create Plots)
 
-Optional: `OPENAI_PLOT_MODEL` changes the vision model. The default is `gpt-4.1-mini`. The supplied SQL expects the default table and bucket names; do not set `CUSTOM_PROJECTS_TABLE`, `PLOTS_TABLE`, `BOOKINGS_TABLE`, `MAP_EDITS_TABLE`, `PROJECT_ANALYSIS_JOBS_TABLE`, or `PROJECT_FILES_BUCKET` overrides unless the SQL functions are adapted to match. After changing environment variables, trigger a new Netlify deploy so Functions receive the current values. Do not put the OpenAI key in a `VITE_*` variable or in browser code.
+Optional: `CLAUDE_PLOT_MODEL` changes the Claude vision model. The default is `claude-sonnet-5-5`. The supplied SQL expects the default table and bucket names; do not set `CUSTOM_PROJECTS_TABLE`, `PLOTS_TABLE`, `BOOKINGS_TABLE`, `MAP_EDITS_TABLE`, `PROJECT_ANALYSIS_JOBS_TABLE`, or `PROJECT_FILES_BUCKET` overrides unless the SQL functions are adapted to match. After changing environment variables, trigger a new Netlify deploy so Functions receive the current values. Do not put the Anthropic key in a `VITE_*` variable or in browser code.
 
 ## 3. Upload limits and review
 

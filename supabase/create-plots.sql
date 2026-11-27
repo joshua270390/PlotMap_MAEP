@@ -46,6 +46,13 @@ on conflict (id) do update set
 
 -- Project creation is a single database transaction. The advisory lock makes
 -- project_id allocation safe when two authorized users create projects together.
+-- Keep the prompt and any supplemental reference files with the background analysis job.
+alter table public.project_analysis_jobs
+  add column if not exists prompt text not null default '',
+  add column if not exists context_files jsonb not null default '[]'::jsonb;
+
+-- Project creation is a single database transaction across the master project,
+-- custom metadata, plot inventory, and initial shared map-edits document.
 create or replace function public.create_custom_project(
   p_slug text,
   p_name text,
@@ -65,19 +72,23 @@ declare
   v_project_id bigint;
   v_project public.custom_projects%rowtype;
   v_plot_count integer;
+  v_edit_key text;
 begin
   if p_plot_rows is null or jsonb_typeof(p_plot_rows) <> 'array' or jsonb_array_length(p_plot_rows) < 1 then
     raise exception 'At least one plot is required';
   end if;
 
+  if p_geometry is null or jsonb_typeof(p_geometry) <> 'object' or
+     jsonb_typeof(p_geometry->'P') <> 'array' or jsonb_array_length(p_geometry->'P') <> jsonb_array_length(p_plot_rows) then
+    raise exception 'Plot geometry and plot inventory do not match';
+  end if;
+
   perform pg_advisory_xact_lock(hashtext('mary-ann-custom-project-id'));
-  select greatest(5, coalesce(max(project_id), 5)) + 1
-    into v_project_id
-    from (
-      select project_id from public.plots
-      union all
-      select project_id from public.custom_projects
-    ) project_ids;
+
+  -- The projects row is the master record referenced by plots.project_id.
+  insert into public.projects (name, location, description, image, status, price_from, is_active)
+  values (p_name, coalesce(p_location, ''), coalesce(p_description, ''), null, 'Selling Now', 0, true)
+  returning id into v_project_id;
 
   insert into public.custom_projects (
     project_id, slug, name, description, location, route, geometry, source_file_path, source_file_name
@@ -86,22 +97,50 @@ begin
     p_route, p_geometry, p_source_file_path, p_source_file_name
   ) returning * into v_project;
 
-  insert into public.plots (project_id, plot_number, status)
-  select v_project_id, item->>'plot_number', 'Available'
-    from jsonb_array_elements(p_plot_rows) as rows(item)
-   where nullif(trim(item->>'plot_number'), '') is not null;
+  insert into public.plots (project_id, plot_number, area_sqft, status)
+  select
+    v_project_id,
+    item->>'plot_number',
+    case
+      when coalesce(item->>'area_sqft', '') ~ '^[0-9]+$' and (item->>'area_sqft')::integer > 0
+        then (item->>'area_sqft')::integer
+      else 1200
+    end,
+    'Available'
+  from jsonb_array_elements(p_plot_rows) as rows(item)
+  where nullif(trim(item->>'plot_number'), '') is not null;
 
   get diagnostics v_plot_count = row_count;
   if v_plot_count <> jsonb_array_length(p_plot_rows) then
     raise exception 'One or more plot rows were invalid; project creation rolled back';
   end if;
 
-  return jsonb_build_object('project', to_jsonb(v_project), 'project_id', v_project_id);
+  -- Seed the shared map editor with the same empty document shape used by AD0().
+  v_edit_key := coalesce(nullif(p_geometry->>'key', ''), p_slug);
+  insert into public.map_edits (project_key, data, updated_at, updated_by)
+  values (
+    v_edit_key,
+    jsonb_build_object(
+      'lbl', '{}'::jsonb, 'area', '{}'::jsonb, 'pos', '{}'::jsonb, 'dm', '{}'::jsonb,
+      'dmDel', '[]'::jsonb, 'dmAdd', '[]'::jsonb, 'colors', '{}'::jsonb,
+      'mapColors', '{}'::jsonb, 'plotDetails', '{}'::jsonb, 'textStyles', '{}'::jsonb,
+      'shapeFills', '{}'::jsonb, 'rate', 0
+    ),
+    now(), null
+  );
+
+  return jsonb_build_object(
+    'project', to_jsonb(v_project),
+    'project_id', v_project_id,
+    'map_edit_key', v_edit_key,
+    'plot_count', v_plot_count
+  );
 end;
 $$;
 
--- Project deletion is atomic across bookings, plot inventory, map edits and metadata.
--- The private Storage object is removed by the Netlify Function after this commits.
+-- Project deletion is atomic across bookings, plot inventory, map edits,
+-- custom metadata and the projects master record. The Storage object is cleaned
+-- up by the Netlify Function after this transaction commits.
 create or replace function public.delete_custom_project(p_custom_project_id bigint)
 returns jsonb
 language plpgsql
@@ -126,15 +165,11 @@ begin
   delete from public.plots where project_id = v_project.project_id;
   delete from public.map_edits where project_key = v_edit_key;
   delete from public.custom_projects where id = p_custom_project_id;
+  delete from public.projects where id = v_project.project_id;
 
   return jsonb_build_object('ok', true, 'source_file_path', v_project.source_file_path);
 end;
 $$;
-
-revoke all on function public.create_custom_project(text,text,text,text,text,jsonb,text,text,jsonb) from public, anon, authenticated;
-revoke all on function public.delete_custom_project(bigint) from public, anon, authenticated;
-grant execute on function public.create_custom_project(text,text,text,text,text,jsonb,text,text,jsonb) to service_role;
-grant execute on function public.delete_custom_project(bigint) to service_role;
 
 -- The Netlify Function accesses the table and private bucket with the service-role key.
 -- No anon/authenticated policies are created; source plans remain private.

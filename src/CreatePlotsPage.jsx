@@ -40,8 +40,17 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
     event.target.value = "";
     const allowed = files.filter(file => file.size > 0 && file.size <= 4 * 1024 * 1024 &&
       (file.type === "application/pdf" || ["image/png", "image/jpeg", "image/webp"].includes(file.type)));
-    if (allowed.length !== files.length) setError("Prompt attachments must be PDF, PNG, JPG or WEBP files up to 4 MB each.");
-    setForm(value => ({ ...value, contextFiles: [...value.contextFiles, ...allowed].slice(0, 5) }));
+    const currentBytes = (form.file?.size || 0) + form.contextFiles.reduce((total, file) => total + file.size, 0);
+    let remainingBytes = Math.max(0, 16 * 1024 * 1024 - currentBytes);
+    const accepted = [];
+    for (const file of allowed) {
+      if (form.contextFiles.length + accepted.length >= 5) break;
+      if (file.size <= remainingBytes) { accepted.push(file); remainingBytes -= file.size; }
+    }
+    if (allowed.length !== files.length || accepted.length !== files.length) {
+      setError("Attach up to 5 valid PDF/image references. Each file must be 4 MB or less and the combined upload must stay within 16 MB.");
+    }
+    setForm(value => ({ ...value, contextFiles: [...value.contextFiles, ...accepted] }));
   };
   async function waitForAnalysis(jobId, attempts = 180) {
     for (let attempt = 0; attempt < attempts; attempt++) {

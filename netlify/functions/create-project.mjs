@@ -137,6 +137,8 @@ async function canManageProjects(request, c) {
 async function analyse(c, file, options = {}) {
   const key = (process.env.ANTHROPIC_API_KEY || "").trim();
   if (!key) throw new Error("ANTHROPIC_API_KEY is missing from Netlify Function environment variables.");
+  const model = (process.env.CLAUDE_PLOT_MODEL || "").trim();
+  if (!model) throw new Error("CLAUDE_PLOT_MODEL is missing from Netlify Function environment variables.");
   const bytes = Buffer.from(await file.arrayBuffer());
   const base64 = bytes.toString("base64");
   const schema = {
@@ -189,7 +191,7 @@ async function analyse(c, file, options = {}) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: process.env.CLAUDE_PLOT_MODEL || "claude-sonnet-5-5",
+      model,
       max_tokens: 12000,
       messages: [{ role: "user", content: fileContent }],
       output_config: { format: { type: "json_schema", schema: claudeSchema } },

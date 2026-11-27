@@ -68,7 +68,7 @@ async function createSignedUpload(c, path) {
   if (!response.ok) throw new Error(raw?.message || "Could not prepare secure file upload.");
   const signed = raw.signedURL || raw.signedUrl || raw.url;
   if (!signed) throw new Error("Supabase did not return a signed upload URL.");
-  const signedUrl = /^https?:\\/\\//i.test(signed) ? signed : c.url + "/storage/v1" + (signed.startsWith("/") ? signed : "/" + signed);
+  const signedUrl = signed.startsWith("http://") || signed.startsWith("https://") ? signed : c.url + "/storage/v1" + (signed.startsWith("/") ? signed : "/" + signed);
   return signedUrl;
 }
 async function removeObject(c, path) {
@@ -392,7 +392,6 @@ export default async function handler(request) {
     if (!exists.ok) return json({ ok: false, error: "Could not check existing project routes. Run the Create Plots SQL setup." }, 502);
     if (exists.data?.length) return json({ ok: false, error: "That project route already exists. Choose another route." }, 409);
     geometry.key = "custom_project_" + randomUUID().replace(/-/g, "");
-    const file = form.get("file");
     const analysisJobId = String(form.get("analysis_job_id") || "");
     if (!/^[0-9a-f-]{36}$/i.test(analysisJobId)) return json({ ok: false, error: "Please complete AI analysis before creating the project." }, 422);
     const jobResult = await db(c, c.jobs, "GET", new URLSearchParams({ select: "job_id,status,source_file_path,file_name", job_id: "eq." + analysisJobId, limit: "1" }).toString());
@@ -404,19 +403,15 @@ export default async function handler(request) {
       const created = await rpc(c, "create_custom_project", {
         p_slug: slug, p_name: name, p_description: description, p_location: location,
         p_route: route, p_geometry: geometry, p_source_file_path: sourcePath,
-        p_source_file_name: file.name || "layout", p_plot_rows: plotRows,
+        p_source_file_name: analysisJob.file_name || "layout", p_plot_rows: plotRows,
       });
       if (!created.ok) {
-        const cleaned = await removeObject(c, sourcePath);
-        if (!cleaned) console.error("[create-project] Uploaded file cleanup failed after create rollback:", sourcePath);
         const duplicate = created.status === 409 || /duplicate|unique/i.test(created.error || "");
         return json({ ok: false, error: duplicate ? "That project route or project ID is already in use. Refresh and try again." : "Could not create the project safely. No project or plot records were committed. " + (created.error || "") }, duplicate ? 409 : 502);
       }
       await db(c, c.jobs, "DELETE", new URLSearchParams({ job_id: "eq." + analysisJobId }).toString());
       return json({ ok: true, project: created.data?.project || created.data, project_id: created.data?.project_id }, 201);
     } catch (e) {
-      const cleaned = await removeObject(c, sourcePath);
-      if (!cleaned) console.error("[create-project] Uploaded file cleanup failed:", sourcePath);
       return json({ ok: false, error: e.message || "Could not create project." }, 502);
     }
   }
@@ -437,7 +432,7 @@ export default async function handler(request) {
     const patch = { name, description, location, route, slug, updated_at: new Date().toISOString() };
     let newPath = null;
     if (file && file.size) {
-      if (!validFile(file)) return json({ ok: false, error: "Upload a PDF, PNG, JPG or WEBP file up to 4 MB." }, 422);
+      if (!validFile(file, 4 * 1024 * 1024)) return json({ ok: false, error: "Upload a PDF, PNG, JPG or WEBP file up to 4 MB when replacing an existing source." }, 422);
       newPath = "projects/" + existing.data[0].slug + "/" + randomUUID() + "-" + String(file.name || "layout").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 90);
       try { await upload(c, newPath, file); } catch (e) { return json({ ok: false, error: e.message }, 502); }
       patch.source_file_path = newPath; patch.source_file_name = file.name || "layout";

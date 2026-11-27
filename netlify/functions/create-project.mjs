@@ -134,13 +134,10 @@ async function canManageProjects(request, c) {
   return Boolean(employee.ok && employee.data?.[0] && employee.data[0].active !== false);
 }
 async function analyse(c, file) {
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) throw new Error("OPENAI_API_KEY is missing from Netlify Function environment variables.");
+  const key = (process.env.ANTHROPIC_API_KEY || "").trim();
+  if (!key) throw new Error("ANTHROPIC_API_KEY is missing from Netlify Function environment variables.");
   const bytes = Buffer.from(await file.arrayBuffer());
-  const dataUrl = "data:" + file.type + ";base64," + bytes.toString("base64");
-  const fileContent = file.type === "application/pdf"
-    ? [{ type: "input_file", filename: file.name || "layout.pdf", file_data: dataUrl }]
-    : [{ type: "input_image", image_url: dataUrl, detail: "high" }];
+  const base64 = bytes.toString("base64");
   const schema = {
     type: "object", additionalProperties: false,
     properties: {
@@ -156,25 +153,48 @@ async function analyse(c, file) {
     }, required: ["plots","roads","parks","aspect_ratio","notes"],
   };
   const prompt = "You are extracting a plotted land layout drawing for a real-estate map. Return ONLY clearly visible plots. Never invent a plot, number, area, or boundary. Each polygon is the visible plot outline in clockwise order. Use the first PDF page only. Return aspect_ratio as page width divided by page height. Coordinates are normalized independently to that page/canvas: x and y from 0 to 1000. If the plan spans multiple pages, explain that limitation in notes. label_position is the plot-number label center in the same coordinates. Read area_sqft only when legible; otherwise use 0. confidence is 0 to 1. Include road and park outlines only when their boundaries are clearly visible. If a plot boundary or number is ambiguous, omit that plot and explain in notes. Keep the geometry faithful to the source; this is a draft requiring human verification.";
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST", headers: { "Authorization": "Bearer " + key, "Content-Type": "application/json" },
+  // Anthropic structured outputs support standard JSON Schema with limited array constraints.
+  // Remove unsupported maxItems and minItems values greater than 1 while retaining the data shape.
+  const claudeSchema = JSON.parse(JSON.stringify(schema));
+  const cleanSchema = node => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) { node.forEach(cleanSchema); return; }
+    if (typeof node.minItems === "number" && node.minItems > 1) delete node.minItems;
+    delete node.maxItems;
+    Object.values(node).forEach(cleanSchema);
+  };
+  cleanSchema(claudeSchema);
+  const fileContent = file.type === "application/pdf"
+    ? [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } }]
+    : [{ type: "image", source: { type: "base64", media_type: file.type, data: base64 } }];
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": key,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
-      model: process.env.OPENAI_PLOT_MODEL || "gpt-4.1-mini",
-      input: [{ role: "user", content: [{ type: "input_text", text: prompt }, ...fileContent] }],
-      text: { format: { type: "json_schema", name: "plot_layout_extraction", strict: true, schema } },
-      max_output_tokens: 12000,
-    }), signal: AbortSignal.timeout(120000),
+      model: process.env.CLAUDE_PLOT_MODEL || "claude-sonnet-5-5",
+      max_tokens: 12000,
+      messages: [{ role: "user", content: [...fileContent, { type: "text", text: prompt }] }],
+      output_config: { format: { type: "json_schema", schema: claudeSchema } },
+    }),
+    signal: AbortSignal.timeout(120000),
   });
   const raw = await response.json().catch(() => ({}));
   if (!response.ok) {
-    console.error("[create-project] OpenAI error:", response.status, raw?.error?.message || "unknown");
-    throw new Error("AI analysis failed. Check API billing, model access and uploaded file quality.");
+    console.error("[create-project] Claude API error:", response.status, raw?.error?.message || "unknown");
+    throw new Error("Claude AI analysis failed. Check Anthropic API billing, model access and uploaded file quality.");
   }
-  const output = (raw.output || []).flatMap(item => item.content || []).find(item => item.type === "output_text")?.text;
-  if (!output) throw new Error("AI did not return plot-layout data. Please try another file.");
-  let parsed; try { parsed = JSON.parse(output); } catch { throw new Error("AI returned invalid layout data. Please retry."); }
+  const output = (raw.content || []).find(item => item.type === "text")?.text;
+  if (!output) throw new Error("Claude did not return plot-layout data. Please try another file.");
+  let parsed;
+  try { parsed = JSON.parse(output); }
+  catch { throw new Error("Claude returned invalid layout data. Please retry."); }
   return { geometry: normalizeGeometry(parsed), notes: parsed.notes || "", plots: parsed.plots || [] };
 }
+
 export default async function handler(request) {
   const c = cfg();
   if (!c.url || !c.key) return json({ ok: false, error: "Supabase is not configured." }, 500);

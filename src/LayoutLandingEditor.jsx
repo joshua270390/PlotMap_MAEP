@@ -3,7 +3,8 @@ import './LayoutLandingEditor.css';
 
 const PROJECTS = [
   ['velavan_nagar','Velavan Nagar'],['shanmuga_avenue','Shanmuga Avenue'],['saraswathi_garden','Saraswathi Garden'],
-  ['meenakshi_garden_phase1','Sri Meenakshi Garden – Phase 1'],['meenakshi_garden_phase2','Sri Meenakshi Garden – Phase 2']
+  ['meenakshi_garden_phase1','Sri Meenakshi Garden – Phase 1'],['meenakshi_garden_phase2','Sri Meenakshi Garden – Phase 2'],
+  ['grace_city_kalikudi_chennampatti','Grace City – Kalikudi, Chennampatti']
 ];
 const blank = name => ({
   language:'Both',hero:{badge:'',title:name,subtitle:'',titleTa:'',subtitleTa:''},

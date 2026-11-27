@@ -154,8 +154,6 @@ async function analyse(c, file, options = {}) {
   if (!key) throw new Error("ANTHROPIC_API_KEY is missing from Netlify Function environment variables.");
   const model = (process.env.CLAUDE_PLOT_MODEL || "").trim();
   if (!model) throw new Error("CLAUDE_PLOT_MODEL is missing from Netlify Function environment variables.");
-  const bytes = Buffer.from(await file.arrayBuffer());
-  const base64 = bytes.toString("base64");
   const schema = {
     type: "object", additionalProperties: false,
     properties: {
@@ -171,52 +169,74 @@ async function analyse(c, file, options = {}) {
     }, required: ["plots","roads","parks","aspect_ratio","notes"],
   };
   const prompt = "You are extracting a plotted land layout drawing for a real-estate map. Return ONLY clearly visible plots. Never invent a plot, number, area, or boundary. Each polygon is the visible plot outline in clockwise order. Use the first PDF page only. Return aspect_ratio as page width divided by page height. Coordinates are normalized independently to that page/canvas: x and y from 0 to 1000. If the plan spans multiple pages, explain that limitation in notes. label_position is the plot-number label center in the same coordinates. Read area_sqft only when legible; otherwise use 0. confidence is 0 to 1. Include road and park outlines only when their boundaries are clearly visible. If a plot boundary or number is ambiguous, omit that plot and explain in notes. Keep the geometry faithful to the source; this is a draft requiring human verification.";
-  // Anthropic structured outputs support standard JSON Schema with limited array constraints.
-  // Remove unsupported maxItems and minItems values greater than 1 while retaining the data shape.
-  const claudeSchema = JSON.parse(JSON.stringify(schema));
-  const cleanSchema = node => {
-    if (!node || typeof node !== "object") return;
-    if (Array.isArray(node)) { node.forEach(cleanSchema); return; }
-    if (typeof node.minItems === "number" && node.minItems > 1) delete node.minItems;
-    delete node.maxItems;
-    Object.values(node).forEach(cleanSchema);
-  };
-  cleanSchema(claudeSchema);
-  const toClaudeFileContent = async item => {
-    const itemBytes = Buffer.from(await item.arrayBuffer());
-    const itemBase64 = itemBytes.toString("base64");
+  // Use Anthropic Files API so large PDF/image uploads do not inflate the Messages request body.
+  // Uploaded file IDs are temporary to this analysis and are deleted in the finally block.
+  const uploadedFileIds = [];
+  const uploadToClaude = async item => {
+    const bytes = Buffer.from(await item.arrayBuffer());
+    const uploadForm = new FormData();
+    uploadForm.append("file", new Blob([bytes], { type: item.type }), item.name || "layout");
+    const uploadResponse = await fetch("https://api.anthropic.com/v1/files", {
+      method: "POST",
+      headers: {
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta": "files-api-2025-04-14",
+      },
+      body: uploadForm,
+      signal: AbortSignal.timeout(120000),
+    });
+    const uploadResult = await uploadResponse.json().catch(() => ({}));
+    if (!uploadResponse.ok || !uploadResult.id) {
+      console.error("[create-project] Claude Files API error:", uploadResponse.status, uploadResult?.error?.message || "unknown");
+      throw new Error("Claude could not receive the uploaded PDF/image. Check Anthropic Files API access and try again.");
+    }
+    uploadedFileIds.push(uploadResult.id);
     return item.type === "application/pdf"
-      ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: itemBase64 } }
-      : { type: "image", source: { type: "base64", media_type: item.type, data: itemBase64 } };
+      ? { type: "document", source: { type: "file", file_id: uploadResult.id } }
+      : { type: "image", source: { type: "file", file_id: uploadResult.id } };
   };
-  const fileContent = [file.type === "application/pdf"
-    ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } }
-    : { type: "image", source: { type: "base64", media_type: file.type, data: base64 } }];
-  for (const contextFile of (options.contextFiles || [])) fileContent.push(await toClaudeFileContent(contextFile));
   const userPrompt = String(options.prompt || "").trim().slice(0, 6000);
   const completePrompt = prompt + (userPrompt
-    ? "\n\nAdditional instructions from the project creator (follow when consistent with the source drawing; never invent unclear geometry):\n" + userPrompt
-    : "") + "\n\nCreate geometry that can be rendered as the project map and project-list thumbnail. Keep plot numbers and visible dimensions faithful to the source.";
-  fileContent.push({ type: "text", text: completePrompt });
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": key,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 12000,
-      messages: [{ role: "user", content: fileContent }],
-      output_config: { format: { type: "json_schema", schema: claudeSchema } },
-    }),
-    signal: AbortSignal.timeout(120000),
-  });
-  const raw = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    console.error("[create-project] Claude API error:", response.status, raw?.error?.message || "unknown");
-    throw new Error("Claude AI analysis failed. Check Anthropic API billing, model access and uploaded file quality.");
+    ? "\\n\\nAdditional instructions from the project creator (follow when consistent with the source drawing; never invent unclear geometry):\\n" + userPrompt
+    : "") + "\\n\\nCreate geometry that can be rendered as the project map and project-list thumbnail. Keep plot numbers and visible dimensions faithful to the source.";
+  let raw = {};
+  try {
+    const fileContent = [await uploadToClaude(file)];
+    for (const contextFile of (options.contextFiles || [])) fileContent.push(await uploadToClaude(contextFile));
+    fileContent.push({ type: "text", text: completePrompt });
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta": "files-api-2025-04-14",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 12000,
+        messages: [{ role: "user", content: fileContent }],
+        output_config: { format: { type: "json_schema", schema: claudeSchema } },
+      }),
+      signal: AbortSignal.timeout(120000),
+    });
+    raw = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      console.error("[create-project] Claude API error:", response.status, raw?.error?.message || "unknown");
+      throw new Error("Claude AI analysis failed. Check Anthropic API billing, model access and uploaded file quality.");
+    }
+  } finally {
+    await Promise.all(uploadedFileIds.map(async fileId => {
+      try {
+        const removed = await fetch("https://api.anthropic.com/v1/files/" + encodeURIComponent(fileId), {
+          method: "DELETE",
+          headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-beta": "files-api-2025-04-14" },
+          signal: AbortSignal.timeout(15000),
+        });
+        if (!removed.ok) console.error("[create-project] Claude temporary file cleanup failed:", fileId);
+      } catch (error) { console.error("[create-project] Claude temporary file cleanup failed:", fileId, error?.message || ""); }
+    }));
   }
   const output = (raw.content || []).find(item => item.type === "text")?.text;
   if (!output) throw new Error("Claude did not return plot-layout data. Please try another file.");

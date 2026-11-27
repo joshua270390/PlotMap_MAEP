@@ -12,6 +12,7 @@ const layouts = {
 };
 
 export default function ProjectMapThumbnail({ project }) {
+  if (project.slug === 'grace_city_kalikudi_chennampatti') return <img className="project-map-static project-map-thumbnail grace-city-map-thumbnail" src="/grace_city_kalikudi_chennampatti.svg" alt="Grace City, Kalikudi, Chennampatti plot layout preview" />;
   const layout = project.geometry?.P?.length ? {
     P: project.geometry.P, G: project.geometry.G || { base: [], park: [], misc: [], dash: [] },
     bounds: project.geometry.bounds || { x: 0, y: 0, width: 2000, height: 2000 },

@@ -133,7 +133,7 @@ async function canManageProjects(request, c) {
     new URLSearchParams({ select: "id,active", id: "eq." + claims.sub, limit: "1" }).toString());
   return Boolean(employee.ok && employee.data?.[0] && employee.data[0].active !== false);
 }
-async function analyse(c, file) {
+async function analyse(c, file, options = {}) {
   const key = (process.env.ANTHROPIC_API_KEY || "").trim();
   if (!key) throw new Error("ANTHROPIC_API_KEY is missing from Netlify Function environment variables.");
   const bytes = Buffer.from(await file.arrayBuffer());
@@ -164,9 +164,22 @@ async function analyse(c, file) {
     Object.values(node).forEach(cleanSchema);
   };
   cleanSchema(claudeSchema);
-  const fileContent = file.type === "application/pdf"
-    ? [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } }]
-    : [{ type: "image", source: { type: "base64", media_type: file.type, data: base64 } }];
+  const toClaudeFileContent = async item => {
+    const itemBytes = Buffer.from(await item.arrayBuffer());
+    const itemBase64 = itemBytes.toString("base64");
+    return item.type === "application/pdf"
+      ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: itemBase64 } }
+      : { type: "image", source: { type: "base64", media_type: item.type, data: itemBase64 } };
+  };
+  const fileContent = [file.type === "application/pdf"
+    ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } }
+    : { type: "image", source: { type: "base64", media_type: file.type, data: base64 } }];
+  for (const contextFile of (options.contextFiles || [])) fileContent.push(await toClaudeFileContent(contextFile));
+  const userPrompt = String(options.prompt || "").trim().slice(0, 6000);
+  const completePrompt = prompt + (userPrompt
+    ? "\n\nAdditional instructions from the project creator (follow when consistent with the source drawing; never invent unclear geometry):\n" + userPrompt
+    : "") + "\n\nCreate geometry that can be rendered as the project map and project-list thumbnail. Keep plot numbers and visible dimensions faithful to the source.";
+  fileContent.push({ type: "text", text: completePrompt });
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -177,7 +190,7 @@ async function analyse(c, file) {
     body: JSON.stringify({
       model: process.env.CLAUDE_PLOT_MODEL || "claude-sonnet-5-5",
       max_tokens: 12000,
-      messages: [{ role: "user", content: [...fileContent, { type: "text", text: prompt }] }],
+      messages: [{ role: "user", content: fileContent }],
       output_config: { format: { type: "json_schema", schema: claudeSchema } },
     }),
     signal: AbortSignal.timeout(120000),
@@ -219,14 +232,30 @@ export default async function handler(request) {
     let form; try { form = await request.formData(); } catch { return json({ ok: false, error: "Upload a PDF or image file." }, 400); }
     const file = form.get("file");
     if (!validFile(file)) return json({ ok: false, error: "Upload a PDF, PNG, JPG or WEBP file up to 4 MB." }, 422);
+    const prompt = String(form.get("prompt") || "").trim();
+    if (prompt.length > 6000) return json({ ok: false, error: "Prompt must be 6,000 characters or fewer." }, 422);
+    const contextFiles = form.getAll("context_files").filter(item => item && item.size > 0);
+    if (contextFiles.length > 5 || contextFiles.some(item => !validFile(item))) {
+      return json({ ok: false, error: "Attach up to 5 reference files. Each must be a PDF, PNG, JPG or WEBP file up to 4 MB." }, 422);
+    }
     const jobId = randomUUID();
-    const sourcePath = "analysis/" + jobId + "/" + String(file.name || "layout").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 90);
+    const sourcePath = "analysis/" + jobId + "/source-" + String(file.name || "layout").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 90);
     const payload = { job_id: jobId, source_file_path: sourcePath, file_name: file.name || "layout", file_type: file.type };
+    const uploadedContextPaths = [];
+    const contextMetadata = [];
     try {
       await upload(c, sourcePath, file);
+      for (let index = 0; index < contextFiles.length; index++) {
+        const contextFile = contextFiles[index];
+        const contextPath = "analysis/" + jobId + "/reference-" + (index + 1) + "-" + String(contextFile.name || "reference").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
+        await upload(c, contextPath, contextFile);
+        uploadedContextPaths.push(contextPath);
+        contextMetadata.push({ path: contextPath, file_name: contextFile.name || "reference", file_type: contextFile.type });
+      }
       const queued = await db(c, c.jobs, "POST", "", {
         job_id: jobId, source_file_path: sourcePath, file_name: payload.file_name,
-        file_type: payload.file_type, status: "pending", updated_at: new Date().toISOString(),
+        file_type: payload.file_type, prompt, context_files: contextMetadata,
+        status: "pending", updated_at: new Date().toISOString(),
       });
       if (!queued.ok) throw new Error("Could not queue the AI analysis job. Run the Create Plots SQL setup.");
       const signature = createHmac("sha256", c.key).update(JSON.stringify(payload)).digest("hex");
@@ -240,6 +269,7 @@ export default async function handler(request) {
           status: "failed", error: "Netlify Background Functions could not start this analysis.", updated_at: new Date().toISOString(),
         });
         await removeObject(c, sourcePath);
+        await Promise.all(uploadedContextPaths.map(path => removeObject(c, path)));
         return json({ ok: false, error: "Could not start AI analysis. Check that Netlify Background Functions are enabled for this site." }, 502);
       }
       return json({ ok: true, job_id: jobId, status: "pending" }, 202);
@@ -248,6 +278,7 @@ export default async function handler(request) {
         status: "failed", error: e.message || "Could not start AI analysis.", updated_at: new Date().toISOString(),
       });
       await removeObject(c, sourcePath);
+      await Promise.all(uploadedContextPaths.map(path => removeObject(c, path)));
       return json({ ok: false, error: e.message || "Could not start AI analysis." }, 502);
     }
   }

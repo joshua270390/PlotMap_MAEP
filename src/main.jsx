@@ -51,6 +51,7 @@ const routeParts = currentPath.split('/').filter(Boolean);
 const routeId = routeParts[0] || '';
 const isProjectRoute = routeParts.length === 1 && mapRoutes.has(routeId);
 const isMapRoute = routeParts.length === 2 && mapRoutes.has(routeId) && routeParts[1] === 'layout';
+const isCustomProjectMapRoute = routeParts.length === 2 && !mapRoutes.has(routeId) && routeParts[1] === 'layout';
 const isCustomProjectRoute = routeParts.length === 1 && !isDashboard && !isProjectRoute && currentPath !== '/';
 const root = createRoot(document.getElementById('root'));
 
@@ -60,7 +61,7 @@ if (currentPath === '/') {
   root.render(<StrictMode><Dashboard /></StrictMode>);
 } else if (isProjectRoute) {
   root.render(<StrictMode><ProjectLandingPage projectSlug={routeId} /></StrictMode>);
-} else if (isMapRoute) {
+} else if (isMapRoute || isCustomProjectMapRoute) {
   root.render(<StrictMode><App projectSlug={routeId} /></StrictMode>);
 } else if (isCustomProjectRoute) {
   root.render(<StrictMode><main className="project-load-state"><div>Loading project…</div></main></StrictMode>);

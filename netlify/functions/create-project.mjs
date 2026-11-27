@@ -58,18 +58,16 @@ async function upload(c, path, file) {
 }
 async function createSignedUpload(c, path) {
   const encodedPath = path.split("/").map(encodeURIComponent).join("/");
-  const response = await fetch(c.url + "/storage/v1/object/upload/sign/" + c.bucket + "/" + encodedPath, {
+  const response = await fetch(c.url + "/storage/v1/object/upload/sign/" + encodeURIComponent(c.bucket) + "/" + encodedPath, {
     method: "POST",
-    headers: { ...headers(c), "Content-Type": "application/json" },
-    body: JSON.stringify({ upsert: true }),
+    headers: { ...headers(c), "Content-Type": "application/json", "x-upsert": "true" },
+    body: JSON.stringify({}),
     signal: AbortSignal.timeout(20000),
   });
   const raw = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(raw?.message || "Could not prepare secure file upload.");
-  const signed = raw.signedURL || raw.signedUrl || raw.url;
-  if (!signed) throw new Error("Supabase did not return a signed upload URL.");
-  const signedUrl = signed.startsWith("http://") || signed.startsWith("https://") ? signed : c.url + "/storage/v1" + (signed.startsWith("/") ? signed : "/" + signed);
-  return signedUrl;
+  if (!response.ok) throw new Error(raw?.message || raw?.error || "Could not prepare secure file upload.");
+  if (!raw.token) throw new Error("Supabase did not return a signed upload token.");
+  return c.url + "/storage/v1/object/upload/sign/" + encodeURIComponent(c.bucket) + "/" + encodedPath + "?token=" + encodeURIComponent(raw.token);
 }
 async function removeObject(c, path) {
   if (!path) return true;

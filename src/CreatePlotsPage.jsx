@@ -28,12 +28,13 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
   const [notice, setNotice] = useState("");
   const [analysed, setAnalysed] = useState(false);
   const [analysisJobId, setAnalysisJobId] = useState("");
+  const [completedAnalysisJobId, setCompletedAnalysisJobId] = useState("");
   const set = key => event => setForm(value => ({ ...value, [key]: event.target.value }));
   const chooseFile = event => {
     const file = event.target.files?.[0] || null;
     event.target.value = "";
     setForm(value => ({ ...value, file, ...(editingProject ? {} : { geometry: null }) }));
-    setAnalysed(false); setAnalysisJobId(""); setError(""); setNotice("");
+    setAnalysed(false); setAnalysisJobId(""); setCompletedAnalysisJobId(""); setError(""); setNotice("");
   };
   const chooseContextFiles = event => {
     const files = Array.from(event.target.files || []);
@@ -41,14 +42,14 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
     const allowed = files.filter(file => file.size > 0 && file.size <= 4 * 1024 * 1024 &&
       (file.type === "application/pdf" || ["image/png", "image/jpeg", "image/webp"].includes(file.type)));
     const currentBytes = (form.file?.size || 0) + form.contextFiles.reduce((total, file) => total + file.size, 0);
-    let remainingBytes = Math.max(0, 16 * 1024 * 1024 - currentBytes);
+    let remainingBytes = Math.max(0, 30 * 1024 * 1024 - currentBytes);
     const accepted = [];
     for (const file of allowed) {
       if (form.contextFiles.length + accepted.length >= 5) break;
       if (file.size <= remainingBytes) { accepted.push(file); remainingBytes -= file.size; }
     }
     if (allowed.length !== files.length || accepted.length !== files.length) {
-      setError("Attach up to 5 valid PDF/image references. Each file must be 4 MB or less and the combined upload must stay within 16 MB.");
+      setError("Attach up to 5 valid PDF/image references. Each file must be 4 MB or less and the combined upload must stay within 30 MB.");
     }
     setForm(value => ({ ...value, contextFiles: [...value.contextFiles, ...accepted] }));
   };
@@ -68,17 +69,33 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
   }
   function applyAnalysis(result) {
     setForm(value => ({ ...value, geometry: result.geometry, notes: result.notes || "", plots: result.plots || [] }));
-    setAnalysed(true); setAnalysisJobId("");
+    setAnalysed(true); setCompletedAnalysisJobId(analysisJobId); setAnalysisJobId("");
     setNotice("AI draft ready. Review the extracted plot map before saving.");
   }
   async function analyse() {
     if (!form.file) { setError("Please choose a PDF or image first."); return; }
     setBusy(true); setError(""); setNotice("");
     try {
-      const data = new FormData(); data.append("file", form.file);
-      data.append("prompt", form.prompt.trim());
-      form.contextFiles.forEach(file => data.append("context_files", file));
-      const response = await fetch("/api/create-project?action=analyze", { method: "POST", headers: authHeaders, body: data });
+      if (form.file.size > 20 * 1024 * 1024) throw new Error("The main PDF/image must be 20 MB or smaller.");
+      const prepare = await fetch("/api/create-project?action=prepare-analysis-upload", {
+        method: "POST", headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({ file: { name: form.file.name, type: form.file.type, size: form.file.size },
+          context_files: form.contextFiles.map(file => ({ name: file.name, type: file.type, size: file.size })) }),
+      });
+      const uploadPlan = await prepare.json().catch(() => ({}));
+      if (!prepare.ok || !uploadPlan.ok || !uploadPlan.job_id) throw new Error(uploadPlan.error || "Could not prepare file upload.");
+      const putFile = async (url, file) => {
+        const uploaded = await fetch(url, { method: "PUT", headers: { "Content-Type": file.type, "x-upsert": "true" }, body: file });
+        if (!uploaded.ok) throw new Error("Could not upload " + file.name + " to secure storage.");
+      };
+      await putFile(uploadPlan.source.signed_url, form.file);
+      for (let index = 0; index < form.contextFiles.length; index++) await putFile(uploadPlan.context_files[index].signed_url, form.contextFiles[index]);
+      const response = await fetch("/api/create-project?action=start-analysis", {
+        method: "POST", headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({ job_id: uploadPlan.job_id, source: uploadPlan.source,
+          context_files: uploadPlan.context_files.map(({path,file_name,file_type,size})=>({path,file_name,file_type,size})),
+          prompt: form.prompt.trim() }),
+      });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok || !result.job_id) throw new Error(result.error || "Could not start AI analysis.");
       setAnalysisJobId(result.job_id);
@@ -108,9 +125,8 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
       const data = new FormData();
       data.append("name", form.name.trim()); data.append("description", form.description.trim());
       data.append("location", form.location.trim()); data.append("route", form.route.trim());
-      if (editingProject) data.append("id", String(editingProject.customProjectId));
-      else data.append("geometry", JSON.stringify(form.geometry));
-      if (form.file) data.append("file", form.file);
+      if (editingProject) { data.append("id", String(editingProject.customProjectId)); if (form.file) data.append("file", form.file); }
+      else { data.append("geometry", JSON.stringify(form.geometry)); data.append("analysis_job_id", completedAnalysisJobId); }
       const url = editingProject ? "/api/create-project?action=update" : "/api/create-project?action=create";
       const response = await fetch(url, { method: editingProject ? "PATCH" : "POST", headers: authHeaders, body: data });
       const result = await response.json().catch(() => ({}));
@@ -130,14 +146,14 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
         <label>Route<input value={form.route} onChange={set("route")} required pattern="/[a-z0-9_-]{2,55}" placeholder="/green_valley_phase1" /><small>Must start with / and use lowercase letters, numbers, _ or -.</small></label>
       </div>
       <div className="create-upload-panel">
-        <div className="create-upload-icon">⇧</div><div><strong>{editingProject ? "Replace source PDF / Image (optional)" : "Upload source PDF / Image"}</strong><p>{editingProject ? "Replacing this file updates the source only; it will not regenerate plot boundaries." : "Main layout source · PDF, PNG, JPG or WEBP · Maximum 4 MB"}</p><input type="file" accept={fileTypes} onChange={chooseFile} /></div>
+        <div className="create-upload-icon">⇧</div><div><strong>{editingProject ? "Replace source PDF / Image (optional)" : "Upload source PDF / Image"}</strong><p>{editingProject ? "Replacing this file updates the source only; it will not regenerate plot boundaries." : "Main layout source · PDF, PNG, JPG or WEBP · Maximum 20 MB"}</p><input type="file" accept={fileTypes} onChange={chooseFile} /></div>
         {form.file && <span className="create-file-name">{form.file.name}</span>}
         {!form.file && editingProject?.source_file_name && <span className="create-file-name">Current: {editingProject.source_file_name}</span>}
       </div>
       {!editingProject && <section className="create-prompt-panel" aria-label="AI plot map prompt">
         <div className="create-prompt-heading"><div><span className="create-prompt-kicker">CLAUDE AI INSTRUCTIONS</span><label htmlFor="create-project-prompt">Prompt</label><p>Describe exactly how you want the plot geometry, map details and project thumbnail prepared.</p></div><span className="create-prompt-ai">✦ AI</span></div>
         <textarea id="create-project-prompt" className="create-prompt-input" value={form.prompt} onChange={e => setForm(value => ({ ...value, prompt: e.target.value }))} rows={5} maxLength={6000} placeholder="Example: Extract every clearly visible plot boundary and plot number. Keep roads and parks separate. Preserve the original layout proportions. Read dimensions and area labels where legible. Create a clean plot map geometry and use that geometry for the project-list thumbnail. Do not invent missing details." />
-        <div className="create-prompt-composer"><label className="create-prompt-attach">＋ Attach files / images<input type="file" accept={fileTypes} multiple onChange={chooseContextFiles} /></label><span>{form.prompt.length}/6000 · Up to 5 reference files · 16 MB combined limit</span></div>
+        <div className="create-prompt-composer"><label className="create-prompt-attach">＋ Attach files / images<input type="file" accept={fileTypes} multiple onChange={chooseContextFiles} /></label><span>{form.prompt.length}/6000 · Up to 5 reference files · 30 MB combined limit</span></div>
         {form.contextFiles.length > 0 && <div className="create-prompt-attachments">{form.contextFiles.map((file,index) => <span className="create-prompt-file" key={file.name + "-" + file.size + "-" + index}>{file.name}<button type="button" aria-label={"Remove " + file.name} onClick={() => setForm(value => ({ ...value, contextFiles: value.contextFiles.filter((_,i) => i !== index) }))}>×</button></span>)}</div>}
       </section>}
       {!editingProject && <div className="create-analysis-row"><button type="button" className="primary-btn" onClick={analyse} disabled={busy || !form.file || Boolean(analysisJobId)}>{busy ? "Analysing…" : "Analyse layout with AI"}</button>{analysisJobId && !form.geometry && <button type="button" className="cancel-btn" onClick={checkAnalysisStatus} disabled={busy}>{busy ? "Checking…" : "Check Status"}</button>}<span>AI extraction runs in the background. Please verify plot numbers and boundaries against the original plan.</span></div>}

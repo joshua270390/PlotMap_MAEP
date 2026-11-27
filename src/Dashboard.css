@@ -629,3 +629,22 @@ body.dashboard-mode{display:block;overflow:auto;background:var(--dash-bg)}
 
 
 .dashboard-inventory-warning{margin:12px 0;padding:11px 14px;border:1px solid #f0d7a6;border-radius:9px;background:#fff8e9;color:#805b20;font-size:12px;line-height:1.5}
+
+/* Create Plots: prompt composer and reference attachments */
+.create-prompt-panel{margin-top:18px;padding:19px;border:1px solid #dbe5f0;border-radius:14px;background:#fbfdff}
+.create-prompt-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px}
+.create-prompt-heading label{display:block;margin:5px 0;color:#263d56;font-size:15px;font-weight:800}
+.create-prompt-heading p{margin:0;color:#78889a;font-size:11px;line-height:1.5}
+.create-prompt-kicker{color:#6c83a0;font-size:9px;font-weight:800;letter-spacing:.12em}
+.create-prompt-ai{flex:none;padding:7px 10px;border-radius:99px;background:#edf3fb;color:#365e8c;font-size:10px;font-weight:800}
+.create-prompt-input{display:block;box-sizing:border-box;width:100%;min-height:124px;padding:14px;border:1px solid #d7e1ec;border-radius:11px;outline:none;background:#fff;color:#263d56;font:500 13px/1.65 'DM Sans',sans-serif;resize:vertical}
+.create-prompt-input:focus{border-color:#7899bd;box-shadow:0 0 0 3px rgba(76,119,165,.1)}
+.create-prompt-input::placeholder{color:#9aa8b8}
+.create-prompt-composer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:11px;color:#8290a1;font-size:10px}
+.create-prompt-attach{position:relative;display:inline-flex;align-items:center;gap:7px;padding:9px 12px;border:1px solid #dce5ef;border-radius:8px;background:#fff;color:#355d85;font-size:11px;font-weight:700;cursor:pointer}
+.create-prompt-attach:hover{background:#f2f7fc;border-color:#b8cadc}
+.create-prompt-attach input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.create-prompt-attachments{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.create-prompt-file{display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:6px 9px;border:1px solid #dce6ef;border-radius:8px;background:#fff;color:#536981;font-size:10px;overflow-wrap:anywhere}
+.create-prompt-file button{width:19px;height:19px;border:0;border-radius:50%;background:#edf1f5;color:#52657b;font-size:15px;line-height:1;cursor:pointer}
+@media(max-width:640px){.create-prompt-panel{padding:14px}.create-prompt-composer{align-items:flex-start;flex-direction:column}.create-prompt-file{max-width:100%}}

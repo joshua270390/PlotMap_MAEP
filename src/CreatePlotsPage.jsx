@@ -1,7 +1,39 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const blank = { name: "", description: "", location: "", route: "", file: null, contextFiles: [], prompt: "", geometry: null, notes: "", plots: [] };
 const routeFromName = name => "/" + String(name || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 55);
+
+async function loadSvgAssetAsPng(url, filename) {
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) throw new Error("Could not load the saved Grace City SVG source.");
+  const svgText = await response.text();
+  if (!/<svg\\b/i.test(svgText)) throw new Error("The saved Grace City source is not a valid SVG file.");
+  const objectUrl = URL.createObjectURL(new Blob([svgText], { type: "image/svg+xml;charset=utf-8" }));
+  try {
+    const image = new Image();
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = () => reject(new Error("Could not render the Grace City SVG source."));
+      image.src = objectUrl;
+    });
+    const naturalWidth = image.naturalWidth || 3161;
+    const naturalHeight = image.naturalHeight || 2779;
+    const scale = Math.min(1, 4096 / Math.max(naturalWidth, naturalHeight));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(naturalHeight * scale));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Could not prepare the Grace City image for analysis.");
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const png = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+    if (!png) throw new Error("Could not convert the Grace City SVG to an analysis image.");
+    return new File([png], filename, { type: "image/png" });
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
 const fileTypes = ".pdf,.png,.jpg,.jpeg,.webp";
 
 function GeometryPreview({ geometry }) {
@@ -17,7 +49,7 @@ function GeometryPreview({ geometry }) {
   </div>;
 }
 
-export default function CreatePlotsPage({ editingProject = null, authHeaders = {}, onSaved, onCancel }) {
+export default function CreatePlotsPage({ editingProject = null, authHeaders = {}, onSaved, onCancel, sourceAssetUrl = "", expectedPlotCount = null }) {
   const initial = useMemo(() => editingProject ? ({
     ...blank, name: editingProject.name || "", description: editingProject.description || "",
     location: editingProject.location || "", route: editingProject.route || ("/" + editingProject.slug),
@@ -30,6 +62,31 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
   const [analysisJobId, setAnalysisJobId] = useState("");
   const [completedAnalysisJobId, setCompletedAnalysisJobId] = useState("");
   const set = key => event => setForm(value => ({ ...value, [key]: event.target.value }));
+
+  useEffect(() => {
+    if (!sourceAssetUrl || editingProject) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const file = await loadSvgAssetAsPng(sourceAssetUrl, "grace_city_kalikudi_chennampatti.png");
+        if (cancelled) return;
+        setForm(value => ({
+          ...value,
+          name: "Grace City, Kalikudi, Chennampatti",
+          description: "Interactive plot layout for Grace City, Kalikudi, Chennampatti.",
+          location: "Kalikudi, Chennampatti",
+          route: "/grace_city_kalikudi_chennampatti",
+          file,
+          prompt: value.prompt || "This source plan contains exactly 187 plots. Extract all 187 distinct plot numbers and their individual visible boundary polygons. Do not merge adjacent plots, skip plots, duplicate plot numbers, or invent geometry. Preserve the source orientation and layout proportions. Read plot area only when clearly legible; otherwise leave it unknown. Keep roads and open spaces separate from plots. Return exactly 187 plot records; if any label or boundary is unclear, explain it in notes instead of guessing."
+        }));
+        setNotice("Grace City source SVG loaded and converted for AI analysis. Expected plot count: 187.");
+        setError("");
+      } catch (error) {
+        if (!cancelled) setError(error.message || "Could not prepare the Grace City source file.");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [sourceAssetUrl, editingProject, expectedPlotCount]);
   const chooseFile = event => {
     const file = event.target.files?.[0] || null;
     event.target.value = "";
@@ -70,7 +127,14 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
   function applyAnalysis(result, jobId) {
     setForm(value => ({ ...value, geometry: result.geometry, notes: result.notes || "", plots: result.plots || [] }));
     setAnalysed(true); setCompletedAnalysisJobId(jobId || ""); setAnalysisJobId("");
-    setNotice("AI draft ready. Review the extracted plot map before saving.");
+    const extractedCount = result.geometry?.P?.length || 0;
+    if (expectedPlotCount && extractedCount !== expectedPlotCount) {
+      setError("AI extracted " + extractedCount + " plots, but Grace City must contain exactly " + expectedPlotCount + ". Do not create the project until the extraction is corrected.");
+      setNotice("Geometry preview is ready for review, but the plot count does not match.");
+    } else {
+      setError("");
+      setNotice(expectedPlotCount ? "AI draft ready: all " + expectedPlotCount + " plots extracted. Verify the map before saving." : "AI draft ready. Review the extracted plot map before saving.");
+    }
   }
   async function analyse() {
     if (!form.file) { setError("Please choose a PDF or image first."); return; }
@@ -127,6 +191,10 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
     event.preventDefault();
     if (busy) return;
     if (!editingProject && (!form.file || !form.geometry || !completedAnalysisJobId)) { setError("Upload and analyse a PDF/image before creating the project."); return; }
+    if (!editingProject && expectedPlotCount && form.geometry?.P?.length !== expectedPlotCount) {
+      setError("Grace City must have exactly " + expectedPlotCount + " extracted plots before it can be created.");
+      return;
+    }
     if (editingProject && form.file && !form.geometry && !editingProject.geometry) { setError("The existing map geometry is unavailable."); return; }
     setBusy(true); setError(""); setNotice("");
     try {
@@ -134,7 +202,7 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
       data.append("name", form.name.trim()); data.append("description", form.description.trim());
       data.append("location", form.location.trim()); data.append("route", form.route.trim());
       if (editingProject) { data.append("id", String(editingProject.customProjectId)); if (form.file) data.append("file", form.file); }
-      else { data.append("geometry", JSON.stringify(form.geometry)); data.append("analysis_job_id", completedAnalysisJobId); }
+      else { data.append("geometry", JSON.stringify(form.geometry)); data.append("analysis_job_id", completedAnalysisJobId); if (expectedPlotCount) data.append("expected_plot_count", String(expectedPlotCount)); }
       const url = editingProject ? "/api/create-project?action=update" : "/api/create-project?action=create";
       const response = await fetch(url, { method: editingProject ? "PATCH" : "POST", headers: authHeaders, body: data });
       const result = await response.json().catch(() => ({}));
@@ -166,7 +234,7 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
       </section>}
       {!editingProject && <div className="create-analysis-row"><button type="button" className="primary-btn" onClick={analyse} disabled={busy || !form.file || Boolean(analysisJobId)}>{busy ? "Analysing…" : "Analyse layout with AI"}</button>{analysisJobId && !form.geometry && <button type="button" className="cancel-btn" onClick={checkAnalysisStatus} disabled={busy}>{busy ? "Checking…" : "Check Status"}</button>}<span>AI extraction runs in the background. Please verify plot numbers and boundaries against the original plan.</span></div>}
       {!editingProject && form.geometry && <div className="create-analysis-result">
-        <div className="create-result-heading"><div><strong>AI layout preview</strong><p>{form.geometry.P.length} plots extracted · {form.plots.filter(p => Number(p.confidence) < 0.75).length} low-confidence plots</p></div><span className="create-result-status">Draft ready</span></div>
+        <div className="create-result-heading"><div><strong>AI layout preview</strong><p>{form.geometry.P.length} plots extracted{expectedPlotCount ? " / " + expectedPlotCount + " expected" : ""} · {form.plots.filter(p => Number(p.confidence) < 0.75).length} low-confidence plots</p></div><span className="create-result-status">{expectedPlotCount && form.geometry.P.length !== expectedPlotCount ? "Count mismatch" : "Draft ready"}</span></div>
         <GeometryPreview geometry={form.geometry} />
         {form.notes && <p className="create-ai-notes"><strong>AI notes:</strong> {form.notes}</p>}
         <p className="create-warning">Important: AI-extracted plot boundaries may need manual verification. Do not use this draft as a legal survey or registration document.</p>
@@ -174,7 +242,7 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
       {editingProject && <div className="create-edit-note"><strong>Geometry protection enabled</strong><span>Plot numbers, boundaries, dimensions, and existing map edits are preserved when saving project details.</span></div>}
       {error && <p className="dash-error" role="alert">{error}</p>}
       {notice && <p className="dash-notice" role="status">{notice}</p>}
-      <div className="create-plots-actions"><button type="button" className="cancel-btn" onClick={onCancel} disabled={busy}>Cancel</button><button type="submit" className="primary-btn" disabled={busy || (!editingProject && !form.geometry)}>{busy ? "Saving…" : editingProject ? "Save project details" : "Create project"}</button></div>
+      <div className="create-plots-actions"><button type="button" className="cancel-btn" onClick={onCancel} disabled={busy}>Cancel</button><button type="submit" className="primary-btn" disabled={busy || (!editingProject && (!form.geometry || Boolean(expectedPlotCount && form.geometry.P.length !== expectedPlotCount)))}>{busy ? "Saving…" : editingProject ? "Save project details" : "Create project"}</button></div>
     </form>
   </section>;
 }

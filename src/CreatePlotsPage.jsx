@@ -7,7 +7,7 @@ async function loadSvgAssetAsPng(url, filename) {
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) throw new Error("Could not load the saved Grace City SVG source.");
   const svgText = await response.text();
-  if (!/<svg\\b/i.test(svgText)) throw new Error("The saved Grace City source is not a valid SVG file.");
+  if (!/<svg\b/i.test(svgText)) throw new Error("The saved Grace City source is not a valid SVG file.");
   const objectUrl = URL.createObjectURL(new Blob([svgText], { type: "image/svg+xml;charset=utf-8" }));
   try {
     const image = new Image();

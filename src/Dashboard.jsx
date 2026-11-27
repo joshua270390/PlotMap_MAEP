@@ -626,7 +626,7 @@ export default function Dashboard() {
                         <div className="project-card-heading"><div><span className="project-card-kicker">MARY ANN ELITE PROPERTIES</span><h2>{project.name}</h2></div><span className="project-card-arrow" aria-hidden="true">↗</span></div>
                         <p className="project-card-location"><span aria-hidden="true">⌖</span> {project.location}</p>
                         <p className="project-card-description">{project.description}</p>
-                        <div className="project-card-footer"><span className="project-type"><span aria-hidden="true">▦</span> Interactive Plot Layout</span><span className="project-view-link">{project.mapReady ? 'View project' : 'Map coming soon'} <span aria-hidden="true">{project.mapReady ? '→' : '…'}</span></span></div>
+                        <div className="project-card-footer"><span className="project-type"><span aria-hidden="true">▦</span> Interactive Plot Layout · {project.geometry?.P?.length ?? DASHBOARD_GEOMETRY_PLOTS[project.slug]?.length ?? 0} Plots</span><span className="project-view-link">{project.mapReady ? 'View project' : 'Map coming soon'} <span aria-hidden="true">{project.mapReady ? '→' : '…'}</span></span></div>
                       </div>
                       {role !== 'user' && project.customProjectId != null && <div className="project-card-actions" onClick={e => e.stopPropagation()}>
                         <button type="button" className="edit-btn" onClick={() => { setEditingProject(project); setShowCreatePage(true); window.history.pushState({}, '', '/create_plots'); }}>Edit details</button>

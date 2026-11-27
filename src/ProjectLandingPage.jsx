@@ -24,6 +24,7 @@ const LEGACY_PROJECTS = {
   shanmuga_avenue: { name: 'Shanmuga Avenue', location: 'Arasanur, Sivagangai', layout: 'Arasanur layout', intro: 'Discover Shanmuga Avenue and explore its interactive plot layout online.', tamil: 'சிவகங்கை மாவட்டம் அரசனூர் பகுதியில் உள்ள சண்முகா அவென்யூ மனைப்பிரிவை அறிந்துகொள்ளுங்கள்.' },
   saraswathi_garden: { name: 'Saraswathi Garden', location: 'Madurai, Tamil Nadu', layout: 'Saraswathi Garden layout', intro: 'Discover Saraswathi Garden and explore its project layout online.', tamil: 'மதுரையில் உள்ள சரஸ்வதி கார்டன் மனைப்பிரிவை அறிந்துகொள்ளுங்கள்.' },
   meenakshi_garden_phase1: { name: 'Sri Meenakshi Garden – Phase 1', location: 'Poonchuthi, Melur, Madurai', layout: 'Poonchuthi layout', intro: 'Explore Sri Meenakshi Garden Phase 1 and view its plot layout.', tamil: 'பூஞ்சுத்தி, மேலூர் பகுதியில் உள்ள ஸ்ரீ மீனாட்சி கார்டன் முதல் கட்ட மனைப்பிரிவை பார்வையிடுங்கள்.' },
+  grace_city_kalikudi_chennampatti: { name: 'Grace City', location: 'Kalikudi, Chennampatti, Tamil Nadu', layout: 'Grace City layout', intro: 'Discover Grace City at Kalikudi, Chennampatti.', tamil: 'கள்ளிக்குடி, சென்னம்பட்டி பகுதியில் அமைந்துள்ள கிரேஸ் சிட்டி மனைப்பிரிவை அறிந்துகொள்ளுங்கள்.' },
   meenakshi_garden_phase2: { name: 'Sri Meenakshi Garden – Phase 2', location: 'Poonchuthi, Melur, Madurai', layout: 'Poonchuthi layout', intro: 'Explore Sri Meenakshi Garden Phase 2 and view its plot layout.', tamil: 'பூஞ்சுத்தி, மேலூர் பகுதியில் உள்ள ஸ்ரீ மீனாட்சி கார்டன் இரண்டாம் கட்ட மனைப்பிரிவை பார்வையிடுங்கள்.' },
 };
 

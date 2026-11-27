@@ -67,9 +67,9 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
     }
     return null;
   }
-  function applyAnalysis(result) {
+  function applyAnalysis(result, jobId) {
     setForm(value => ({ ...value, geometry: result.geometry, notes: result.notes || "", plots: result.plots || [] }));
-    setAnalysed(true); setCompletedAnalysisJobId(analysisJobId); setAnalysisJobId("");
+    setAnalysed(true); setCompletedAnalysisJobId(jobId || ""); setAnalysisJobId("");
     setNotice("AI draft ready. Review the extracted plot map before saving.");
   }
   async function analyse() {
@@ -100,7 +100,7 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
       if (!response.ok || !result.ok || !result.job_id) throw new Error(result.error || "Could not start AI analysis.");
       setAnalysisJobId(result.job_id);
       const completed = await waitForAnalysis(result.job_id);
-      if (completed) applyAnalysis(completed);
+      if (completed) applyAnalysis(completed, result.job_id);
       else setNotice("AI analysis is still running. Use Check Status to continue without uploading the file again.");
     } catch (e) { setError(e.message || "AI analysis failed."); }
     finally { setBusy(false); }
@@ -110,7 +110,7 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
     setBusy(true); setError(""); setNotice("");
     try {
       const completed = await waitForAnalysis(analysisJobId, 60);
-      if (completed) applyAnalysis(completed);
+      if (completed) applyAnalysis(completed, analysisJobId);
       else setNotice("AI analysis is still running. You can check its status again shortly.");
     } catch (e) { setError(e.message || "Could not check AI analysis status."); }
     finally { setBusy(false); }
@@ -118,7 +118,7 @@ export default function CreatePlotsPage({ editingProject = null, authHeaders = {
   async function save(event) {
     event.preventDefault();
     if (busy) return;
-    if (!editingProject && (!form.file || !form.geometry)) { setError("Upload and analyse a PDF/image before creating the project."); return; }
+    if (!editingProject && (!form.file || !form.geometry || !completedAnalysisJobId)) { setError("Upload and analyse a PDF/image before creating the project."); return; }
     if (editingProject && form.file && !form.geometry && !editingProject.geometry) { setError("The existing map geometry is unavailable."); return; }
     setBusy(true); setError(""); setNotice("");
     try {

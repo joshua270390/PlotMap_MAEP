@@ -19,7 +19,7 @@ The Netlify site needs these server-side variables:
 - `ANTHROPIC_API_KEY`
 - `EMPLOYEE_SESSION_SECRET` (required only if Employees will use Create Plots)
 
-Optional: `CLAUDE_PLOT_MODEL` changes the Claude vision model. The default is `claude-sonnet-5-5`. The supplied SQL expects the default table and bucket names; do not set `CUSTOM_PROJECTS_TABLE`, `PLOTS_TABLE`, `BOOKINGS_TABLE`, `MAP_EDITS_TABLE`, `PROJECT_ANALYSIS_JOBS_TABLE`, or `PROJECT_FILES_BUCKET` overrides unless the SQL functions are adapted to match. After changing environment variables, trigger a new Netlify deploy so Functions receive the current values. Do not put the Anthropic key in a `VITE_*` variable or in browser code.
+Required: set `CLAUDE_PLOT_MODEL` to the Anthropic model ID enabled for your API account. The model ID is read only from the Netlify Function environment and is not hard-coded in the repository. The supplied SQL expects the default table and bucket names; do not set `CUSTOM_PROJECTS_TABLE`, `PLOTS_TABLE`, `BOOKINGS_TABLE`, `MAP_EDITS_TABLE`, `PROJECT_ANALYSIS_JOBS_TABLE`, or `PROJECT_FILES_BUCKET` overrides unless the SQL functions are adapted to match. After changing environment variables, trigger a new Netlify deploy so Functions receive the current values. Do not put the Anthropic key in a `VITE_*` variable or in browser code.
 
 ## 3. Upload limits and review
 

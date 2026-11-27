@@ -176,7 +176,7 @@ async function analyse(c, file, options = {}) {
     Object.values(node).forEach(cleanSchema);
   };
   cleanSchema(claudeSchema);
-  const prompt = "You are extracting a plotted land layout drawing for a real-estate map. Return ONLY clearly visible plots. Never invent a plot, number, area, or boundary. Each polygon is the visible plot outline in clockwise order. Use the first PDF page only. Return aspect_ratio as page width divided by page height. Coordinates are normalized independently to that page/canvas: x and y from 0 to 1000. If the plan spans multiple pages, explain that limitation in notes. label_position is the plot-number label center in the same coordinates. Read area_sqft only when legible; otherwise use 0. confidence is 0 to 1. Include road and park outlines only when their boundaries are clearly visible. If a plot boundary or number is ambiguous, omit that plot and explain in notes. Keep the geometry faithful to the source; this is a draft requiring human verification.";
+  const prompt = "You are extracting a plotted land layout drawing for a real-estate map. Return ONLY clearly visible plots. Never invent a plot, number, area, or boundary. Each polygon is the visible plot outline in clockwise order. Use the full uploaded image, or the first PDF page only. Return aspect_ratio as page width divided by page height. Coordinates are normalized independently to that page/canvas: x and y from 0 to 1000. If the plan spans multiple pages, explain that limitation in notes. label_position is the plot-number label center in the same coordinates. Read area_sqft only when legible; otherwise use 0. confidence is 0 to 1. Include road and park outlines only when their boundaries are clearly visible. If a plot boundary or number is ambiguous, omit that plot and explain in notes. Keep the geometry faithful to the source; this is a draft requiring human verification.";
   // Use Anthropic Files API so large PDF/image uploads do not inflate the Messages request body.
   // Uploaded file IDs are temporary to this analysis and are deleted in the finally block.
   const uploadedFileIds = [];
@@ -416,6 +416,13 @@ export default async function handler(request) {
     let plotRows;
     try { plotRows = buildPlotRows(geometry); }
     catch (e) { return json({ ok: false, error: e.message }, 422); }
+    const expectedPlotCountValue = String(form.get("expected_plot_count") || "").trim();
+    if (expectedPlotCountValue) {
+      const expectedPlotCount = Number(expectedPlotCountValue);
+      if (!Number.isInteger(expectedPlotCount) || expectedPlotCount < 1 || expectedPlotCount > 1000 || plotRows.length !== expectedPlotCount) {
+        return json({ ok: false, error: "The extracted plot count does not match the expected total of " + expectedPlotCountValue + ". No project or plot records were created." }, 422);
+      }
+    }
     const exists = await db(c, c.projects, "GET", new URLSearchParams({ select: "id", or: "(slug.eq." + slug + ",route.eq." + route + ")", limit: "1" }).toString());
     if (!exists.ok) return json({ ok: false, error: "Could not check existing project routes. Run the Create Plots SQL setup." }, 502);
     if (exists.data?.length) return json({ ok: false, error: "That project route already exists. Choose another route." }, 409);

@@ -272,3 +272,4 @@ export default function ProjectLandingPage({ projectSlug }) {
     </main>
   );
 }
+  grace_city_kalikudi_chennampatti: { name: 'Grace City, Kalikudi, Chennampatti', location: 'Kalikudi, Chennampatti, Tamil Nadu', layout: 'Grace City layout', intro: 'Explore Grace City at Kalikudi, Chennampatti and check the availability of all 187 plots through the interactive layout.', tamil: 'காளிகுடி, சென்னம்பட்டியில் அமைந்துள்ள Grace City மனைப்பிரிவின் 187 மனைகளையும் ஆன்லைனில் பார்வையிடுங்கள்.', plots: '187 plots' },
